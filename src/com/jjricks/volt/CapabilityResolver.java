@@ -21,7 +21,9 @@ public final class CapabilityResolver {
         WARNING_ACTIVE, LOCKED, OWNER_ONLY, NEEDS_BOND, NEEDS_PIN, FIRMWARE_UNKNOWN, FIRMWARE_OLD, FULL_PID_NEEDED,
         IDENTITY_CONFLICT, MODEL_NOT_IDENTIFIED, MODEL_NOT_MAPPED, MODEL_EXCLUDED, REGION_RULE,
         PRODUCT_UNSUPPORTED, TRANSPORT_UNSUPPORTED, DISCOVERY_ACTIVE, TEST_ACTIVE,
-        NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST }
+        NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST,
+        /** Switched off but still answering (ScooterPowerState): only the charging settings stay usable. */
+        SCOOTER_OFF }
     /** Status older than this is stale (BleController.ready() uses the same bound). */
     static final long STATUS_MAX_AGE_MS=7000;
 
@@ -36,6 +38,8 @@ public final class CapabilityResolver {
         public boolean parkedConfirmed;
         /** The running test is an Experimental controls try: its own writes use the try rule (decideTry), not the guided-test one. */
         public boolean testTry;
+        /** The scooter is switched off but answering (ScooterPowerState): every change but the charging settings is refused. */
+        public boolean scooterOff;
         public long nowMs;
     }
 
@@ -59,7 +63,7 @@ public final class CapabilityResolver {
          * Refused only because the scooter is moving, has sent no motion report yet, or (lock) has a
          * warning. The UI keeps such a control tappable so the tap can say why; admission still refuses.
          */
-        public boolean blockedByRide(){return support==Support.KNOWN_ENCODING&&(reason==Reason.MOVING||reason==Reason.NO_MOTION_REPORT||reason==Reason.WARNING_ACTIVE);}
+        public boolean blockedByRide(){return support==Support.KNOWN_ENCODING&&(reason==Reason.MOVING||reason==Reason.NO_MOTION_REPORT||reason==Reason.WARNING_ACTIVE||reason==Reason.SCOOTER_OFF);}
         /** Offered values (empty for a slider: use variant.min/max/step). */
         public int[] values(){return choices.clone();}
         public String[] labels(){String[] out=new String[choices.length];for(int i=0;i<choices.length;i++)out[i]=label(choices[i]);return out;}
@@ -111,7 +115,7 @@ public final class CapabilityResolver {
         // Simulation keeps today's behaviour: ready, not busy, and the variant domain. It never builds frames.
         if(rt.simulation){
             int[] values=v.dynamicChoices&&status.accepted()?v.choices(status):v.values.clone();
-            return new Decision(feature,r.layer,rule,rt.busy?Reason.BUSY:Reason.NONE,status,values);
+            return new Decision(feature,r.layer,rule,rt.busy?Reason.BUSY:off(feature,rt)?Reason.SCOOTER_OFF:Reason.NONE,status,values);
         }
         // 3. Runtime.
         Reason reason=Reason.NONE;int[] choices=null;
@@ -128,8 +132,10 @@ public final class CapabilityResolver {
             else if(current!=null&&!v.allows(current)&&!v.shows(current)&&(r.layer!=ModelRegistry.Layer.UT5_MAX||v.lab))reason=Reason.VALUE_UNKNOWN;
             else {choices=v.choices(status);if(v.dynamicChoices&&choices.length==0)reason=Reason.NO_CHOICES;}
         }
-        // 4. Preconditions.
-        if(reason==Reason.NONE)reason=preconditions(rule.preconditions,status,rt);
+        // 4. A scooter switched off (ScooterPowerState), then the preconditions. Switched off, the charging settings it still
+        // takes don't wait for a motion report it will never send (ScooterPowerState.parkedWaivedWhileOff).
+        if(reason==Reason.NONE&&off(feature,rt))reason=Reason.SCOOTER_OFF;
+        if(reason==Reason.NONE)reason=preconditions(waived(feature,rt)?withoutMotion(rule.preconditions):rule.preconditions,status,rt);
         return new Decision(feature,r.layer,rule,reason,status,choices==null?v.choices(status):choices);
     }
 
@@ -185,6 +191,7 @@ public final class CapabilityResolver {
             else if(!v.allows(current))reason=Reason.VALUE_UNKNOWN;
             else {choices=v.choices(status);if(choices.length==0)reason=Reason.NO_CHOICES;}
         }
+        if(reason==Reason.NONE&&off(feature,rt))reason=Reason.SCOOTER_OFF;
         if(reason==Reason.NONE){
             EnumSet<Precondition> p=EnumSet.copyOf(rule.preconditions);p.remove(Precondition.STATIONARY);p.remove(Precondition.MOTION_REPORT);
             reason=preconditions(p,status,rt);
@@ -247,7 +254,7 @@ public final class CapabilityResolver {
         if(rt==null||!rt.ready)return new Decision(feature,r.layer,rule,Reason.NOT_CONNECTED,status,v.choices(status));
         if(rt.simulation){
             int[] values=v.dynamicChoices&&status.accepted()?v.choices(status):v.values.clone();
-            return new Decision(feature,r.layer,rule,rt.busy?Reason.BUSY:rt.recording?Reason.RECORDING:Reason.NONE,status,values);
+            return new Decision(feature,r.layer,rule,rt.busy?Reason.BUSY:rt.recording?Reason.RECORDING:off(feature,rt)?Reason.SCOOTER_OFF:Reason.NONE,status,values);
         }
         Reason reason=Reason.NONE;int[] choices=null;
         if(rt.discovery)reason=Reason.DISCOVERY_ACTIVE;
@@ -264,6 +271,7 @@ public final class CapabilityResolver {
             else if(!v.allows(current)&&!v.shows(current))reason=Reason.VALUE_UNKNOWN;
             else {choices=v.choices(status);if(v.dynamicChoices&&choices.length==0)reason=Reason.NO_CHOICES;}
         }
+        if(reason==Reason.NONE&&off(feature,rt))reason=Reason.SCOOTER_OFF;
         if(reason==Reason.NONE)reason=preconditions(rule.preconditions,status,rt);
         return new Decision(feature,r.layer,rule,reason,status,choices==null?v.choices(status):choices);
     }
@@ -299,6 +307,7 @@ public final class CapabilityResolver {
         else if(rt.busy)reason=Reason.BUSY;
         else if(rt.recording)reason=Reason.RECORDING;
         else if(!status.fresh(rt.nowMs,STATUS_MAX_AGE_MS))reason=Reason.STATUS_STALE;
+        else if(off(OwnerRelease.KEY,rt))reason=Reason.SCOOTER_OFF;
         else reason=preconditions(p,status,rt);
         return new Decision(OwnerRelease.KEY,r.layer,rule,reason,status,null);
     }
@@ -321,6 +330,27 @@ public final class CapabilityResolver {
         for(ScooterCommands.Feature f:ScooterCommands.oemOnly()){Decision decision=decide(f.key,d,s,rt);if(decision.support==Support.KNOWN_ENCODING)out.add(decision);}
         out.add(decide("clock_sync",d,s,rt));
         return out;
+    }
+
+    /** Refused because the scooter is switched off: all but ScooterPowerState.usableWhileOff (the charging settings). */
+    private static boolean off(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&!ScooterPowerState.usableWhileOff(feature);}
+    /** Switched off, a charging setting needs no motion report (ScooterPowerState.parkedWaivedWhileOff); ordinary changes only. */
+    private static boolean waived(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&ScooterPowerState.parkedWaivedWhileOff(feature);}
+    private static EnumSet<Precondition> withoutMotion(EnumSet<Precondition> p){EnumSet<Precondition> out=EnumSet.copyOf(p);out.remove(Precondition.STATIONARY);out.remove(Precondition.MOTION_REPORT);return out;}
+
+    /**
+     * The notice for a change refused over motion (BleController.refused). Moving keeps "Bring the scooter to a stop
+     * first". Before the first motion report the UT5 MAX says it is waiting for the scooter's speed (it used to say
+     * "stop first" too, which a parked or switched-off scooter's owner read as wrong); other models keep "No motion report
+     * yet". A switched-off scooter says to turn it on. Null for any other reason.
+     */
+    static CharSequence motionNotice(Reason reason,boolean ut5){
+        switch(reason){
+            case MOVING: return M.bleStopScooterFirst();
+            case NO_MOTION_REPORT: return ut5?M.bleWaitingSpeedReport():message(reason);
+            case SCOOTER_OFF: return message(reason);
+            default: return null;
+        }
     }
 
     private static Reason preconditions(EnumSet<Precondition> p,StatusFields s,Runtime rt){
@@ -363,6 +393,7 @@ public final class CapabilityResolver {
             case NEEDS_REAL_SCOOTER: return M.controlsReasonNeedsRealScooter();
             case PARKED_UNCONFIRMED: return M.controlsReasonParkedUnconfirmed();
             case NO_TEST: return M.controlsReasonNoTest();
+            case SCOOTER_OFF: return M.controlsReasonScooterOff();
             default: return "";
         }
     }

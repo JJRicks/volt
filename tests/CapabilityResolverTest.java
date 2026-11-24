@@ -8,7 +8,7 @@ public final class CapabilityResolverTest {
     private static int assertions;
     private static final long SEEN=100000,NOW=SEEN+1000;
     public static void main(String[] args) {
-        goldenUt5(); unknownModels(); unsupported(); presence(); runtime(); lockContract(); roles(); admission(); simulation(); copy(); oemHomeScreen();
+        goldenUt5(); unknownModels(); unsupported(); presence(); runtime(); lockContract(); roles(); admission(); simulation(); copy(); oemHomeScreen(); scooterOff(); motionNotices();
         System.out.println("CapabilityResolver tests passed: "+assertions+" assertions");
     }
 
@@ -300,4 +300,53 @@ public final class CapabilityResolverTest {
     }
 
     private static void check(boolean condition,String message){assertions++;if(!condition)throw new AssertionError(message);}
+
+    /**
+     * 2.0.5 item 5: a scooter switched off but answering. Ride, lock and every other change are refused with "Turn the
+     * scooter on first"; the charging settings stay usable; unlocking keeps its recovery contract; it wins over the
+     * motion reasons it would otherwise get (no motion report, or a stale old push read as moving).
+     */
+    private static void scooterOff() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.scooterOff=true;
+        for(String key:new String[]{"cruise_control","headlight","auto_sensor","range_algorithm","maximum_speed","speed_limit","traction_control","display_units","turn_sound"}){
+            CapabilityResolver.Decision d=decide(key,ut5,s,rt);
+            check(d.reason==CapabilityResolver.Reason.SCOOTER_OFF&&d.reasonText().equals("Turn the scooter on first"),"Refused while off: "+key+" "+d);
+            check(d.blockedByRide(),"Kept tappable so the tap says why: "+key);
+        }
+        check(CapabilityResolver.admit("lock",1,ut5,s,rt).reason==CapabilityResolver.Reason.SCOOTER_OFF,"Locking is refused while off");
+        check(CapabilityResolver.admit("lock",0,ut5,s,rt).available(),"Unlocking keeps its recovery contract");
+        for(String key:new String[]{"charge_limit","timed_charging","clock_sync"})check(decide(key,ut5,s,rt).available(),"Charging setting usable while off, with no motion report: "+key+" "+decide(key,ut5,s,rt));
+        CapabilityResolver.Runtime on=parked();on.stationary=false;on.motionSeen=false;
+        check(decide("charge_limit",ut5,s,on).reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"Not off: the charge limit keeps the parked rule");
+        on.motionSeen=true;check(decide("timed_charging",ut5,s,on).reason==CapabilityResolver.Reason.MOVING,"Not off and moving: refused as before");
+        check(CapabilityResolver.decideTry("charge_limit",ut5,s,rt).reason!=CapabilityResolver.Reason.NONE||CapabilityResolver.decideTry("charge_limit",ut5,s,rt).support!=CapabilityResolver.Support.KNOWN_ENCODING,"Tries keep the parked rule");
+        check(MutationGate.check(new MutationGate.Request(MutationGate.Kind.CHARGE_START,"charge_start",0,MutationGate.Origin.USER),ut5,s,rt).available(),"The scheduled charge start goes out while off");
+        check(MutationGate.check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER),ut5,s,rt).available(),"Reading the PIN state changes nothing: allowed");
+        rt.motionSeen=true;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.SCOOTER_OFF,"An old push no longer reads as moving");
+        rt=parked();rt.scooterOff=true;rt.owner=true;
+        check(CapabilityResolver.decideRelease(ut5,s,rt).reason==CapabilityResolver.Reason.SCOOTER_OFF,"Release this scooter waits for it to be on");
+        check(CapabilityResolver.decideTry("headlight",ut5,s,rt).reason!=CapabilityResolver.Reason.NONE,"No experimental try while off");
+        rt=parked();rt.scooterOff=true;rt.nowMs=SEEN+8000;
+        check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.STATUS_STALE,"A stale status still says stale");
+        rt=parked();rt.scooterOff=true;rt.busy=true;
+        check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.BUSY,"Busy still says busy");
+        // The simulator honours the flag only through the validations' hook (ScooterPowerState.heldOff).
+        CapabilityResolver.Runtime sim=new CapabilityResolver.Runtime();sim.simulation=true;sim.ready=true;sim.nowMs=NOW;sim.scooterOff=true;
+        DeviceDescriptor simulated=DeviceDescriptor.simulated("",0);
+        check(decide("cruise_control",simulated,StatusFields.NONE,sim).reason==CapabilityResolver.Reason.SCOOTER_OFF&&decide("charge_limit",simulated,StatusFields.NONE,sim).available(),"Simulated off refuses the same way");
+        rt=parked();check(!rt.scooterOff,"Off by default");
+    }
+
+    /** BleController.refused's motion notices: the UT5 MAX no longer says "stop first" before its first speed report. */
+    private static void motionNotices() {
+        check(CapabilityResolver.motionNotice(CapabilityResolver.Reason.MOVING,true).toString().equals("Bring the scooter to a stop first"),"Moving keeps stop first (UT5 MAX)");
+        check(CapabilityResolver.motionNotice(CapabilityResolver.Reason.MOVING,false).toString().equals("Bring the scooter to a stop first"),"Moving keeps stop first (others)");
+        String waiting=CapabilityResolver.motionNotice(CapabilityResolver.Reason.NO_MOTION_REPORT,true).toString();
+        check(!waiting.equals("Bring the scooter to a stop first")&&waiting.equals("Waiting for the scooter to report its speed"),"No motion report on the UT5 MAX: waiting, not stop first");
+        check(CapabilityResolver.motionNotice(CapabilityResolver.Reason.NO_MOTION_REPORT,false).toString().equals("No motion report yet"),"Other models keep their text");
+        for(boolean ut5:new boolean[]{true,false})
+            check(CapabilityResolver.motionNotice(CapabilityResolver.Reason.SCOOTER_OFF,ut5).toString().equals("Turn the scooter on first"),"Off: turn it on");
+        check(CapabilityResolver.motionNotice(CapabilityResolver.Reason.BUSY,true)==null,"Other reasons are not motion notices");
+    }
 }

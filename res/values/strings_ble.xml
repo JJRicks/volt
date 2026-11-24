@@ -26,6 +26,12 @@
         volt:safety="owner-key">Checking owner…</string>
     <!-- The scooter is connected and authenticated. -->
     <string name="ble_status_connected" volt:screen="Connection state" volt:purpose="status">Connected</string>
+    <!-- Connected, but the scooter is switched off: its Bluetooth still answers (battery, settings) while it sends no
+         live data. Volt keeps the link and shows this instead of Connected until the scooter is switched on. -->
+    <string name="ble_status_scooter_off" volt:screen="Connection state" volt:purpose="status">Scooter off</string>
+    <!-- The line under Scooter off: what to do. Ride and lock controls stay refused until the scooter is on;
+         charging settings still work. -->
+    <string name="ble_scooter_off_detail" volt:screen="Connection state" volt:purpose="hint">Turn the scooter on to use it</string>
     <!-- The rider disconnected on purpose. -->
     <string name="ble_status_disconnected" volt:screen="Connection state" volt:purpose="status" volt:ladder="full">Disconnected</string>
     <!-- The short rung of Disconnected, for a connection line too narrow for the full word at the readable size. -->
@@ -201,6 +207,10 @@
          sent. Nothing waits or retries: the rider stops the scooter and tries again. -->
     <string name="ble_stop_scooter_first" volt:screen="Scooter controls" volt:purpose="reason"
         volt:safety="ride,lock">Bring the scooter to a stop first</string>
+    <!-- Right after connecting, before the scooter's first speed report: a change that needs the scooter parked is
+         refused and not sent until Volt knows the scooter is stopped. Nothing waits or retries: tap again in a moment. -->
+    <string name="ble_waiting_speed_report" volt:screen="Scooter controls" volt:purpose="reason"
+        volt:safety="ride,lock">Waiting for the scooter to report its speed</string>
     <!-- The control is not available at the moment (for example, the scooter has not reported it). -->
     <string name="ble_not_available_now" volt:screen="Scooter controls" volt:purpose="reason">Not available now</string>
     <!-- The value is not one the official app allows for this control. -->

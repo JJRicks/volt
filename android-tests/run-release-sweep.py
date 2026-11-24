@@ -236,6 +236,12 @@ STEPS += [
     inst('charging-pill-412', T + 'ChargingPillValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charging-pill-344', T + 'ChargingPillValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('charging-pill-fold', T + 'ChargingPillValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # A scooter switched off but still answering (2.0.5 item 5): Home's Scooter off, the refusals, the charge limit still
+    # usable and Connected again, through the detector's validation-only hook (the simulator never pushes); Clean and
+    # Widgets, dark and light, at a phone's size, the narrowest phone and the Fold unfolded.
+    inst('scooter-off-412', T + 'ScooterOffValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('scooter-off-344', T + 'ScooterOffValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('scooter-off-fold', T + 'ScooterOffValidation', '-e', 'size_label', 'fold', size='790x820'),
     inst('charging-pill-344-large', T + 'ChargingPillValidation', '-e', 'size_label', '344', '-e', 'text', '1.8', '-e', 'styles', 'clean', '-e', 'unit', 'c', size=PHONE[0]),
     # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
     # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's

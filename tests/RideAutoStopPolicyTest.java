@@ -36,6 +36,7 @@ public final class RideAutoStopPolicyTest {
         restartWhileDisconnected();
         cancellationsStopQuiet();
         parkedRuleWins();
+        scooterOffWhileAnswering();
         System.out.println("RideAutoStopPolicyTest: " + checks + " assertions passed");
     }
 
@@ -436,5 +437,54 @@ public final class RideAutoStopPolicyTest {
         p.disconnected(lost, true);
         check(p.parkedArmed() && !p.quietArmed() && p.remainingMs(lost) == RideAutoStopPolicy.DISCONNECT_GRACE_MS, "Parked evidence keeps the ten-second rule");
         check(p.due(lost + 10000) && !p.dueQuiet(last + 60000) && !p.dueQuiet(last + 400000), "Only one end fires; a failed save is not retried by the quiet rule");
+    }
+
+    /**
+     * 2.0.5 item 5: the scooter switched off but kept answering polls, so the link never dropped. The poll replies keep
+     * the last frame fresh, so a plain disconnected() at the verdict would see a stale motion push (long branch, no parked
+     * rule); scooterOff() times the loss from the last push, as a power-off that dropped the link would.
+     */
+    private static void scooterOffWhileAnswering() {
+        RideAutoStopPolicy p = policy();
+        long last = rideThenPark(p, T, 4);
+        // Polls answered every 2 s after the last push (frames, no new motion).
+        for (long at = last + 2000; at <= last + 10000; at += 2000) p.connected(at, PROFILE, SERIAL, 1, at, last, 0, 0);
+        long verdict = last + 10500;
+        p.scooterOff(verdict, last);
+        // The answered polls (fresh frames, old motion) already cleared the parked run, as on any link, so it is the
+        // stopped scooter's one-minute countdown, timed from the last push.
+        check(!p.parkedArmed() && p.quiet() == RideAutoStopPolicy.Quiet.SLOW && p.quietSince() == last, "Parked then switched off: one minute from the last push");
+        p.scooterOff(verdict + 2000, last);
+        check(p.quietSince() == last && p.remainingMs(verdict + 2000) == RideAutoStopPolicy.QUIET_SLOW_MS - 12500, "Later off observations never restart it");
+        check(!p.dueQuiet(last + 59999) && p.dueQuiet(last + 60000), "Ends a minute after the last push");
+
+        // Compare: the same thing seen as a plain loss would only take the five-minute branch.
+        RideAutoStopPolicy plain = policy();
+        last = rideThenPark(plain, T, 4);
+        for (long at = last + 2000; at <= last + 10000; at += 2000) plain.connected(at, PROFILE, SERIAL, 1, at, last, 0, 0);
+        plain.disconnected(last + 10500, true);
+        check(!plain.parkedArmed() && plain.quiet() == RideAutoStopPolicy.Quiet.LONG, "A plain loss at the verdict would wait five minutes");
+
+        // Walking pace, then off without a parked run: the one-minute countdown from the last push.
+        p = policy();
+        push(p, T, 150, 1); push(p, T + 1000, 30, 1);
+        for (long at = T + 3000; at <= T + 11000; at += 2000) p.connected(at, PROFILE, SERIAL, 1, at, T + 1000, 30, 1);
+        p.scooterOff(T + 11500, T + 1000);
+        check(!p.parkedArmed() && p.quiet() == RideAutoStopPolicy.Quiet.SLOW && p.quietSince() == T + 1000, "Walking then off: one minute from the last push");
+        check(!p.dueQuiet(T + 60999) && p.dueQuiet(T + 61000), "Due a minute after the last push");
+
+        // Switched on again: the first push is a reconnect and cancels the countdown.
+        p = policy(); last = rideThenPark(p, T, 4);
+        p.scooterOff(last + 10500, last);
+        check(p.armed(), "Armed while off");
+        p.connected(last + 15000, PROFILE, SERIAL, 1, last + 15000, last + 15000, 0, 0);
+        check(!p.armed() && !p.due(last + 30000) && !p.dueQuiet(last + 400000), "The first push after switching on cancels it");
+
+        // No push on this connection at all (it connected already off): the long branch, timed from the last frame.
+        p = policy();
+        p.connected(T, PROFILE, SERIAL, 1, T, 0, -1, -1);
+        p.connected(T + 10000, PROFILE, SERIAL, 1, T + 10000, 0, -1, -1);
+        p.scooterOff(T + 10500, 0);
+        check(p.quiet() == RideAutoStopPolicy.Quiet.LONG && p.quietSince() == T + 10000, "No push at all: five minutes from the last frame heard");
     }
 }

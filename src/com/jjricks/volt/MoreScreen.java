@@ -2170,7 +2170,7 @@ public final class MoreScreen implements AppScreen {
     private static final java.util.EnumSet<CapabilityResolver.Reason> LAB_HELD = java.util.EnumSet.of(CapabilityResolver.Reason.NOT_CONNECTED,
             CapabilityResolver.Reason.STATUS_STALE, CapabilityResolver.Reason.MOVING, CapabilityResolver.Reason.NO_MOTION_REPORT, CapabilityResolver.Reason.WARNING_ACTIVE,
             CapabilityResolver.Reason.LOCKED, CapabilityResolver.Reason.OWNER_ONLY, CapabilityResolver.Reason.DISCOVERY_ACTIVE, CapabilityResolver.Reason.TEST_ACTIVE,
-            CapabilityResolver.Reason.RECORDING);
+            CapabilityResolver.Reason.RECORDING, CapabilityResolver.Reason.SCOOTER_OFF);
     private static String labHeld(CapabilityResolver.Reason reason) {
         switch (reason) {
             case NOT_CONNECTED: return T.moreLabHeldConnect();

@@ -43,6 +43,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.LearnedCurveValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Charge history and recordings learned charge curve cards validation" />
   <instrumentation android:name="com.jjricks.volt.tests.OverviewReadingsValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Home style overview readings validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeSizeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time size beside power validation (simulator)" />
+  <instrumentation android:name="com.jjricks.volt.tests.ScooterOffValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated scooter switched off but answering: Home and refusals (simulator hook)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargingPillValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging pill states validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ModelPhotosValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated model photo set and Home photo validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />

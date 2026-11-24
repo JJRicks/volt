@@ -86,10 +86,17 @@ public final class DiagnosticsBundleTest {
 
         return new DiagnosticsBundle("1.7.0", WALL + 10000, false).phone("16", 36, "Google Pixel 9")
                 .app(48, "com.android.vending").phoneState(device()).settings(stuffedSettings(), PROFILE_ID).report(report)
-                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).tally(t.tally, false)
+                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).tally(t.tally, false).pushFrames(pushFrames())
                 .chargeSchedule(schedule()).evidence(new ChargeEvidence.Snapshot(true, evidence(1)))
                 .recordings(recordings()).storage(5_000_000_000L, true, false, true)
                 .crash(CrashRecord.decode(CrashRecord.encode(CrashRecordTest.sample(), "1.7.0", WALL))).clockChanges(connections);
+    }
+
+    /** A scooter switched off while answering (2.0.5 item 5): pushes early on, then 20 s of silence. */
+    private static Map<String, Object> pushFrames() {
+        ScooterPowerState s = new ScooterPowerState(); s.start(1000); s.frame(0x90, 2000); s.frame(0x92, 2500);
+        Map<String, Object> m = s.diagnostics(22_500, s.verdict(22_500, false, true, true, true, false), true); m.put("simulated", false);
+        return m;
     }
 
     /** A phone's state; its text fields are checked by shape, so a name in one cannot pass (emptySources checks). */
@@ -170,11 +177,14 @@ public final class DiagnosticsBundleTest {
 "\"phone_rides\": {", "\"count\": 1", "\"charges\": {", "\"end\": \"complete\"", "\"duration_s\": 180",
                 "\"storage\": {", "\"free_space\": \"under_10_gb\"", "\"ride_last_write_failed\": false",
                 "\"last_crash\": {", "\"exception\": \"java.lang.RuntimeException\"", "\"ScooterService$3.run:1204\"",
-                "\"clock_changes\": {", "\"threshold_ms\": 2000", "\"events_compared\": 2", "\"phone_restarts\": 0"})
+                "\"clock_changes\": {", "\"threshold_ms\": 2000", "\"events_compared\": 2", "\"phone_restarts\": 0",
+                "\"push_frames\": {", "\"0x90\": 1", "\"0x91\": 0", "\"0x92\": 20000", "\"verdict\": \"off\"", "\"why\": \"silent\"", "\"armed\": true"})
             require(json.contains(expected), "part 2 holds " + expected);
         // The power sign and drive modes sit next to the readings they come from.
         int readings = json.indexOf("\"readings\": ["), power = json.indexOf("\"power_sign\": {"), schedule = json.indexOf("\"charge_schedule\": {");
         require(readings < power && power < schedule, "power_sign follows the readings");
+        int frames = json.indexOf("\"push_frames\": {");
+        require(power < frames && frames < schedule, "push_frames follows the power sign");
         require(!json.contains("\"simulated\": true"), "a real connection's sections are not marked simulated");
     }
 

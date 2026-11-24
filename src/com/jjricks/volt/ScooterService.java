@@ -2603,6 +2603,8 @@ public final class ScooterService extends Service {
                 ||ble.intentionalDisconnectSequence()!=rideAutoStopDisconnects){
             rideAutoStop.reset();rideAutoStopDisconnects=ble.intentionalDisconnectSequence();return;
         }
+        // A scooter switched off while answering (ScooterPowerState) counts as gone, timed from its last push.
+        if(ble.connected()&&ble.scooterOff()){rideAutoStop.scooterOff(mono,ble.lastPushMs());return;}
         if(ble.connected()){ScooterProfiles.Profile bound=ble.profile();
             rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus());}
         else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
@@ -3724,7 +3726,7 @@ public final class ScooterService extends Service {
         bundle.settings(stored,selected).scooterSetup(diagnosticsSetup()).report(report)
                 .connections(connectionEvents,ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
                 .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
-                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).tally(ble.telemetry.tally,simulating())
+                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).tally(ble.telemetry.tally,simulating()).pushFrames(ble.powerDiagnostics())
                 .chargeSchedule(schedules().diagnostics());
         // The selected scooter's evidence only; none in a simulation (its file is the real scooter's).
         if(evidence!=null&&!simulating()&&ChargeEvidence.scope(selected))bundle.evidence(evidence.snapshot(selected));

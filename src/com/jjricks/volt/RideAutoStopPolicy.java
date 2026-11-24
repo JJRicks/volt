@@ -270,6 +270,18 @@ public final class RideAutoStopPolicy {
             startQuiet(lostFrame, QUIET_LONG_MS, Quiet.PHONE_BLUETOOTH_OFF);
     }
 
+    /**
+     * The link is still up but the scooter is switched off (ScooterPowerState, 2.0.5 item 5): it answers reads but
+     * pushes nothing. Treated exactly as the scooter going away, a {@link Loss#RECOVERABLE} loss whose last frame
+     * heard is its last push ({@code pushMono}, 0 when none arrived on this connection), so both rules time it from the
+     * switch-off as they would after a power-off that dropped the link. Only the first observation decides, as for
+     * {@link #disconnected}; the scooter's first push afterwards is an authenticated reconnect ({@link #connected}).
+     */
+    public void scooterOff(long now, long pushMono) {
+        if (bound && pushMono > 0 && pushMono <= now && pushMono < lastFrame) lastFrame = pushMono;
+        disconnected(now, Loss.RECOVERABLE);
+    }
+
     /** True once when the parked grace has run out; the caller then ends this ride through its normal stop. */
     public boolean due(long now) {
         if (!clock(now) || !parkedArmed() || now - lossMono < DISCONNECT_GRACE_MS) return false;
