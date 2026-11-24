@@ -166,6 +166,14 @@ final class SheetSpring {
      */
     static boolean whiteIcons(int background, double alpha, boolean sheetUnderBar) { return !sheetUnderBar && whiteIcons(background, alpha); }
 
+    /**
+     * Whether the sheet's surface, its top at {@code sheetTop} px in the window, is under the status bar's icons, for
+     * whiteIcons: once it reaches the middle of the bar ({@code barBottom} px tall), where the icons are drawn, not as
+     * soon as it passes the bar's bottom edge. A small overshoot past open on a short window's bounce leaves the icons
+     * over the dim, where white ones keep their contrast (#629 review, F03). No status bar (0): never.
+     */
+    static boolean coversStatusIcons(double sheetTop, int barBottom) { return barBottom > 0 && sheetTop <= barBottom / 2.0; }
+
     /** WCAG 2 contrast ratio of two luminances. */
     static double contrast(double a, double b) { return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }
 
