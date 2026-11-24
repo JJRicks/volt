@@ -72,6 +72,13 @@ final class TestJournal {
 
     private final Storage storage;
     private final List<Entry> entries=new ArrayList<>();
+    /**
+     * Controls tried on a profile whose tries were pruned ("profile\tfeature"), so a row says Tried before instead of
+     * Not tried yet once its last try is gone (#542 review). Only the two names, as "tried" lines; an older Volt drops
+     * them as unknown lines. At most MAX_TRIED, the oldest going first.
+     */
+    private final java.util.LinkedHashSet<String> tried=new java.util.LinkedHashSet<>();
+    static final int MAX_TRIED=200;
     private final boolean readable;
     private int dropped;
 
@@ -79,7 +86,7 @@ final class TestJournal {
     TestJournal(Storage storage){
         this.storage=storage;boolean ok=true;
         try{String text=storage.read();if(text!=null)load(text);}
-        catch(IOException|RuntimeException unreadable){ok=false;entries.clear();}
+        catch(IOException|RuntimeException unreadable){ok=false;entries.clear();tried.clear();}
         readable=ok;
     }
 
@@ -101,10 +108,11 @@ final class TestJournal {
         List<Entry> next=new ArrayList<>();boolean replaced=false;
         for(Entry old:entries){if(old.testId.equals(e.testId)){next.add(saved(old,e));replaced=true;}else next.add(old);}
         if(!replaced)next.add(saved(null,e));
-        prune(next,e.updatedWall);
+        java.util.LinkedHashSet<String> triedNext=new java.util.LinkedHashSet<>(tried);
+        prune(next,e.updatedWall,triedNext);
         if(next.size()>MAX_ENTRIES)throw new IOException("Too many unfinished tests");
-        storage.writeAtomic(serialize(next));
-        entries.clear();entries.addAll(next);
+        storage.writeAtomic(serialize(next,triedNext));
+        entries.clear();entries.addAll(next);tried.clear();tried.addAll(triedNext);
     }
     /**
      * The entry as committed: reported only while it records exactly what a sent report included. A new outcome, the
@@ -167,16 +175,24 @@ final class TestJournal {
         List<Entry> next=new ArrayList<>();boolean changed=false;
         for(Entry old:entries){Entry e=old.copy();if(!e.reported&&revisions.contains(revision(e))){e.reported=true;changed=true;}next.add(e);}
         if(!changed)return;
-        prune(next,wallMs);storage.writeAtomic(serialize(next));entries.clear();entries.addAll(next);
+        java.util.LinkedHashSet<String> triedNext=new java.util.LinkedHashSet<>(tried);
+        prune(next,wallMs,triedNext);storage.writeAtomic(serialize(next,triedNext));entries.clear();entries.addAll(next);tried.clear();tried.addAll(triedNext);
     }
-    /** The owner clears one profile's finished tries. Unfinished ones stay: they still need a review. Returns how many went. */
+    /**
+     * The owner clears one profile's finished tries, and what pruned ones left (triedBefore). Unfinished ones stay: they
+     * still need a review. Returns how many tries went.
+     */
     synchronized int clearTries(String profileId) throws IOException{
         if(!readable)throw new IOException("Test records are unavailable");
         List<Entry> next=new ArrayList<>();int removed=0;
         for(Entry e:entries){if(e.isTry()&&e.resolved&&e.profileId.equals(profileId))removed++;else next.add(e);}
-        if(removed==0)return 0;
-        storage.writeAtomic(serialize(next));entries.clear();entries.addAll(next);return removed;
+        java.util.LinkedHashSet<String> triedNext=new java.util.LinkedHashSet<>(tried);
+        triedNext.removeIf(t->t.startsWith(profileId+"\t"));
+        if(removed==0&&triedNext.size()==tried.size())return 0;
+        storage.writeAtomic(serialize(next,triedNext));entries.clear();entries.addAll(next);tried.clear();tried.addAll(triedNext);return removed;
     }
+    /** Whether a try of this control on this profile was pruned (its latestTry may be gone): the row says Tried before. */
+    synchronized boolean triedBefore(String profileId,String feature){return tried.contains(profileId+"\t"+feature);}
     /** Room for one more test: unresolved entries are never pruned to make space. */
     synchronized boolean canStart(){return readable&&unresolved().size()<MAX_ENTRIES;}
 
@@ -196,6 +212,14 @@ final class TestJournal {
             if(oldest<0)return;list.remove(oldest);
         }
     }
+    /** As above, remembering each try that goes in tried (triedBefore). */
+    private static void prune(List<Entry> list,long nowWall,java.util.LinkedHashSet<String> tried){
+        List<Entry> kept=new ArrayList<>(list);
+        prune(list,nowWall);
+        // A try that goes is remembered by its two names only, so its row never claims it was never tried.
+        for(Entry e:kept)if(e.isTry()&&!list.contains(e)){String key=e.profileId+"\t"+e.feature;tried.remove(key);tried.add(key);}
+        while(tried.size()>MAX_TRIED){java.util.Iterator<String> oldest=tried.iterator();oldest.next();oldest.remove();}
+    }
 
     // ---- Format ------------------------------------------------------------------------------
 
@@ -204,10 +228,22 @@ final class TestJournal {
     private static final String[] KEYS={"id","profile","feature","variant","pid_prefix","pid_source","meter","registry","baseline","target","related",
         "phase","effect","restoration","resolution","outcomes","elapsed","created","updated","resolved","kind","layer","reported"};
 
-    static String serialize(List<Entry> list){
+    static String serialize(List<Entry> list){return serialize(list,Collections.<String>emptySet());}
+    /** The entries, then one "tried" line per pruned try's profile and control (triedBefore). */
+    static String serialize(List<Entry> list,java.util.Set<String> tried){
         StringBuilder out=new StringBuilder(HEADER).append('\n');
         for(Entry e:list)out.append(line(e)).append('\n');
+        for(String t:tried){String[] names=t.split("\t",-1);String body="tried\tprofile="+names[0]+"\tfeature="+names[1];out.append(body).append("\tcrc=").append(crc(body)).append('\n');}
         return out.toString();
+    }
+    /** A "tried" line's "profile\tfeature", or null when it isn't one, or is damaged or out of bounds. */
+    static String parseTried(String line){
+        int c=line.lastIndexOf("\tcrc=");if(c<0||!line.startsWith("tried\t")||!line.substring(c+5).equals(crc(line.substring(0,c))))return null;
+        String[] parts=line.substring(6,c).split("\t",-1);
+        if(parts.length!=2||!parts[0].startsWith("profile=")||!parts[1].startsWith("feature="))return null;
+        String profile=parts[0].substring(8),feature=parts[1].substring(8);
+        if(!profile.matches("[0-9A-Za-z_-]{1,64}")||!(ModelRegistry.experimentalKey(feature)||ModelRegistry.testable(feature)))return null;
+        return profile+"\t"+feature;
     }
     static String line(Entry e){
         StringBuilder b=new StringBuilder("entry");
@@ -226,6 +262,7 @@ final class TestJournal {
         if(!v1&&!lines[0].equals(HEADER))throw new IllegalStateException("Unknown test journal format");
         for(int i=1;i<lines.length;i++){
             if(lines[i].isEmpty())continue;
+            if(!v1&&lines[i].startsWith("tried\t")){String t=parseTried(lines[i]);if(t==null||tried.size()>=MAX_TRIED)dropped++;else tried.add(t);continue;}
             Entry e=parse(lines[i],v1?KEYS_V1:KEYS);
             if(e==null||find(e.testId)!=null||entries.size()>=MAX_ENTRIES){dropped++;continue;}
             entries.add(e);

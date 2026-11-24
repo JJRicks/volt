@@ -411,7 +411,7 @@ public final class NewOwnerKeyTest {
         check(body(screen, "private void go(int next) {", "\n    }\n").contains("if (next == IMPORT) leaveMadeKey();"), "every way into Import leaves the made key (F03)");
         String leave = body(screen, "private void leaveMadeKey() {", "\n    }\n");
         check(leave.indexOf("if (!removableMade(made)) return;") > 0 && leave.indexOf("if (!removableMade(made)) return;") < leave.indexOf("service.ble.disconnect();")
-                && leave.indexOf("service.ble.disconnect();") < leave.indexOf("if (mayRemoveCreated(made)) store.remove(made.id);"),
+                && leave.indexOf("service.ble.disconnect();") < leave.indexOf("if (mayRemoveCreated(made)) { store.remove(made.id); scooterSwitched(); }"),
                 "Import removes only a never-offered key, after its connection ends");
         // Failure mode 8: every removal in setup is mayRemoveCreated's, or the undo of a key whose save failed before Connect.
         int makeAt = screen.indexOf("private void makeNewKey() {"), undoAt = screen.indexOf("if (!saved) {", makeAt), makeEnd = screen.indexOf("private boolean recordMade(", makeAt);

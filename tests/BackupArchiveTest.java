@@ -464,6 +464,17 @@ public final class BackupArchiveTest {
         Map<String, Object> privateKeys = new LinkedHashMap<>(); privateKeys.put("items", "[{\"id\":\"x\",\"role\":5}]");
         byte[] badProfiles = AppDataArchive.encodePreferences(Collections.singletonMap("profiles", privateKeys), Collections.singleton("profiles"));
         rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"scooters"}, new int[]{1}, new long[]{badProfiles.length}, 1, badProfiles.length), "prefs/scooters.bin", badProfiles))), "invalid scooter profiles refused");
+        // A hand-edited scooter ID the charge store refuses (ChargeSessionStore: [A-Za-z0-9_-]{1,128}) is refused at
+        // staging; restored, it made Charge history's worker throw. The phone's own list still reads it (no lockout).
+        for (String id : new String[]{"has space", "dot.id", "slash/id", "\u00fc", String.join("", Collections.nCopies(129, "a"))}) {
+            String item = "[{\"id\":" + BackupJson.quote(id) + ",\"name\":\"Edited\",\"identity\":\"0123456789AB\",\"role\":0}]";
+            Map<String, Object> edited = new LinkedHashMap<>(); edited.put("items", item);
+            byte[] editedProfiles = AppDataArchive.encodePreferences(Collections.singletonMap("profiles", edited), Collections.singleton("profiles"));
+            rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"scooters"}, new int[]{1}, new long[]{editedProfiles.length}, 1, editedProfiles.length), "prefs/scooters.bin", editedProfiles))), "scooter ID the charge store refuses is refused: " + id);
+            if (id.length() <= 128) check(BackupProfiles.parse(item).size() == 1 && BackupProfiles.readable(item).size() == 1, "local profiles keep an ID the store refuses readable: " + id);
+        }
+        for (String id : new String[]{"0b5c7a2e-1f3d-4e6a-9b8c-7d6e5f4a3b2c", "x1", "w_a-B9", String.join("", Collections.nCopies(128, "a"))})
+            check(BackupProfiles.parse("[{\"id\":\"" + id + "\",\"identity\":\"0123456789AB\",\"role\":0}]", true).size() == 1, "staged backups keep every ID the charge store takes: " + id);
         byte[] badDb = "not a database".getBytes();
         rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"history"}, new int[]{1}, new long[]{badDb.length}, 1, badDb.length), "database/telemetry-history.db", badDb))), "invalid history database refused");
         // A plain ZIP with a category manifest is not accepted: new backups are always encrypted.

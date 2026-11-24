@@ -24,8 +24,12 @@ final class BackupProfiles {
     private BackupProfiles() { }
 
     static List<Profile> parse(Object items) throws IOException {return parse(items,false);}
+    /** The IDs the charge store takes (ChargeSessionStore's profile rule): a staged backup's must match it. */
+    static final String STORE_ID = "[A-Za-z0-9_-]{1,128}";
     /** With modelEvidence, a backup's profiles must also pass the model evidence bounds
-     * ({@link #validModelEvidence}); staged backups are read this way, local profiles are not. */
+     * ({@link #validModelEvidence}) and have IDs the charge store takes ({@link #STORE_ID}; Volt's own are UUIDs, and a
+     * hand-edited one it refuses would stop Charge history with an error); staged backups are read this way, local
+     * profiles are not. */
     static List<Profile> parse(Object items, boolean modelEvidence) throws IOException {
         if(items==null)return new ArrayList<>();
         if(!(items instanceof String))throw new BackupException(M.backupEngineBackupInvalidScooterProfiles());
@@ -37,7 +41,7 @@ final class BackupProfiles {
             Map<String,Object> p;
             try{p=BackupJson.object(BackupJson.parse(element,MAX_DEPTH));}catch(IOException bad){throw new BackupException(M.backupEngineBackupUnreadableScooterProfiles(),bad);}
             Object id=p.get("id");
-            if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||!ids.add((String)id))throw new BackupException(M.backupEngineBackupInvalidScooterProfileIdentifiers());
+            if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||modelEvidence&&!((String)id).matches(STORE_ID)||!ids.add((String)id))throw new BackupException(M.backupEngineBackupInvalidScooterProfileIdentifiers());
             for(String field:new String[]{"name","identity","mac","serial"})if(p.containsKey(field)&&!(p.get(field) instanceof String))throw new BackupException(M.backupEngineBackupInvalidScooterProfileFields());
             Object role=p.get("role");
             if(p.containsKey("role")&&(!(role instanceof Number)||(((Number)role).doubleValue()!=0&&((Number)role).doubleValue()!=1)))throw new BackupException(M.backupEngineBackupInvalidScooterOwner());

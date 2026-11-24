@@ -175,6 +175,11 @@ public final class MainActivity extends Activity implements ScreenHost {
      * (resumePendingScan), so a find never comes back as the ordinary scanner. Set, cleared, saved and restored with it.
      */
     private boolean pendingFind;
+    /**
+     * The waiting find is Home's (entry A): its resume asks homeFindOffered again before the sheet disconnects anything,
+     * since the state may have changed meanwhile (#487 review). homeFind marks Home's call while it runs.
+     */
+    private boolean pendingHomeFind,homeFind;
     private long lastBodyRefreshMs;
     /** Whether the link was ready at the last body refresh (null before the first). */
     private Boolean bodyReady;
@@ -231,10 +236,12 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Whether the keyboard is up, as the window's insets last said (Android 11 and later). */
     private boolean keyboardShown;
     private final SharedPreferences.OnSharedPreferenceChangeListener settingsChanged=(p,key)->{
-        if(key.equals("theme")||key.equals("units")||key.equals("temperature_unit")||key.equals("stats_density")||key.equals(HomeStyle.KEY)) {
+        // SettingsChange: a restore's clear() arrives with a null key on Android 11+ and rebuilds.
+        int change=SettingsChange.of(key);
+        if(change==SettingsChange.REBUILD) {
             handler.removeCallbacks(settingsRebuild);
             handler.postDelayed(settingsRebuild, Ui.motionEnabled() ? 210 : 0);
-        } else if(key.equals("text_scale")) { handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); }
+        } else if(change==SettingsChange.REBUILD_NOW) { handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); }
         else redraw();
     };
     private final ServiceConnection serviceConnection=new ServiceConnection(){
@@ -309,6 +316,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved==null&&documents.getBoolean("ready",false)&&documents.getBoolean("picker",false))documents.edit().putBoolean("picker",false).apply();
         if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");pageArgs=HubNav.Args.restore(saved.getStringArray("page_args"));settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
+        if(saved!=null)pendingHomeFind=pendingFind&&saved.getBoolean("pending_home_find",false);
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
         // A notice tap still waiting for riding mode or setup to close survives a cold start (into unfinished setup, say), as on main.
@@ -469,6 +477,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        if(owedKeyPrompt!=null){owedKeyPrompt.dialog.dismiss();owedKeyPrompt=null;}
         // Riding mode ends with a finished activity (a recreation restores it): its banner's alarm keeps a way to stop.
         if(scooterService!=null&&riding!=null&&!isChangingConfigurations())scooterService.ridingModeClosed();
         if(screen!=null)screen.close();closeHomePane();if(scanDialog!=null)scanDialog.dismiss();
@@ -516,6 +525,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         // drop it, and the page the service builds would not reveal it (#393 council review, fourth round, finding 3).
         saved.putStringArray("page_args",HubNav.Args.save(pageArgs));
         saved.putBoolean("pending_find",pendingFind);
+        saved.putBoolean("pending_home_find",pendingHomeFind);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
@@ -653,6 +663,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         if(riding!=null&&scooterService!=null)riding.observeLink(scooterService.ble.connected());
         observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeShowReleaseHold();maybeInviteReport();maybeOfferConnectionReport();
+        maybeShowOwedKeyPrompt();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -2353,6 +2364,18 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** The held release's sheet, at most one: the one shown, or null. */
     private AlertDialog releaseHoldSheet;
+    /** "Write down your owner key" that setup left to Home when its profile loaded late (OnboardingScreen.owedKeyPrompt). */
+    private OnboardingScreen.KeyPrompt owedKeyPrompt;
+    private void maybeShowOwedKeyPrompt(){
+        if(owedKeyPrompt!=null&&owedKeyPrompt.dialog.isShowing()){owedKeyPrompt.update.run();return;}
+        if(destroyed||scooterService==null||!resumed||onboarding!=null||riding!=null||ridingRestore)return;
+        OnboardingScreen.KeyPrompt prompt=OnboardingScreen.owedKeyPrompt(this);if(prompt==null)return;
+        owedKeyPrompt=prompt;shownDialogs.add(prompt.dialog);
+        // As setup's own popup (OnboardingScreen.show).
+        if(prompt.dialog.getWindow()!=null)prompt.dialog.getWindow().setBackgroundDrawable(design.shape(design.surface,22,design.outline));
+        Motion.present(prompt.dialog,Motion.DIALOG);prompt.dialog.show();
+        prompt.started(()->{if(owedKeyPrompt==prompt)owedKeyPrompt=null;});
+    }
     /**
      * The question a held release owes (BleController.releaseAsk), over whatever is in front, until the owner answers it
      * (closes the sheet or picks an action): a sheet lost to a recreated screen or a restart is shown again.
@@ -2450,22 +2473,22 @@ public final class MainActivity extends Activity implements ScreenHost {
      * a recording began. A tap then redraws instead of ending that link (homeFindOffered).
      */
     private void findNearby(boolean home){
-        if(scooterService==null){showScanner(true,true);return;}
+        if(scooterService==null){homeFind=home;try{showScanner(true,true);}finally{homeFind=false;}return;}
         // The same refusal as entry B's canChangeScooter (recordings, phone saving, schedule tests, a change in flight).
         String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}
         if(home&&!homeFindOffered()){redraw();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
         if(profile!=null&&scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
-        showScanner(true,true);
+        homeFind=home;try{showScanner(true,true);}finally{homeFind=false;}
     }
     /** Home offers Find it nearby (FindNearby.offerHome): nothing a scooter change must not interrupt, a charge recording included. */
     private boolean homeFindOffered(){return scooterService!=null&&scooterService.scooterChangeUnavailable()==null&&scooterService.ble.findNearbyOffered();}
     private void showScanner(boolean start){showScanner(start,false);}
     /** The scan waits (resume, permission, the service, Bluetooth on) in its own mode. */
-    private void deferScan(boolean find){pendingScan=true;pendingFind=find;}
+    private void deferScan(boolean find){pendingScan=true;pendingFind=find;pendingHomeFind=find&&homeFind;}
     /** A waiting scan reopens in the mode it was asked in: a find stays a find. */
-    private void resumePendingScan(){boolean find=pendingFind;pendingScan=pendingFind=false;showScanner(true,find);}
+    private void resumePendingScan(){boolean find=pendingFind,home=find&&pendingHomeFind;pendingScan=pendingFind=pendingHomeFind=false;if(home&&!homeFindOffered()){redraw();return;}showScanner(true,find);}
     private void showScanner(boolean start,boolean find){
         if (scooterService != null && scooterService.simulating()) { toast(T.mainScanExitSimulationFind()); return; }
         if(!resumed){deferScan(find);return;}
@@ -2587,7 +2610,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             String address=result.getDevice().getAddress();AdvertisedIdentity.Result id=scooterService.ble.advertisedAt(address);
             heard.add(new FindNearby.Heard(address,scooterService.ble.signal(result),id==null?null:FindNearby.modelId(id.pid,id.marker),scooterService.profiles.hardwareMatch(profile.id,address,null)!=null));byMac.put(address,result);
         }
-        FindNearby.Sheet sheet=FindNearby.sheet(heard,profile.mac,profile.savedDescriptor().family());
+        FindNearby.Sheet sheet=FindNearby.sheet(heard,profile.mac,FindNearby.family(profile.savedDescriptor()));
         boolean present=false;for(FindNearby.Heard h:sheet.shown)if(h.mac.equals(scanSelected)&&!h.savedElsewhere)present=true;
         // Only the saved address starts selected; any other scooter needs a deliberate tap (and then the confirmation).
         if(!present)scanSelected=sheet.preselected;

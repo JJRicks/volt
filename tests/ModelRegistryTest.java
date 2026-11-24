@@ -190,6 +190,10 @@ public final class ModelRegistryTest {
             advertised("24411"),advertised("25171"),advertised("26201"),advertised("24431"),advertised("25291"),
             advertised("27451"),advertised("27991"),advertised("24182"),advertised("22131"),advertised("27811"),advertised("27821")};
         for(int i=0;i<riders.length;i++)check(ModelRegistry.unlockHandlebar(riders[i])==bars[i],"Unlock without phone draws "+bars[i]+" for "+riders[i]+", not "+ModelRegistry.unlockHandlebar(riders[i]));
+        // The NT3 has a lever ahead of each grip, so its guide's spoken text says which one step 2 means (#541 review); one lever everywhere else.
+        check(ModelRegistry.twoBrakeLevers(ModelRegistry.unlockHandlebar(advertised("27451")))&&ModelRegistry.twoBrakeLevers(ModelRegistry.unlockHandlebar(advertised("27011"))),"The NT3 names its left brake lever");
+        for(ModelRegistry.Handlebar h:ModelRegistry.Handlebar.values())if(h!=ModelRegistry.Handlebar.NT3)check(!ModelRegistry.twoBrakeLevers(h),h+" has one brake lever in its guide");
+        check(!ModelRegistry.twoBrakeLevers(null),"No drawing, no lever text");
         // An uncertain model gets no drawing: a Model ID mismatch (a GT3 Max serial advertising 2585, the UT5 MAX's serial advertising 24182), no ID, null.
         check(ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2418ZZ9US7777777","25852",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
             &&ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2538ZZ9US7777777","24182",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null

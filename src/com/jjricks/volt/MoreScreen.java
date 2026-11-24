@@ -2222,6 +2222,11 @@ public final class MoreScreen implements AppScreen {
             default: pill.show(ui.orange, true, sheet ? T.moreLabStatusUnconfirmedSheet() : T.moreLabStatusUnconfirmed(), T.moreLabStatusUnconfirmed());
         }
     }
+    /**
+     * An untried row's status: muted words, and none where they don't fit (pt-PT beside Try at 344 dp); the pill's
+     * description keeps them. For Tried before as well as Not tried yet (TestJournal.triedBefore).
+     */
+    private void quietUntried(LadderPill pill, String words) { pill.quiet(ui.muted, words, ""); }
     /** The running (not finished) try of this control, or null. */
     private static GuidedTest labLive(BleController ble, String key) {
         GuidedTest t = ble.guidedTest();

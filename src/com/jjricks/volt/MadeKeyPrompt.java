@@ -31,8 +31,11 @@ final class MadeKeyPrompt {
         return !profileId.equals(shownFor);
     }
 
-    /** What Go to Home (and Back) on setup's last page does: {@link #home}. */
-    static final int HOME_NOW = 0, HOME_WAIT = 1, HOME_AFTER_PROMPT = 2;
+    /**
+     * What Go to Home (and Back) on setup's last page does: {@link #home}. HOME_OWED finishes setup and leaves a popup
+     * that may still be owed to Home ({@link #OWED}).
+     */
+    static final int HOME_NOW = 0, HOME_WAIT = 1, HOME_AFTER_PROMPT = 2, HOME_OWED = 3;
     /** How long Go to Home waits for the profile before finishing setup without it. */
     static final long HOME_WAIT_MS = 4000;
 
@@ -48,12 +51,35 @@ final class MadeKeyPrompt {
     /**
      * Go to Home (and Back) on setup's last page. With the profile loaded: the popup first when it is due, and setup
      * finishes once it is dismissed; otherwise at once. Before that (the service not bound yet, after Volt reopened), a
-     * popup that may be owed makes it wait, up to {@link #HOME_WAIT_MS}; after that, or when none can be owed, setup
-     * finishes as it does when no profile exists. Never a wait with nothing owed, so no other setup waits at all.
+     * popup that may be owed makes it wait, up to {@link #HOME_WAIT_MS}; after that setup finishes and Home shows the
+     * popup once the profile loads ({@link #HOME_OWED}: a bind of 4 s or more used to lose it, #491 review). When none
+     * can be owed, setup finishes as it does when no profile exists. Never a wait with nothing owed, so no other setup
+     * waits at all.
      */
     static int home(boolean profileLoaded, boolean due, boolean mayBeOwed, long waitedMs) {
         if (profileLoaded) return due ? HOME_AFTER_PROMPT : HOME_NOW;
-        return mayBeOwed && Math.max(0, waitedMs) < HOME_WAIT_MS ? HOME_WAIT : HOME_NOW;
+        if (!mayBeOwed) return HOME_NOW;
+        return Math.max(0, waitedMs) < HOME_WAIT_MS ? HOME_WAIT : HOME_OWED;
+    }
+
+    /**
+     * app_settings, outside setup's preferences (which finishing setup clears): the profile ID whose popup setup still
+     * owed when Go to Home stopped waiting for its profile ({@link #HOME_OWED}). Home shows the popup once that profile
+     * loads ({@link #dueOnHome}) and removes this when it is dismissed. This phone's state only, never in a backup.
+     */
+    static final String OWED = "made_key_owed";
+
+    /**
+     * Whether Home shows the popup setup left it ({@link #OWED}): the record names this profile, which holds a key Volt
+     * made (its made key's record, NewOwnerKey) that the scooter accepted (a saved address), as {@link #due} rules.
+     */
+    static boolean dueOnHome(String owedFor, String profileId, boolean madeKey, String identity, String savedMac) {
+        return owedFor != null && owedFor.equals(profileId) && due(madeKey, profileId, identity, savedMac, null);
+    }
+
+    /** Whether {@link #OWED} can go unshown: its profile is gone or holds no key Volt made, so it can never come due. */
+    static boolean owedStale(boolean profileExists, boolean madeKey) {
+        return !profileExists || !madeKey;
     }
 
     /** Whole seconds Done still waits after {@code elapsedMs} on screen: WAIT_SECONDS down to 0. */

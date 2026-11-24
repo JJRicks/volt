@@ -512,7 +512,16 @@ public final class OnboardingScreen implements AppScreen {
                 service.ble.disconnect();
             }
         }
-        if (mayRemoveCreated(made)) store.remove(made.id);
+        if (mayRemoveCreated(made)) { store.remove(made.id); scooterSwitched(); }
+    }
+
+    /**
+     * Setup changed which scooter is active (a typed or made key's profile, or one it removed): the controller's
+     * Find it nearby tally starts again for it, as after My scooters' Use (BleController.scooterSwitched; #487 review).
+     */
+    private void scooterSwitched() {
+        ScooterService service = host.service();
+        if (service != null) service.ble.scooterSwitched();
     }
 
     private String structureKey() {
@@ -1309,6 +1318,7 @@ public final class OnboardingScreen implements AppScreen {
                 profile = store.create(name, parsed.identity, parsed.role, KeyRoute.ofIdentityInput(entered));
             }
             prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).apply();
+            scooterSwitched();
         } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }
         identityField.setText("");
         hideKeyboard();
@@ -1455,6 +1465,7 @@ public final class OnboardingScreen implements AppScreen {
             // A profile this flow made from a typed key goes, as saveIdentity replaces it, unless a scooter accepted it;
             // never an owner's own, and never the made key itself (a typed key saved after a made key was kept leaves both).
             if (earlier != null && !earlier.id.equals(profile.id) && mayRemoveCreated(earlier)) store.remove(earlier.id);
+            scooterSwitched();
         } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }
         hideKeyboard();
         afterProfile();
@@ -1761,6 +1772,12 @@ public final class OnboardingScreen implements AppScreen {
                 if (keyPrompt != null && keyPrompt.isShowing()) return;
                 finish(false);
                 return;
+            case MadeKeyPrompt.HOME_OWED:
+                // The profile is still loading: finishing clears setup's preferences, so Home gets the popup's record
+                // (MadeKeyPrompt.OWED) and shows it once the profile loads (owedKeyPrompt).
+                try { madeKeys(host.activity()).edit().putString(MadeKeyPrompt.OWED, generated).commit(); } catch (RuntimeException ignored) { }
+                finish(false);
+                return;
             default:
                 finish(false);
         }
@@ -1798,88 +1815,116 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     private void showKeyPrompt(String profileId, String identity) {
-        Context c = host.activity();
-        LinearLayout box = column();
-        box.setPadding(ui.dp(22), ui.dp(22), ui.dp(22), ui.dp(16));
-        LinearLayout words = column();
-        TextView heading = ui.text(T.onboardingKeyTitle(), 21, true);
-        if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
-        words.addView(heading);
-        TextView body = ui.text(T.onboardingKeyBody(), 14.5f, false);
-        body.setLineSpacing(ui.dp(3), 1);
-        LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(-1, -2); wp.topMargin = ui.dp(10);
-        words.addView(body, wp);
-        LinearLayout card = column();
-        card.setBackground(ui.shape(ui.raised, 18, ui.outline));
-        card.setPadding(ui.dp(12), ui.dp(16), ui.dp(12), ui.dp(14));
-        TextView digits = keyDigits(identity);
-        digits.setTag("made_key_digits");
-        card.addView(digits, new LinearLayout.LayoutParams(-1, -2));
-        TextView write = ui.text(T.onboardingKeyWrite(), 15, true);
-        write.setTextColor(ui.orange); write.setGravity(Gravity.CENTER_HORIZONTAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(10);
-        card.addView(write, lp);
-        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.topMargin = ui.dp(16);
-        words.addView(card, cp);
-        box.addView(words);
-        // The save Forget's "Save backup first" uses: Back up with Scooters & setup keys, which KeyBackups records
-        // once its file is saved, and which setup's Restore a backup reads back.
-        TextView save = ui.button(T.onboardingKeySave(), () -> host.dataBackup(false, BackupRegistry.SCOOTERS));
-        save.setTag("made_key_save");
-        ui.decorate(save, "download");
-        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
-        box.addView(save, sp);
-        // One scroll for the whole popup, buttons below the key: when it fits, nothing moves; in a short window or at
-        // large text the buttons scroll with the words, so they can never squeeze the key out of sight, and the key
-        // is always on screen or a scroll away before Done (or Back) can close the popup.
-        ScrollView scroll = new ScrollView(c);
-        scroll.addView(box);
-        AlertDialog dialog = new AlertDialog.Builder(c).setView(scroll).create();
-        long shownAt = android.os.SystemClock.elapsedRealtime();
-        boolean[] saved = {false};
-        // A disabled button takes no tap, but a click can still reach it another way (performClick): it waits too.
-        TextView done = ui.secondaryButton(T.commonDone(), () -> {
-            if (MadeKeyPrompt.doneEnabled(android.os.SystemClock.elapsedRealtime() - shownAt, saved[0])) dismissKeyPrompt(dialog, profileId);
+        KeyPrompt prompt = new KeyPrompt(host, profileId, identity, () -> keyPrompt, dialog -> dismissKeyPrompt(dialog, profileId));
+        keyPrompt = prompt.dialog;
+        keyPromptUpdate = prompt.update;
+        show(prompt.dialog);
+        prompt.started(() -> {
+            dialogs.remove(prompt.dialog);
+            if (keyPrompt == prompt.dialog) { keyPrompt = null; keyPromptUpdate = null; }
         });
-        done.setTag("made_key_done");
-        box.addView(done);
-        // Back and taps outside do nothing until Done works; after that Back is Done, and a tap outside still does
-        // nothing, so a stray tap never hides the key for good.
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.setOnCancelListener(d -> dismissKeyPrompt(dialog, profileId));
-        Runnable update = () -> {
-            if (keyPrompt != dialog) return;
-            if (!saved[0] && keyBackupSaved(profileId, identity)) {
-                saved[0] = true;
-                save.setText(T.onboardingKeySaved()); save.setContentDescription(T.onboardingKeySaved());
-                ui.decorate(save, "check");
-                save.setEnabled(false); save.setTextColor(ui.ok);
-            }
-            long elapsed = android.os.SystemClock.elapsedRealtime() - shownAt;
-            boolean enabled = MadeKeyPrompt.doneEnabled(elapsed, saved[0]);
-            int left = MadeKeyPrompt.secondsLeft(elapsed);
-            done.setEnabled(enabled);
-            done.setText(enabled ? T.commonDone() : T.onboardingKeyDoneWait(left));
-            done.setContentDescription(enabled ? T.commonDone() : T.onboardingKeyDoneWaitDescription(left, left));
-            dialog.setCancelable(enabled);
-        };
-        keyPrompt = dialog;
-        keyPromptUpdate = update;
-        Runnable tick = new Runnable() {
-            @Override public void run() {
-                if (keyPrompt != dialog) return;
-                update.run();
-                if (!done.isEnabled()) root.postDelayed(this, 250);
-            }
-        };
-        show(dialog);
-        dialog.setOnDismissListener(d -> {
-            dialogs.remove(dialog);
-            root.removeCallbacks(tick);
-            if (keyPrompt == dialog) { keyPrompt = null; keyPromptUpdate = null; }
-        });
-        tick.run();
+    }
+
+    /**
+     * "Write down your owner key" for one made key: built here, shown by its caller (setup's last page, or Home for a
+     * popup setup left it, {@link #owedKeyPrompt}), then {@link #started}. {@code live} gives the popup its caller still
+     * holds (the update and the countdown stop once it is another); {@code done} runs on Done, or Back once it works.
+     */
+    static final class KeyPrompt {
+        final AlertDialog dialog;
+        /** Brings Save and Done up to date: a backup holding the key saved, Done's countdown. */
+        final Runnable update;
+        private final Runnable tick;
+        private final View timer;
+
+        KeyPrompt(ScreenHost host, String profileId, String identity, java.util.function.Supplier<AlertDialog> live,
+                java.util.function.Consumer<AlertDialog> done) {
+            Context c = host.activity();
+            Ui ui = host.ui();
+            LinearLayout box = new LinearLayout(c); box.setOrientation(LinearLayout.VERTICAL);
+            box.setPadding(ui.dp(22), ui.dp(22), ui.dp(22), ui.dp(16));
+            LinearLayout words = new LinearLayout(c); words.setOrientation(LinearLayout.VERTICAL);
+            TextView heading = ui.text(T.onboardingKeyTitle(), 21, true);
+            if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
+            words.addView(heading);
+            TextView body = ui.text(T.onboardingKeyBody(), 14.5f, false);
+            body.setLineSpacing(ui.dp(3), 1);
+            LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(-1, -2); wp.topMargin = ui.dp(10);
+            words.addView(body, wp);
+            LinearLayout card = new LinearLayout(c); card.setOrientation(LinearLayout.VERTICAL);
+            card.setBackground(ui.shape(ui.raised, 18, ui.outline));
+            card.setPadding(ui.dp(12), ui.dp(16), ui.dp(12), ui.dp(14));
+            TextView digits = keyDigits(ui, identity);
+            digits.setTag("made_key_digits");
+            card.addView(digits, new LinearLayout.LayoutParams(-1, -2));
+            TextView write = ui.text(T.onboardingKeyWrite(), 15, true);
+            write.setTextColor(ui.orange); write.setGravity(Gravity.CENTER_HORIZONTAL);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(10);
+            card.addView(write, lp);
+            LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.topMargin = ui.dp(16);
+            words.addView(card, cp);
+            box.addView(words);
+            // The save Forget's "Save backup first" uses: Back up with Scooters & setup keys, which KeyBackups records
+            // once its file is saved, and which setup's Restore a backup reads back.
+            TextView save = ui.button(T.onboardingKeySave(), () -> host.dataBackup(false, BackupRegistry.SCOOTERS));
+            save.setTag("made_key_save");
+            ui.decorate(save, "download");
+            LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2); sp.topMargin = ui.dp(14);
+            box.addView(save, sp);
+            // One scroll for the whole popup, buttons below the key: when it fits, nothing moves; in a short window or at
+            // large text the buttons scroll with the words, so they can never squeeze the key out of sight, and the key
+            // is always on screen or a scroll away before Done (or Back) can close the popup.
+            ScrollView scroll = new ScrollView(c);
+            scroll.addView(box);
+            AlertDialog dialog = new AlertDialog.Builder(c).setView(scroll).create();
+            long shownAt = android.os.SystemClock.elapsedRealtime();
+            boolean[] saved = {false};
+            // A disabled button takes no tap, but a click can still reach it another way (performClick): it waits too.
+            TextView doneButton = ui.secondaryButton(T.commonDone(), () -> {
+                if (MadeKeyPrompt.doneEnabled(android.os.SystemClock.elapsedRealtime() - shownAt, saved[0])) done.accept(dialog);
+            });
+            doneButton.setTag("made_key_done");
+            box.addView(doneButton);
+            // Back and taps outside do nothing until Done works; after that Back is Done, and a tap outside still does
+            // nothing, so a stray tap never hides the key for good.
+            dialog.setCancelable(false);
+            dialog.setCanceledOnTouchOutside(false);
+            dialog.setOnCancelListener(d -> done.accept(dialog));
+            update = () -> {
+                if (live.get() != dialog) return;
+                if (!saved[0] && keyBackupSaved(c, profileId, identity)) {
+                    saved[0] = true;
+                    save.setText(T.onboardingKeySaved()); save.setContentDescription(T.onboardingKeySaved());
+                    ui.decorate(save, "check");
+                    save.setEnabled(false); save.setTextColor(ui.ok);
+                }
+                long elapsed = android.os.SystemClock.elapsedRealtime() - shownAt;
+                boolean enabled = MadeKeyPrompt.doneEnabled(elapsed, saved[0]);
+                int left = MadeKeyPrompt.secondsLeft(elapsed);
+                doneButton.setEnabled(enabled);
+                doneButton.setText(enabled ? T.commonDone() : T.onboardingKeyDoneWait(left));
+                doneButton.setContentDescription(enabled ? T.commonDone() : T.onboardingKeyDoneWaitDescription(left, left));
+                dialog.setCancelable(enabled);
+            };
+            tick = new Runnable() {
+                @Override public void run() {
+                    if (live.get() != dialog) return;
+                    update.run();
+                    if (!doneButton.isEnabled()) scroll.postDelayed(this, 250);
+                }
+            };
+            this.dialog = dialog;
+            this.timer = scroll;
+        }
+
+        /** After the caller showed the dialog: the countdown starts, and {@code dismissed} runs when it closes. */
+        void started(Runnable dismissed) {
+            dialog.setOnDismissListener(d -> {
+                timer.removeCallbacks(tick);
+                if (dismissed != null) dismissed.run();
+            });
+            tick.run();
+        }
     }
 
     /**
@@ -1895,9 +1940,40 @@ public final class OnboardingScreen implements AppScreen {
         if (!closed && homeFor != null && homeFor.equals(prefs.getString(KEY_GENERATED, ""))) finish(false);
     }
 
+    /**
+     * Home's half of a slow bind (MadeKeyPrompt.HOME_OWED): the popup setup left it ({@link MadeKeyPrompt#OWED}), once
+     * the service is bound and the popup is due (MadeKeyPrompt.dueOnHome); a record that can never come due goes. Done
+     * (or Back once it works) removes the record on disk (commit()) before it closes, so a new activity or a process
+     * death before that shows it again, and a failed write leaves it for next time. Null when there's nothing to show;
+     * otherwise the caller shows {@code prompt.dialog}, then calls {@code prompt.started}.
+     */
+    static KeyPrompt owedKeyPrompt(ScreenHost host) {
+        ScooterService service = host.service();
+        if (service == null) return null;
+        Context c = host.activity();
+        SharedPreferences app;
+        String owed;
+        try { app = madeKeys(c); owed = app.getString(MadeKeyPrompt.OWED, null); } catch (RuntimeException unreadable) { return null; }
+        if (owed == null) return null;
+        ScooterProfiles.Profile p = find(service.profiles, owed);
+        boolean made = p != null && madeKeyRecord(c, p.id) != null;
+        if (MadeKeyPrompt.owedStale(p != null, made)) {
+            try { app.edit().remove(MadeKeyPrompt.OWED).commit(); } catch (RuntimeException ignored) { }
+            return null;
+        }
+        if (!MadeKeyPrompt.dueOnHome(owed, p.id, made, p.identity, p.mac)) return null;
+        AlertDialog[] live = {null};
+        KeyPrompt prompt = new KeyPrompt(host, p.id, p.identity, () -> live[0], dialog -> {
+            try { app.edit().remove(MadeKeyPrompt.OWED).commit(); } catch (RuntimeException ignored) { }
+            dialog.dismiss();
+        });
+        live[0] = prompt.dialog;
+        return prompt;
+    }
+
     /** A backup holding this key reached its file on this phone (KeyBackups), the record Forget's guard reads. */
-    private boolean keyBackupSaved(String profileId, String identity) {
-        try { return KeyBackups.savedAt(madeKeys(host.activity()).getAll(), profileId, identity) > 0; }
+    private static boolean keyBackupSaved(Context context, String profileId, String identity) {
+        try { return KeyBackups.savedAt(madeKeys(context).getAll(), profileId, identity) > 0; }
         catch (RuntimeException unreadable) { return false; }
     }
 
@@ -1907,7 +1983,7 @@ public final class OnboardingScreen implements AppScreen {
      * always left to right. TalkBack reads it a character at a time, byte by byte. A plain TextView (the census keys
      * views by class), fitted from its own width whenever that changes; text is set only when the choice differs.
      */
-    private TextView keyDigits(String identity) {
+    private static TextView keyDigits(Ui ui, String identity) {
         String oneRow = MadeKeyPrompt.oneRow(identity), twoRows = MadeKeyPrompt.twoRows(identity), row = MadeKeyPrompt.firstRow(identity);
         TextView digits = ui.text(oneRow, 34, true);
         digits.setTypeface(Typeface.create(Typeface.MONOSPACE, Typeface.BOLD));

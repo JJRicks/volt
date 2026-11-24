@@ -67,7 +67,10 @@ import com.jjricks.volt.ScooterService;
  *   - a typed key a scooter accepted (its address saved) is never removed by Make a new owner key;
  *   - the done page's heading, then the backup note above Back up Volt, all fully on screen without scrolling, above Go to Home;
  *   - a real Scooters & setup keys backup of this phone holds the made key's record and none of setup's pointers, and a
- *     merge of it onto a phone whose record says "made" plans the backup's "offered" (never loosened).
+ *     merge of it onto a phone whose record says "made" plans the backup's "offered" (never loosened);
+ *   - a service bind of 4 s or more (#491 review): Go to Home waits, disabled, and TalkBack hears "Go to Home, starting";
+ *     after the wait setup finishes and leaves the popup to Home (made_key_owed, on disk), which shows it once the
+ *     service is back; Done there, after its wait, clears the record and the popup stays gone.
  * Not reached here: a live BluetoothGatt (authenticate() reads the link's address; NewOwnerKeyTest checks that mayOffer
  * comes first and is the only way to the owner check), a failed tie write (NewOwnerKeyTest), and a real Try again's
  * connect (Bluetooth stays off). Nothing reaches a scooter. The done page is entered directly once the profile has the scooter address a real
@@ -135,6 +138,7 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             acceptedTypedKept(key[0]);
             doneNote(key[0]);
             backupCarriesRecord(key[0]);
+            slowBind(key[0]);
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -625,6 +629,93 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             com.jjricks.volt.AppDataBackup.discard(app, restore);
         }
         main(() -> require("offered".equals(record(keyId)), "The record was not put back"));
+    }
+
+    /**
+     * #491 review: a service bind of 4 s or more used to finish setup without the "Write down your owner key" popup.
+     * The service is held back here as before a slow bind (the activity's binding, set aside and put back): setup's
+     * popup over the done page goes unrecorded, as when Volt reopens; Go to Home waits and says so; after the wait setup
+     * finishes and Home shows the popup once the service is back. The key's digits are compared, never printed.
+     */
+    private void slowBind(String keyId) throws Exception {
+        AtomicReference<ScooterService> held = new AtomicReference<>();
+        main(() -> {
+            held.set(activity.service());
+            require(held.get() != null && step() == DONE, "Setup is not on its last page with the service bound");
+            set(activity, "scooterService", null);
+            Object up = field(setup(), "keyPrompt");
+            if (up != null) ((android.app.Dialog) up).dismiss();
+            setup().refresh();
+        });
+        try {
+            waitForIdleSync();
+            main(() -> require(field(setup(), "keyPrompt") == null && prefs("onboarding").getString("made_key_shown", null) == null,
+                    "The popup is up or recorded without the service"));
+            clickText("Go to Home");
+            main(() -> {
+                TextView home = text(root(), "Go to Home");
+                require(step() == DONE && home != null && !home.isEnabled(), "Go to Home did not wait for the service");
+                // TalkBack's "starting" words come with their catalog key; an app from before them says nothing extra.
+                require(!hasCatalogKey("onboardingDoneHomeStarting") && home.getContentDescription() == null
+                        || "Go to Home, starting".contentEquals(String.valueOf(home.getContentDescription())),
+                        "TalkBack hears '" + home.getContentDescription() + "' while Go to Home waits");
+            });
+            shot("home-waiting");
+            long tapped = SystemClock.elapsedRealtime();
+            await(() -> setup() == null, "Setup did not finish after the wait");
+            require(SystemClock.elapsedRealtime() - tapped >= 3000, "Setup finished before the wait was over");
+            main(() -> {
+                require(keyId.equals(prefs("app_settings").getString("made_key_owed", null)), "Setup left Home no popup record");
+                require(onDisk("app_settings").contains("<string name=\"made_key_owed\">" + keyId + "</string>"), "The popup record is not on disk");
+                require(field(activity, "owedKeyPrompt") == null, "Home showed the popup without the service");
+            });
+        } finally {
+            main(() -> { set(activity, "scooterService", held.get()); activity.rebuild(); });
+        }
+        await(() -> owedPopup() != null && owedPopup().isShowing(), "Home did not show the popup setup left it");
+        main(() -> {
+            View panel = owedPopup().getWindow().getDecorView();
+            TextView digits = (TextView) panel.findViewWithTag("made_key_digits");
+            ScooterProfiles.Profile p = profileById(keyId);
+            require(digits != null && p != null && digits.getText().toString().replaceAll("\\s", "").equalsIgnoreCase(p.identity),
+                    "Home's popup does not show this scooter's made key");
+            View done = panel.findViewWithTag("made_key_done");
+            require(done != null && !done.isEnabled(), "Done works at once on Home's popup");
+            require(OnboardingScreen.needed(activity, activity.service()) == false, "Setup came back");
+        });
+        popupShot("home-owed-popup");
+        long until = SystemClock.elapsedRealtime() + 14000;
+        while (SystemClock.elapsedRealtime() < until) {
+            AtomicReference<Boolean> ready = new AtomicReference<>(false);
+            main(() -> { View d = owedPopup().getWindow().getDecorView().findViewWithTag("made_key_done"); ready.set(d != null && d.isEnabled()); });
+            if (ready.get()) break;
+            SystemClock.sleep(200);
+        }
+        main(() -> { View d = owedPopup().getWindow().getDecorView().findViewWithTag("made_key_done"); require(d != null && d.isEnabled(), "Done never worked"); d.performClick(); });
+        await(() -> field(activity, "owedKeyPrompt") == null, "Done did not close Home's popup");
+        await(() -> onDiskLacks("app_settings", "made_key_owed"), "Done left the popup record on disk");
+        // The 1 Hz refresh that showed it runs again: nothing comes back.
+        SystemClock.sleep(2500);
+        main(() -> require(field(activity, "owedKeyPrompt") == null && prefs("app_settings").getString("made_key_owed", null) == null, "The popup came back after Done"));
+    }
+    private static boolean hasCatalogKey(String method) {
+        try { com.jjricks.volt.T.class.getMethod(method); return true; } catch (NoSuchMethodException none) { return false; }
+    }
+    private android.app.AlertDialog owedPopup() {
+        Object prompt = field(activity, "owedKeyPrompt");
+        return prompt == null ? null : (android.app.AlertDialog) field(prompt, "dialog");
+    }
+    /** The whole screen, Home under the popup, for the owner's renders (shot() draws the activity's window only). */
+    private void popupShot(String state) throws Exception {
+        SystemClock.sleep(600); waitForIdleSync();
+        AtomicReference<Bitmap> image = new AtomicReference<>(getUiAutomation().takeScreenshot());
+        require(image.get() != null, "No screenshot of the popup");
+        File dir = new File(getTargetContext().getExternalFilesDir(null), "new-owner-key-validation");
+        require(dir.mkdirs() || dir.isDirectory(), "Screenshot directory");
+        File file = new File(dir, label + "-" + theme + "-" + state + ".png");
+        try (FileOutputStream out = new FileOutputStream(file)) { image.get().compress(Bitmap.CompressFormat.PNG, 100, out); }
+        finally { image.get().recycle(); }
+        shots++;
     }
 
     private void backToRoutes() {

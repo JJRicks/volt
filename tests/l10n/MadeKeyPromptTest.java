@@ -132,9 +132,10 @@ public final class MadeKeyPromptTest {
         // Not loaded and maybe owed: wait, never finish (which would clear the popup's record).
         for (long ms : new long[] {-5000, 0, 1, 1000, MadeKeyPrompt.HOME_WAIT_MS - 1})
             check(MadeKeyPrompt.home(false, false, true, ms) == MadeKeyPrompt.HOME_WAIT, "waits for the profile at " + ms);
-        // Never stranded: after the wait it finishes as it does with no profile.
-        check(MadeKeyPrompt.home(false, false, true, MadeKeyPrompt.HOME_WAIT_MS) == MadeKeyPrompt.HOME_NOW, "gives up after the wait");
-        check(MadeKeyPrompt.home(false, false, true, Long.MAX_VALUE) == MadeKeyPrompt.HOME_NOW, "long after");
+        // Never stranded: after the wait setup finishes, and leaves the popup to Home (a bind of 4 s or more used to lose it).
+        check(MadeKeyPrompt.home(false, false, true, MadeKeyPrompt.HOME_WAIT_MS) == MadeKeyPrompt.HOME_OWED, "gives up after the wait, popup owed to Home");
+        check(MadeKeyPrompt.home(false, false, true, Long.MAX_VALUE) == MadeKeyPrompt.HOME_OWED, "long after");
+        check(MadeKeyPrompt.home(false, false, false, Long.MAX_VALUE) == MadeKeyPrompt.HOME_NOW, "nothing owed: nothing left to Home");
         // Nothing owed: no wait at all, as before (every other setup).
         check(MadeKeyPrompt.home(false, false, false, 0) == MadeKeyPrompt.HOME_NOW, "nothing owed, no wait");
         // Loaded: the popup first when due (setup finishes once it's dismissed), else at once.
@@ -149,6 +150,36 @@ public final class MadeKeyPromptTest {
         check(MadeKeyPrompt.home(true, due, owed, 900) == MadeKeyPrompt.HOME_AFTER_PROMPT, "then the popup once the service binds");
         check(MadeKeyPrompt.home(true, MadeKeyPrompt.due(true, ID, KEY, MAC, ID), MadeKeyPrompt.mayBeOwed(true, ID, ID, true), 0)
                 == MadeKeyPrompt.HOME_NOW, "and home once it's dismissed");
+        slowBind();
+    }
+
+    /**
+     * #491 review: a service bind of 4 s or more. Go to Home is tapped before the profile loads; at 4 s setup finishes,
+     * which clears setup's own preferences (the shown record and the made key's pointer among them). The popup must
+     * still come: on Home once the profile loads, until it is dismissed there.
+     */
+    private static void slowBind() {
+        String shownFor = null; boolean dismissedHere = false;
+        boolean owed = MadeKeyPrompt.mayBeOwed(true, ID, shownFor, dismissedHere);
+        String owedOnHome = null;
+        for (long waited = 0; waited <= 4500; waited += 250) {
+            int now = MadeKeyPrompt.home(false, false, owed, waited);
+            if (now == MadeKeyPrompt.HOME_WAIT) continue;
+            check(waited == MadeKeyPrompt.HOME_WAIT_MS && now == MadeKeyPrompt.HOME_OWED, "the slow bind finishes at the wait's end with the popup owed");
+            owedOnHome = ID;
+            break;
+        }
+        check(ID.equals(owedOnHome), "the popup was left to Home");
+        // Setup is finished: its preferences are gone, but Home's record names the profile. The service binds at 4.5 s.
+        check(MadeKeyPrompt.dueOnHome(owedOnHome, ID, true, KEY, MAC), "Home shows the popup once the profile loads");
+        check(!MadeKeyPrompt.owedStale(true, true), "and keeps the record until it is dismissed");
+        // Never for anything else.
+        check(!MadeKeyPrompt.dueOnHome(null, ID, true, KEY, MAC), "nothing owed: no popup on Home");
+        check(!MadeKeyPrompt.dueOnHome("profile-0", ID, true, KEY, MAC), "owed for another profile");
+        check(!MadeKeyPrompt.dueOnHome(ID, ID, false, KEY, MAC), "not a key Volt made");
+        check(!MadeKeyPrompt.dueOnHome(ID, ID, true, KEY, ""), "the scooter hasn't accepted it yet: not yet");
+        check(!MadeKeyPrompt.dueOnHome(ID, ID, true, "not a key", MAC), "not a key");
+        check(MadeKeyPrompt.owedStale(false, true) && MadeKeyPrompt.owedStale(true, false), "a removed profile or a key not made here drops the record");
     }
 
     private static void check(boolean condition, String what) {
