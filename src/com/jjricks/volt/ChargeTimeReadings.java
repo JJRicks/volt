@@ -48,6 +48,15 @@ final class ChargeTimeReadings {
         return limitSource == NO_LIMIT && estimateTarget != null && !estimateTarget.isNaN() && estimateTarget < 100 ? Double.valueOf(100) : estimateTarget;
     }
 
+    /**
+     * The cutoff a time is named for: the estimate's own, except that a model with no charge limit at all
+     * (ModelRegistry.noChargeLimit, the GT3 Max) charges to 100%, so its unknown cutoff is 100% and its time is the plain
+     * time to full, never "To 100% if uncapped" (README #613). A model with a limit not read yet keeps the unknown cutoff.
+     */
+    static Double namedTarget(Double estimateTarget, boolean noChargeLimit) {
+        return estimateTarget == null && noChargeLimit ? Double.valueOf(100) : estimateTarget;
+    }
+
     /** A missing, old or damaged value is the default: the limit reading. */
     static int preferred(String stored) { return FULL_CHOICE.equals(stored) ? FULL : LIMIT; }
 

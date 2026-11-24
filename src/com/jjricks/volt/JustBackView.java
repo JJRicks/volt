@@ -52,12 +52,6 @@ final class JustBackView extends LinearLayout {
     /** The end dots' ring, kept clear of the basemap switch. */
     private static final int DOT_RING_DP = 7;
     /**
-     * The dark theme's tiles (JustBackBasemap.darkTiles): lightness inverted, colour softened to 40%, contrast at 85%
-     * and lifted so a street map's land sits just above the panel's own grey. Chosen from renders of a light street map
-     * on the dark panel against plain dimming, which left a flat mid-grey map as bright as the text (Nov 19 2026).
-     */
-    private static final float DARK_SATURATION = .4f, DARK_CONTRAST = .85f, DARK_LIFT = 20;
-    /**
      * The size a tile is drawn at its own zoom: half the ride maps' 256 dp (owner, Nov 19 2026: "let's get a finer map"),
      * so the card asks for the zoom one finer than a ride map would at the same scale: crisper streets and smaller
      * labels on the small panel, about four times the tiles (still only those the panel shows, through the same cache).
@@ -584,8 +578,9 @@ final class JustBackView extends LinearLayout {
      * (JustBackBasemap.touches), so the switch never covers the end dot. Switched on (JustBackBasemap.KEY, the card's own
      * preference, off by default), map tiles from the ride maps' provider (MapSource) lie behind the route, one zoom
      * finer than the ride maps draw them (TILE_DP), with its credit in the other bottom corner drawn over the route and a
-     * dark casing under the route: the layer and each tile fade in, never pop, and in the dark theme the tiles are drawn
-     * dark (JustBackBasemap.darkTiles), so no white map flashes up on a dark Home. Until a tile arrives, and without a
+     * dark casing under the route: the layer and each tile fade in, never pop, and with the dark map style (MapStyle: the
+     * app's theme until someone picks, on a ride map or in Map settings) the tiles are drawn dark (MapStyle.darkTiles), so
+     * no white map flashes up on a dark Home unless light was picked. Until a tile arrives, and without a
      * network, the panel stays as it is off, with no message.
      */
     private static final class RouteView extends FrameLayout {
@@ -624,10 +619,11 @@ final class JustBackView extends LinearLayout {
         private boolean mapShown;
         /** The last frame's fit: the outline's origin (px) and scale (px per outline unit). */
         private final float[] fit = new float[3];
-        /** The dark theme's tile colours (JustBackBasemap.darkTiles); null in the light theme, which draws tiles as they are. */
-        private final ColorFilter tileColors;
+        /** The dark map style's tile colours (MapStyle.darkTiles); null for the light style, which draws tiles as they are. */
+        private ColorFilter tileColors;
         private final SharedPreferences.OnSharedPreferenceChangeListener changed = (p, key) -> {
             if (key == null || key.equals(JustBackBasemap.KEY)) showBasemap(true);
+            if (key == null || key.equals(MapStyle.KEY)) followStyle();
             if (key == null || key.startsWith("map_")) followSource();
         };
 
@@ -638,7 +634,7 @@ final class JustBackView extends LinearLayout {
             settings = host.appSettings();
             setWillNotDraw(false);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
-            tileColors = ui.dark ? new ColorMatrixColorFilter(JustBackBasemap.darkTiles(DARK_SATURATION, DARK_CONTRAST, DARK_LIFT)) : null;
+            followStyle();
             creditPaint.setTypeface(ui.regular());
             toggle = new BasemapSwitch(host, this::flip);
             toggle.setVisibility(GONE);
@@ -701,6 +697,17 @@ final class JustBackView extends LinearLayout {
             if (progress >= 1 || !Ui.motionEnabled()) { fadeFrom = fadeTo; return fadeTo; }
             return fadeFrom + (fadeTo - fadeFrom) * Motion.FADE.getInterpolation(Math.max(0, progress));
         }
+
+        /** The map style shared with the ride maps (MapStyle), followed when it changes; the cached tiles stay. */
+        private void followStyle() {
+            boolean dark = MapStyleControls.dark(settings, ui.dark);
+            if (dark == (tileColors != null)) return;
+            tileColors = dark ? new ColorMatrixColorFilter(MapStyle.darkTiles()) : null;
+            invalidate();
+        }
+
+        /** Whether the tiles are drawn dark now (the validation's view of the shared style). */
+        boolean darkTiles() { return tileColors != null; }
 
         /** The provider the ride maps use, followed when it changes (Maps settings, a restore): its tiles start afresh. */
         private void followSource() {

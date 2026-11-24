@@ -14,6 +14,7 @@ public final class ChargeInviteRuleTest {
 
     public static void main(String[] args) throws Exception {
         rule();
+        handOver();
         wiring();
         System.out.println("ChargeInviteRuleTest: " + checks + " checks passed");
     }
@@ -35,13 +36,57 @@ public final class ChargeInviteRuleTest {
                 "The sheet's Record this charge anchor is its own, never the row's tag a search result could name");
     }
 
+    /**
+     * Email to Volt's hand-over (#537 review, F03): backing out of Android's chooser marked the invite sent. Android says
+     * nothing about a send; an app taking the email covers Volt (it stops), a chooser over it only pauses it.
+     */
+    private static void handOver() {
+        ChargeInvite.HandOver h = new ChargeInvite.HandOver();
+        check(!h.pending() && !h.stopped(true, false), "Nothing handed over: a stop is just a stop");
+        h.opened(); h.paused(); h.resumed();
+        check(!h.pending() && !h.stopped(true, false), "The chooser closed with Back (paused, resumed, never stopped): not sent");
+        h.opened(); h.paused();
+        check(h.stopped(true, false), "An app took the email (paused, then stopped): sent");
+        check(!h.pending() && !h.stopped(true, false), "Sent once: a later stop is just a stop");
+        h.opened(); h.paused();
+        check(!h.stopped(false, false) && h.pending(), "The screen went off over the chooser: not an app, still waiting");
+        h.resumed();
+        check(!h.pending(), "Back on with the chooser gone: not sent");
+        h.opened(); h.paused();
+        check(!h.stopped(false, false), "Screen off over the chooser");
+        check(h.stopped(true, false), "...then an app picked after the screen came back on: sent");
+        h.opened(); h.paused();
+        check(!h.stopped(true, true) && h.pending(), "A configuration change's stop is not an app taking it");
+        h.resumed();
+        h.opened(); h.resumed();
+        check(h.pending(), "Opened during onResume (the mailbox delivering): the rest of that resume doesn't cancel it");
+        h.paused();
+        check(h.stopped(true, false), "...and the app then taking it still counts");
+        h.opened();
+        check(h.stopped(true, false), "A stop straight after the hand-over counts too");
+    }
+
     /** Email to Volt, the backup registry and Charge history & recordings' anchor (source checks). */
     private static void wiring() throws Exception {
         String main = read("src/com/jjricks/volt/MainActivity.java").replace(" ", "");
         String more = read("src/com/jjricks/volt/MoreScreen.java").replace(" ", "");
         String registry = read("src/com/jjricks/volt/BackupRegistry.java").replace(" ", "");
-        check(main.contains("elseif(outcome==ChargeSend.Outcome.SENT)preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();"),
-                "An email with the recordings opened retires the banner");
+        // #537 review, F03: opening a chooser is not a send. The answer is stored only from onStop, once an app took it.
+        check(!main.contains("elseif(outcome==ChargeSend.Outcome.SENT)preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();")
+                && main.contains("elseif(outcome==ChargeSend.Outcome.SENT)chargeHandOver.opened();"),
+                "Handing the recordings' email to Android only starts the hand-over; it never answers the invite by itself");
+        check(main.contains("if(chargeHandOver.stopped(power==null||power.isInteractive(),isChangingConfigurations()))\npreferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();")
+                && main.indexOf("chargeHandOver.stopped(") > main.indexOf("protectedvoidonStop(){")
+                && main.indexOf("chargeHandOver.stopped(") < main.indexOf("super.onStop();", main.indexOf("protectedvoidonStop(){")),
+                "An app taking the email (Volt stops) retires the banner");
+        check(main.indexOf("chargeHandOver.paused();") > main.indexOf("publicvoidonPause(){")
+                && main.indexOf("chargeHandOver.paused();") < main.indexOf("if(startupRedirect||enteringMaintenance){super.onPause();return;}"),
+                "Every pause counts, before onPause's early return");
+        check(main.indexOf("chargeHandOver.resumed();") > main.indexOf("publicvoidonResume(){")
+                && main.indexOf("chargeHandOver.resumed();") < main.indexOf("if(startupRedirect||enteringMaintenance)return;", main.indexOf("publicvoidonResume(){")),
+                "Every resume counts, before onResume's early return");
+        int sent = 0; for (int at = main.indexOf("ChargeInvite.SENT"); at >= 0; at = main.indexOf("ChargeInvite.SENT", at + 1)) sent++;
+        check(sent == 1, "One place stores the sent answer: " + sent);
         check(more.contains("if(ChargeInvite.RECORD_ANCHOR.equals(id))returnchargeCaptureRow!=null?chargeCaptureRow.view:null;"),
                 "The page brings Record this charge on screen for the anchor");
         check(more.contains("||s==null||s.isChargeRecording()||s.chargeCaptureUnavailable()!=null)returnfalse;")

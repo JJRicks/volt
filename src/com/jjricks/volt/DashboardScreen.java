@@ -2074,7 +2074,7 @@ public final class DashboardScreen implements AppScreen {
         return chargeTimeLabels(estimate.targetPercent, widget);
     }
 
-    /** The same names for a cutoff alone (null: unknown, so "100% if uncapped"). */
+    /** The same names for a cutoff alone (null: unknown, so "100% if uncapped", unless the model has no limit at all). */
     private String[] chargeTimeLabels(Double targetPercent, boolean widget) {
         return chargeTimeLabels(targetPercent, widget, false);
     }
@@ -2085,6 +2085,7 @@ public final class DashboardScreen implements AppScreen {
      * Nov 12 2026: "if uncapped" is redundant there).
      */
     private String[] chargeTimeLabels(Double targetPercent, boolean widget, boolean plainHundred) {
+        targetPercent = ChargeTimeReadings.namedTarget(targetPercent, noChargeLimit());
         if (targetPercent != null && (targetPercent < 100 || plainHundred)) {
             String target = T.fmtPercent(Fmt.decimal(Locale.US, targetPercent, 0));
             String name = widget ? T.dashboardChargeToLimit(target) : T.dashboardChargeTimeTo(target);
@@ -2093,6 +2094,17 @@ public final class DashboardScreen implements AppScreen {
         if (targetPercent == null)
             return new String[] {T.dashboardChargeTimeUncapped(), T.dashboardChargeTimeUncappedShort(), T.dashboardChargeTimeUncappedCompact()};
         return new String[] {T.dashboardChargeTimeFull(), T.dashboardChargeTimeFullShort(), T.dashboardChargeTimeFullCompact()};
+    }
+
+    /** The selected scooter's model has no charge limit at all (ScooterService.noChargeLimit): it charges to 100%. */
+    private boolean noChargeLimit() {
+        ScooterService service = host.service();
+        return service != null && service.noChargeLimit();
+    }
+
+    /** An estimate's status as spoken: on a model with no charge limit its cutoff is 100%, not unknown. */
+    private String spokenStatus(String status) {
+        return noChargeLimit() ? ChargingEstimate.knownFullCutoff(status) : status;
     }
 
     /**
@@ -2474,7 +2486,7 @@ public final class DashboardScreen implements AppScreen {
             Double soc = Double.isNaN(level) ? null : level;
             fill(FULL, ChargeTimeReadings.two(source) ? chargeTimeLabels(100d, false, true) : chargeTimeLabels(ChargeTimeReadings.oneReadingTarget(estimate.targetPercent, source), false),
                     estimate, scooterLimit ? ChargingEstimate.minutesToFullBesideLimit(estimate, soc) : estimate.remainingMinutesToFull,
-                    scooterLimit ? ChargingEstimate.statusBesideLimit(estimate, soc) : estimate.status);
+                    scooterLimit ? ChargingEstimate.statusBesideLimit(estimate, soc) : spokenStatus(estimate.status));
             if (scooterLimit)
                 fill(LIMIT, chargeTimeLabels(estimate, false), estimate, estimate.remainingMinutesToLimit, estimate.status);
             else if (alert != null)
@@ -5813,7 +5825,7 @@ public final class DashboardScreen implements AppScreen {
             describeCharging(chargingWatts, T.dashboardChargingPower(), T.dashboardBatterySidePower());
             describeCharging(chargingEta, (chargingEtaTag != null && chargingEtaTag.getVisibility() == View.VISIBLE
                                     ? T.dashboardChargingTimeTag(etaLabels[0], chargingEtaTag.getText()) : etaLabels[0]),
-                    estimate.status);
+                    spokenStatus(estimate.status));
             if (chargingTemperature != null) {
                 TelemetryHistory.Reading temperature = values.get("temperature_c");
                 chargingTemperature.setText(format(temperature));

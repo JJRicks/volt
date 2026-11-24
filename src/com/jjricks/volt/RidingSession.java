@@ -266,6 +266,14 @@ final class RidingSession {
     boolean priorSet() { return priorSet; }
 
     /**
+     * Range at this pace runs on Volt's live energy model, or will once the learned prior lands: an energy
+     * prior, or no answer yet. Until this ride's pace is known it then shows a dash, never the scooter's
+     * range (RidingFocus.range). A prior without an energy model (no confirmed power direction, or no
+     * learned result) keeps the fallbacks: Volt's distance figure, then the scooter's range.
+     */
+    boolean paceModel() { return !priorSet || prior != null && prior.energy(); }
+
+    /**
      * Asks once for the learned model's prior. The answer may come at once (a cached result) or later;
      * either way it lands on this session, unless the session has closed, already has a prior, or the
      * active scooter is no longer this session's.

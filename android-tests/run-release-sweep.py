@@ -248,6 +248,10 @@ STEPS += [
     inst('just-back-basemap-412', PKG + '.JustBackBasemapValidation', '-e', 'size_label', '412', size='412x915'),
     inst('just-back-basemap-fold-folded', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold-folded', size='411x900'),
     inst('just-back-basemap-fold', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # The online maps' shared dark/light style (MapStyle): ride maps and Just back together, theme changes, a fold change, Map settings.
+    inst('map-style-344', PKG + '.MapStyleValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('map-style-412', PKG + '.MapStyleValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('map-style-fold', PKG + '.MapStyleValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Every model's photo framed like the UT5 MAX's (owner, Nov 17 2026): the whole set side by side, and Home (Widgets and Clean)
     # as the UT5 MAX, GT3 Max, GT5 Max and N65i, at 412 dp in light and dark and on the Fold unfolded.
     inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
@@ -264,6 +268,17 @@ STEPS += [
     inst('charge-invite-412-dark', T + 'ChargeInviteValidation', '-e', 'size_label', '412', '-e', 'theme', 'dark', size='412x915'),
     inst('charge-invite-344', T + 'ChargeInviteValidation', '-e', 'size_label', '344', '-e', 'theme', 'dark', size=PHONE[0]),
     inst('charge-invite-fold', T + 'ChargeInviteValidation', '-e', 'size_label', 'fold', '-e', 'theme', 'light', size='790x820'),
+    # 2.0.5 charging wording: a model with no charge limit at all (GT3 Max) names its time the plain time to full, a UT5 MAX
+    # whose limit isn't read yet keeps "if uncapped" (README #613), in English and German at 1.3x, both themes, phone and
+    # the Fold open; Clean on the simulator's GT3 Max. Battery & charging's range line keeps "38 km" together (#452), also
+    # at its trigger (344 dp, 1.4x). Email to Volt's chooser closed with Back leaves the invite unanswered (#537, F03).
+    inst('charge-time-tile-wording-412', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charge-time-tile-wording-fold', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'size_label', 'fold', '-e', 'text_scale', '1.3', size='790x820'),
+    inst('charge-time-tile-wording-clean-412', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'home', 'clean', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charging-range-line-412', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charging-range-line-fold', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', 'fold', '-e', 'text_scale', '1.3', size='790x820'),
+    inst('charging-range-line-344-large', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', '344', '-e', 'text_scale', '1.4', '-e', 'themes', 'dark', size=PHONE[0]),
+    inst('charge-invite-handover', T + 'ChargingWordingValidation', '-e', 'mode', 'invite', size='412x915'),
     # Charge history & recordings' What Volt has learned (owner's 2.0.1 item 13): a card per learned charger from synthesized
     # recordings (nothing learned, one partial, a joined pair, stock and high-speed, a gap and a disagreement, the scooter's
     # own percent jump); 412 dp both themes and large text, 344 dp, the Fold unfolded.
@@ -334,6 +349,10 @@ STEPS += [
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
+    # Range at this pace shows a dash until this ride's pace is known (owner, 2.0.5): opened stopped and moving, a stop,
+    # rotation and a fold or unfold. The window and theme are the validation's own (it sets wm size and density).
+    inst('riding-range-start', T + 'RidingRangeStartValidation', '-e', 'window', 'phone', '-e', 'theme', 'dark'),
+    inst('riding-range-start-fold', T + 'RidingRangeStartValidation', '-e', 'window', 'fold', '-e', 'theme', 'light'),
     inst('regen-display', T + 'RegenDisplayValidation'),
     inst('riding-auto-close', T + 'RidingAutoCloseValidation', hidden_api=True),
     inst('riding-lost-connection', T + 'RidingLostConnectionValidation', hidden_api=True),
@@ -380,6 +399,12 @@ STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else '') + '-725', T + 
           for tag in GPS_TAGS]
 STEPS += [inst('gps-accuracy-graph' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'graph',
                *(('-e', 'locale', tag) if tag else ()), report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
+# The ride graph (2.0.5): with Power, Wheel speed, Battery %, Elevation and Distance chosen, every value axis shows on the
+# unfolded Fold (inline and expanded) and at least three on a phone, and the expanded graph fills its page down to Done;
+# and the charge graph's estimate detail under the cursor stays inside its row at phone width, font scale 1 and 1.3.
+# RideChartsValidation sets its own window (1080x2400 or 2074x2153 at 420 dpi) and puts it back.
+STEPS += [inst(f'ride-charts-{size}', T + 'RideChartsValidation', '-e', 'part', 'ride', '-e', 'size', size) for size in ('phone', 'fold')]
+STEPS += [inst('charge-trace-detail', T + 'RideChartsValidation', '-e', 'part', 'charge', '-e', 'size', 'phone')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]

@@ -491,6 +491,18 @@ public final class ModelRegistry {
 
     /** Variant for this feature on this device, or null; applicability is decided by CapabilityResolver. */
     static FeatureVariant variant(String feature,DeviceDescriptor d,Resolution r,StatusFields s){return rule(feature,d,r,s).variant;}
+    /**
+     * The model has no charge limit at all: the official app hides its Charge limit control (MODEL_EXCLUDED), so the
+     * battery charges to 100% (the GT3 Max). False where the model has one (the UT5 MAX, the official app's charge family,
+     * also while its limit isn't read yet), where the full model ID that decides it isn't known yet (FULL_PID_NEEDED), and
+     * for a model Volt hasn't identified or mapped: there the cutoff stays unknown. Not ChargeAlertPolicy.offered, which
+     * also offers alerts on an unmapped model.
+     */
+    static boolean noChargeLimit(DeviceDescriptor d){
+        if(d==null)return false;
+        Rule rule=rule("charge_limit",d,resolve(d),StatusFields.NONE);
+        return rule.support==CapabilityResolver.Support.INCOMPATIBLE&&rule.reason==CapabilityResolver.Reason.MODEL_EXCLUDED;
+    }
 
     static Rule rule(String feature,DeviceDescriptor d,Resolution r,StatusFields s){
         if(!"clock_sync".equals(feature))ScooterCommands.find(feature); // unknown keys are a programming error (OEM-only keys are known)

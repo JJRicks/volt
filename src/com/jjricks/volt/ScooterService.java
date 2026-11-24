@@ -1469,6 +1469,14 @@ public final class ScooterService extends Service {
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
         return !destroyed&&p!=null&&ble!=null&&ChargeAlertPolicy.offered(alertDescriptor(p));
     }
+    /**
+     * The selected scooter's model has no charge limit at all (ModelRegistry.noChargeLimit), judged like
+     * chargeAlertsOffered: its charging time is the plain time to full, never "if uncapped".
+     */
+    public boolean noChargeLimit(){
+        ScooterProfiles.Profile p=profiles==null?null:profiles.active();
+        return !destroyed&&p!=null&&ble!=null&&ModelRegistry.noChargeLimit(alertDescriptor(p));
+    }
     /** Why chargeAlertsOffered() is false (ChargeAlertPolicy.missing), or null when it is true. */
     public CapabilityResolver.Reason chargeAlertsMissing(){
         ScooterProfiles.Profile p=profiles==null?null:profiles.active();
