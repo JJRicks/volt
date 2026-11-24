@@ -50,9 +50,17 @@ public final class ChargeSlowdown {
          * slower too, so Charge done by allows COLD_TAIL_MINUTES more. Kept to the charge's end.
          */
         public final boolean coldTail;
+        /**
+         * How fast the cold estimate's battery warms (C a minute): this charge's own measured rate once it has
+         * WARM_MEASURE_MINUTES of temperatures, held to WARM_FLOOR..WARM_SHOWN; WARM_SHOWN before that.
+         */
+        public final double warmRate;
 
-        State(boolean slowed, Cause cause, Double batteryTempC, boolean coldTail) {
+        State(boolean slowed, Cause cause, Double batteryTempC, boolean coldTail) { this(slowed, cause, batteryTempC, coldTail, WARM_SHOWN); }
+
+        State(boolean slowed, Cause cause, Double batteryTempC, boolean coldTail, double warmRate) {
             this.slowed = slowed; this.cause = slowed ? cause : null; this.batteryTempC = batteryTempC; this.coldTail = coldTail;
+            this.warmRate = warmRate;
         }
     }
 
@@ -76,6 +84,14 @@ public final class ChargeSlowdown {
      * through the 1 C reading; Charge done by plans with 0.15 from the bottom of the reading, since the room decides it.
      */
     static final double WARM_SHOWN = .25, WARM_PLAN = .15;
+    /**
+     * This charge's own warming (Nov 24 2026: a pack at 8 C charging at 5.5 A warmed about 0.13 C a minute, half of
+     * WARM_SHOWN): once WARM_MEASURE_MINUTES minutes hold a fresh temperature, the least-squares slope through each
+     * minute's average reading, never faster than WARM_SHOWN nor slower than WARM_FLOOR, so a pack that has barely
+     * warmed yet (a whole-degree reading can sit still for 8 minutes) does not make the time wildly long.
+     */
+    static final int WARM_MEASURE_MINUTES = 10;
+    static final double WARM_FLOOR = .10;
     /** Charge done by's extra minutes for the slower taper after a cold-slowed stretch. */
     static final double COLD_TAIL_MINUTES = 6;
     /** The pack's resistance (ohms), moving the pack voltage with the current for the estimate at the expected current. */
@@ -86,6 +102,10 @@ public final class ChargeSlowdown {
     private Cause cause;
     private Double temperature;
     private long start, since = -1, last;
+    /** The warming fit: its first temperature's time, the open minute's sum and count, and the closed minutes' sums. */
+    private long warmFirst = -1, warmMinute;
+    private double minuteSum, sx, sy, sxx, sxy;
+    private int minuteCount, minutes;
 
     public void reset() { profile = null; clearCharge(); }
 
@@ -134,12 +154,13 @@ public final class ChargeSlowdown {
         if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)
                 || charger != ChargeSessionStore.Charger.HIGH_SPEED) {
             // Not watched: a later fast-charger reading starts its own START_MS.
-            on = false; since = -1; last = 0; temperature = null;
+            on = false; since = -1; last = 0; temperature = null; warmFirst = -1;
             return;
         }
         if (last == 0 || sampleMs - last >= GAP_MS) { start = sampleMs; since = -1; }
         last = sampleMs;
         temperature = temperatureC != null && finite(temperatureC) ? temperatureC : null;
+        if (temperature != null) warming(temperature, sampleMs);
         double current = Math.abs(amps), expected = expectedAmps(soc);
         double cutoff = limit != null && finite(limit) && limit > 0 && limit <= 100 ? limit : 100;
         boolean eligible = volts + FastChargeTaper.CV_DROP * current < CV_EDGE_V && soc < cutoff - LIMIT_MARGIN && sampleMs - start >= START_MS;
@@ -168,11 +189,30 @@ public final class ChargeSlowdown {
         if (profile == null || !profile.equals(this.profile) || last <= 0) return State.NONE;
         boolean fresh = nowMs >= last && nowMs - last < GAP_MS;
         if (!fresh) return coldSeen ? new State(false, null, null, true) : State.NONE;
-        return new State(on, cause, temperature, coldSeen);
+        return new State(on, cause, temperature, coldSeen, warmRate());
+    }
+
+    /** One fresh temperature: a reading in a later minute closes the open one into the fit. */
+    private void warming(double c, long ms) {
+        if (warmFirst < 0 || ms < warmFirst) { warmFirst = ms; warmMinute = 0; minuteSum = sx = sy = sxx = sxy = 0; minuteCount = minutes = 0; }
+        long minute = (ms - warmFirst) / 60_000L;
+        if (minute != warmMinute && minuteCount > 0) {
+            double y = minuteSum / minuteCount;
+            sx += warmMinute; sy += y; sxx += (double) warmMinute * warmMinute; sxy += warmMinute * y; minutes++;
+            minuteSum = 0; minuteCount = 0;
+        }
+        warmMinute = minute; minuteSum += c; minuteCount++;
+    }
+
+    /** The warming rate the cold estimate uses now (State.warmRate). */
+    double warmRate() {
+        if (minutes < WARM_MEASURE_MINUTES) return WARM_SHOWN;
+        double slope = (minutes * sxy - sx * sy) / (minutes * sxx - sx * sx);
+        return finite(slope) ? Math.max(WARM_FLOOR, Math.min(WARM_SHOWN, slope)) : WARM_SHOWN;
     }
 
     private void clearCharge() {
-        on = coldSeen = false; cause = null; temperature = null; start = last = 0; since = -1;
+        on = coldSeen = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
     }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }

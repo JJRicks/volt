@@ -64,11 +64,12 @@ ones); healthy stretches stay at 0.997 × or more of the expected current.
   - **cold**, only where a BMS cold level explains the live current (battery below 20 °C, the current within
     10% of that temperature's level, 5.5 A below 15 °C or 8.5 A to 20 °C, and that level below the stage's
     expected current): the BMS's cold levels as the battery warms 0.25 °C a minute from the middle of its
-    1 °C reading, never below the live current;
+    1 °C reading, never below the live current; from 10 minutes of this charge's temperatures, at its own
+    measured rate (below);
   - **anything else** (hot, plain, or cold but far from a cold level, such as 3 A at 19 °C or 8.5 A in the
     8 A stage): the live current lasts to the end of the bulk stage; no recovery is assumed.
 - **Charge done by:** the longer of the time shown and the same bulk calculation warming 0.15 °C a minute
-  from the bottom of the reading, plus 6 minutes once this charge was slowed cold (a cold taper runs
+  (or the charge's own slower rate) from the bottom of the reading, plus 6 minutes once this charge was slowed cold (a cold taper runs
   slower).
 - **Never less conservative** (review of #561): Charge done by is never shorter than the same reading's
   estimate without a slowdown, to 100% or to a limit. Neither is the time shown, except where a cold level
@@ -77,6 +78,31 @@ ones); healthy stretches stay at 0.997 × or more of the expected current.
   longer time.
 - **Hot onset is not predicted.** No recording shows one to tune on, and a guard fast enough to matter
   fired on healthy deep charges.
+
+## The charge's own warming rate (`ut5-fast-warming-v12`)
+
+A UT5 MAX fast charge from 8 °C at the BMS's 5.5 A cold level warmed about 0.13 °C a minute, half the
+0.25 the cold model assumed, so the time shown ran 12–24 minutes short for most of the charge. A charge
+from 13 °C warmed about 0.25. The rate depends on the room and the current, so the charge measures its own:
+
+- `ChargeSlowdown` keeps, for the watched fast charge, each minute's average battery temperature (from the
+  charge's first fresh temperature) as running least-squares sums: a few numbers, not the readings.
+- Once 10 minutes hold a temperature, `State.warmRate` is the least-squares slope through those minute
+  averages, so a whole-degree reading that steps early or late moves it a little, not the way two
+  endpoints would. Before that it is 0.25, exactly as before.
+- **Held to 0.10–0.25 °C a minute.** Never faster than 0.25 (the earlier assumption, and what the 13 °C
+  charge measured). The floor, 0.10, sits below every rate the maintainer's cold recordings measured
+  (0.12 at 10 minutes on the coldest, 0.13–0.15 after; 0.19–0.30 on the 13 °C one), so it never bound on
+  them. It stops a pack whose whole-degree reading has not moved yet (a 1 °C step at 0.13 °C a minute
+  takes almost 8 minutes) from reading as not warming at all. At any rate the cold model stays within the
+  live current lasting to the end of the bulk stage, the bound every other slowdown uses.
+- Charge done by warms at the slower of 0.15 and this rate.
+- A new charge (charging stops, 30 minutes of silence, another charger or another scooter) measures again.
+- Warm and hot charges never use it: the rate is read only where a BMS cold level explains the current.
+
+Not modelled yet: the cold pack's slower taper. The same 8 °C charge reached the charger's voltage limit at
+77% and tapered more slowly than a warm one; one recording is too few to fit that. Charge done by's six
+extra minutes after a cold stretch still stand for it.
 
 ## Outside slowed stretches
 
