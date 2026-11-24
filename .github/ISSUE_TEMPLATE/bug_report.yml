@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Volt version
-      placeholder: Version from More → About & permissions
+      placeholder: Version from Settings → About & permissions
     validations:
       required: true
   - type: input
