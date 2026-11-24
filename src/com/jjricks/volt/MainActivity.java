@@ -180,6 +180,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * since the state may have changed meanwhile (#487 review). homeFind marks Home's call while it runs.
      */
     private boolean pendingHomeFind,homeFind;
+    /** The profile Home's find was tapped for (its offer's decision travels with the wait), or null. */
+    private String pendingHomeFindId,homeFindId;
     private long lastBodyRefreshMs;
     /** Whether the link was ready at the last body refresh (null before the first). */
     private Boolean bodyReady;
@@ -317,6 +319,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(saved!=null){nav=HubNav.restore(saved.getStringArray("page_stack"),saved.getString("page",HubPages.HOME));for(String page:HubPages.ALL)scrollPositions.put(page,saved.getInt("scroll_"+page,0));pendingConnect=saved.getBoolean("pending_connect",false);pendingScan=saved.getBoolean("pending_scan",false);maintenancePending=saved.getBoolean("maintenance_pending",false);compatibilityRecovery=saved.getBoolean("compat_recovery",false);searchQuery=saved.getString("search_query","");searchReading=saved.getString("search_reading");pageArgs=HubNav.Args.restore(saved.getStringArray("page_args"));settingsNearbyHeight=saved.getInt("settings_nearby_height",0);}
         if(saved!=null)pendingFind=pendingScan&&saved.getBoolean("pending_find",false);
         if(saved!=null)pendingHomeFind=pendingFind&&saved.getBoolean("pending_home_find",false);
+        if(saved!=null)pendingHomeFindId=pendingHomeFind?saved.getString("pending_home_find_id"):null;
         if(saved!=null)ridingRestore=saved.getBoolean("riding",false);
         else nav=new HubNav();
         // A notice tap still waiting for riding mode or setup to close survives a cold start (into unfinished setup, say), as on main.
@@ -526,6 +529,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         saved.putStringArray("page_args",HubNav.Args.save(pageArgs));
         saved.putBoolean("pending_find",pendingFind);
         saved.putBoolean("pending_home_find",pendingHomeFind);
+        saved.putString("pending_home_find_id",pendingHomeFindId);
         noteRidingLeft();saved.putBoolean("riding",riding!=null||ridingRestore);
         RidingSession.Resume ridingState=riding!=null?riding.resume():ridingResume;
         if(ridingState!=null){saved.putLong("riding_opened_ms",ridingState.openedMs());saved.putString("riding_profile",ridingState.profileId());saved.putDoubleArray("riding_distance",ridingState.distance());saved.putDoubleArray("riding_speed",ridingState.speed());saved.putLong("riding_auto_ends",ridingState.autoEnds());saved.putBoolean("riding_link_seen",ridingState.linkSeen());saved.putLongArray("riding_leave",ridingState.leave());}
@@ -2473,22 +2477,26 @@ public final class MainActivity extends Activity implements ScreenHost {
      * a recording began. A tap then redraws instead of ending that link (homeFindOffered).
      */
     private void findNearby(boolean home){
-        if(scooterService==null){homeFind=home;try{showScanner(true,true);}finally{homeFind=false;}return;}
+        if(scooterService==null){homeFind=home;homeFindId=null;try{showScanner(true,true);}finally{homeFind=false;}return;}
         // The same refusal as entry B's canChangeScooter (recordings, phone saving, schedule tests, a change in flight).
         String unavailable=scooterService.scooterChangeUnavailable();if(unavailable!=null){toast(unavailable);return;}
         if(home&&!homeFindOffered()){redraw();return;}
         ScooterProfiles.Profile profile=scooterService.profiles.active();
         if(profile!=null&&scooterService.ble.releaseHeld(profile.id)){showReleaseHold(profile.id);return;}
         if(!scooterService.simulating()&&(profile==null||!FindNearby.offerRow(profile.mac,profile.serial))){redraw();return;}
-        homeFind=home;try{showScanner(true,true);}finally{homeFind=false;}
+        homeFind=home;homeFindId=home&&profile!=null?profile.id:null;try{showScanner(true,true);}finally{homeFind=false;homeFindId=null;}
     }
     /** Home offers Find it nearby (FindNearby.offerHome): nothing a scooter change must not interrupt, a charge recording included. */
     private boolean homeFindOffered(){return scooterService!=null&&scooterService.scooterChangeUnavailable()==null&&scooterService.ble.findNearbyOffered();}
     private void showScanner(boolean start){showScanner(start,false);}
     /** The scan waits (resume, permission, the service, Bluetooth on) in its own mode. */
-    private void deferScan(boolean find){pendingScan=true;pendingFind=find;pendingHomeFind=find&&homeFind;}
+    private void deferScan(boolean find){pendingScan=true;pendingFind=find;pendingHomeFind=find&&homeFind;pendingHomeFindId=pendingHomeFind?homeFindId:null;}
     /** A waiting scan reopens in the mode it was asked in: a find stays a find. */
-    private void resumePendingScan(){boolean find=pendingFind,home=find&&pendingHomeFind;pendingScan=pendingFind=pendingHomeFind=false;if(home&&!homeFindOffered()){redraw();return;}showScanner(true,find);}
+    private void resumePendingScan(){boolean find=pendingFind,home=find&&pendingHomeFind;String tapped=pendingHomeFindId;pendingScan=pendingFind=pendingHomeFind=false;pendingHomeFindId=null;
+        // Home's find: still wanted for the scooter it was tapped for (FindNearby.homeFindStillWanted; leaving Volt for a
+        // dialog ends the Home stay its offer counted in), or, tapped before the service bound, Home's offer itself.
+        if(home&&scooterService!=null&&!(tapped!=null?scooterService.ble.homeFindStillWanted(tapped):homeFindOffered())){redraw();return;}
+        homeFind=home;homeFindId=tapped;try{showScanner(true,find);}finally{homeFind=false;homeFindId=null;}}
     private void showScanner(boolean start,boolean find){
         if (scooterService != null && scooterService.simulating()) { toast(T.mainScanExitSimulationFind()); return; }
         if(!resumed){deferScan(find);return;}

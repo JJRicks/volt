@@ -33,6 +33,7 @@ public final class BackupArchiveTest {
             legacyOwner(root);
             sameAccountOwner(root);
             hostile(root, source, complete);
+            storeRefusedId(root);
             System.out.println("BackupArchiveTest: " + checks + " checks passed (complete reset roundtrip, 7 single and 127 subset restores, legacy v1/.voltrides/layout/owner, hostile archives)");
         } finally { AppDataArchive.deleteTree(root); }
     }
@@ -432,6 +433,35 @@ public final class BackupArchiveTest {
                 "invalid owner files leave current data and staging untouched");
     }
 
+    /**
+     * #621 review: a scooter ID the charge store can't record under (outside [A-Za-z0-9_-]{1,128}; older Volt accepted
+     * any ID up to 128 characters, and write() and staging still do). A backup holding one restores with its owner key,
+     * on a new phone and merged onto one with data, and Charge history then loads, empty, instead of crashing.
+     */
+    private static void storeRefusedId(File root) throws Exception {
+        for (String id : new String[]{"my scooter", "dot.id", "slash/id", "\u00fc"}) {
+            String key = "0123456789AB";
+            BackupTestStore source = new BackupTestStore(new File(root, "odd-id-source-" + Math.abs(id.hashCode())));
+            Map<String, Map<String, Object>> p = BackupTestStore.empty();
+            p.get("profiles").put("items", "[{\"id\":" + BackupJson.quote(id) + ",\"name\":\"Odd\",\"identity\":\"" + key
+                    + "\",\"role\":0,\"mac\":\"02:00:00:00:00:0E\",\"serial\":\"SERIAL-ODD\",\"lastConnected\":5}]");
+            p.get("profiles").put("active", id); p.get("profiles").put("legacy_migrated", true);
+            p.get("onboarding").put("onboarding_done", true);
+            source.write(p);
+            byte[] backup = source.export(BackupTestStore.all());
+            BackupTestStore fresh = new BackupTestStore(new File(root, "odd-id-fresh-" + Math.abs(id.hashCode())));
+            fresh.restore(backup, BackupTestStore.all(), true, null);
+            BackupProfiles.Profile restored = BackupProfiles.find(BackupProfiles.parse(fresh.preferences().get("profiles").get("items")), id);
+            check(restored != null && key.equals(restored.identity), "a backup with scooter ID '" + id + "' restores with its owner key");
+            BackupTestStore merged = phone(new File(root, "odd-id-merge-" + Math.abs(id.hashCode())));
+            merged.restore(backup, BackupTestStore.all(), false, id);  // added as its own scooter
+            BackupProfiles.Profile kept = BackupProfiles.find(BackupProfiles.parse(merged.preferences().get("profiles").get("items")), id);
+            check(kept != null && key.equals(kept.identity), "merged onto a phone with data, '" + id + "' keeps its owner key");
+            ChargeSessionStore charges = new ChargeSessionStore(new File(fresh.files(), "charge-recordings"));
+            check(charges.history(id, 5).isEmpty(), "Charge history for '" + id + "' loads (no recordings) instead of throwing");
+        }
+    }
+
     private static void hostile(File root, BackupTestStore source, byte[] complete) throws Exception {
         BackupTestStore target = phone(new File(root, "hostile"));
         Map<String, Map<String, Object>> before = target.preferences(); Map<String, String> files = target.fileHashes();
@@ -464,17 +494,6 @@ public final class BackupArchiveTest {
         Map<String, Object> privateKeys = new LinkedHashMap<>(); privateKeys.put("items", "[{\"id\":\"x\",\"role\":5}]");
         byte[] badProfiles = AppDataArchive.encodePreferences(Collections.singletonMap("profiles", privateKeys), Collections.singleton("profiles"));
         rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"scooters"}, new int[]{1}, new long[]{badProfiles.length}, 1, badProfiles.length), "prefs/scooters.bin", badProfiles))), "invalid scooter profiles refused");
-        // A hand-edited scooter ID the charge store refuses (ChargeSessionStore: [A-Za-z0-9_-]{1,128}) is refused at
-        // staging; restored, it made Charge history's worker throw. The phone's own list still reads it (no lockout).
-        for (String id : new String[]{"has space", "dot.id", "slash/id", "\u00fc", String.join("", Collections.nCopies(129, "a"))}) {
-            String item = "[{\"id\":" + BackupJson.quote(id) + ",\"name\":\"Edited\",\"identity\":\"0123456789AB\",\"role\":0}]";
-            Map<String, Object> edited = new LinkedHashMap<>(); edited.put("items", item);
-            byte[] editedProfiles = AppDataArchive.encodePreferences(Collections.singletonMap("profiles", edited), Collections.singleton("profiles"));
-            rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"scooters"}, new int[]{1}, new long[]{editedProfiles.length}, 1, editedProfiles.length), "prefs/scooters.bin", editedProfiles))), "scooter ID the charge store refuses is refused: " + id);
-            if (id.length() <= 128) check(BackupProfiles.parse(item).size() == 1 && BackupProfiles.readable(item).size() == 1, "local profiles keep an ID the store refuses readable: " + id);
-        }
-        for (String id : new String[]{"0b5c7a2e-1f3d-4e6a-9b8c-7d6e5f4a3b2c", "x1", "w_a-B9", String.join("", Collections.nCopies(128, "a"))})
-            check(BackupProfiles.parse("[{\"id\":\"" + id + "\",\"identity\":\"0123456789AB\",\"role\":0}]", true).size() == 1, "staged backups keep every ID the charge store takes: " + id);
         byte[] badDb = "not a database".getBytes();
         rejects(() -> target.stage(encrypt(entries("manifest.bin", manifest(36, 1, false, new String[]{"history"}, new int[]{1}, new long[]{badDb.length}, 1, badDb.length), "database/telemetry-history.db", badDb))), "invalid history database refused");
         // A plain ZIP with a category manifest is not accepted: new backups are always encrypted.
