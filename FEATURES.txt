@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.4 (versionCode 64)
+Current version: 2.0.5 (versionCode 65)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,46 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.4
+NEW IN 2.0.5
+------------
+- Scooter off: a scooter switched off but still answering (status replies,
+  no live 0x90/0x91/0x92 push for 10 s; UT5 MAX, or a scooter that pushed
+  before) shows Scooter off on Home, in riding mode and in the
+  notification (a charging reading shows the Charging view instead);
+  changes but the charging settings are refused with "Turn the scooter on
+  first" and nothing is sent; Unlock still works.
+  Before a UT5 MAX's first motion report, a refusal says "Waiting for the
+  scooter to report its speed", not "Bring the scooter to a stop first".
+- Ride auto-end: a switch-off during a recording ends the ride on its
+  usual rule, timed from the last push, through reconnects that bring no
+  push; saved as Scooter switched off. Afterwards, out of sight, Volt
+  stops reconnecting to that scooter until it is opened or Connect is
+  tapped.
+- Riding mode: Range at this pace shows a dash until the estimate has
+  settled (about 30 s at pace), never the learned prior's figure.
+- Controls: a spinner over a control whose change the scooter hasn't
+  confirmed after 1 s (lock switch, Controls rows, Maximum speed, Home's
+  tiles, the charge limit pill), until it confirms or times out.
+- Charging (UT5 MAX): Estimating time left until the charger is known and
+  its bulk current has started, plus a settling minute, 3 min at most
+  (short rung Estimating on the tile); a cold-battery fast charge uses the
+  battery's own measured warming rate after 10 min, never faster than
+  before. No-limit models read Time to full (est.), not To 100% if
+  uncapped.
+- Maps and charts: one Dark map switch for the ride maps and Just back
+  (follows the theme until flipped; backed up); a Distance line (odometer,
+  else GPS distance) on the ride graph, off by default; fitted axis
+  columns, so the unfolded Fold shows every axis.
+- Fold, unfold and rotation keep the open ride, its expanded map or graph,
+  a charge recording and its graph, and Battery & charging's sheets.
+- Widgets edit buttons sit at a card's end, clear of its title; Search
+  finds every page's rows by their translated names. Fixes: restore and
+  charge-history crash guards, the made key's popup after a slow start,
+  Find it nearby checks, Tried before, diagnostics files' real date and a
+  push_frames section. All new and changed text is translated in all ten
+  beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.4
 ------------
 - Setup: Make a new owner key is for a scooter that isn't in the NAVEE app
   (the choice reads Not in the NAVEE app · no computer, was New or reset

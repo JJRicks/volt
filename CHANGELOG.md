@@ -1,5 +1,67 @@
 # Changelog
 
+## 2.0.5 — 2026-11-24
+
+Volt 2.0.5 knows when your scooter is switched off but still answering, waits for a real figure before showing Range at this pace or the time to full, adds a Dark map switch and a Distance line to the ride graph, and keeps your place when you fold or unfold the phone. Plus a good number of fixes.
+
+- **Scooter off.** A switched-off scooter can keep answering Volt for a while without sending any live readings. Volt used to show it as **Connected**, and a tap on a control said **Bring the scooter to a stop first**. Home now says **Scooter off · Turn the scooter on to use it**, and controls say **Turn the scooter on first** without sending anything. The charging settings and **Unlock** still work. A ride being recorded when the scooter is switched off now ends on time (with **End rides automatically** on, the default) and is saved as **Scooter switched off**.
+- **Range at this pace waits for your pace.** Riding mode no longer opens with a figure far above the real one. It shows a dash until about half a minute of riding has shown this ride's pace, then the number.
+- **Estimating first.** On a UT5 MAX, the first minutes of a charge show **Estimating time left** instead of a guess, for up to three minutes, until the charger's real current shows. On a cold battery the time to full is better too: Volt now measures how fast the battery is warming.
+- **Dark map.** A **Dark map** switch beside **Basemap** on the ride maps also sets Home's **Just back** map. Until you flip it, the maps follow the app's theme.
+- **Distance on the ride graph.** The ride graph can draw how far the ride has gone, from the scooter's odometer or else the phone's GPS. On a wide screen the graph now shows every axis.
+- **Fold and unfold keep your place.** An open ride, its expanded map or graph, a charge recording or a ride comparison stays open when you fold, unfold or turn the phone.
+- **Languages:** all new and changed text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Riding
+
+- **Scooter off, while riding.** Riding mode's status pill says **Scooter off** in orange (**Off** where it doesn't fit), and a recording's red pill alternates its time with **Scooter off**. The ongoing notification and the connection details say it too.
+- **A switch-off ends the ride.** If the scooter is switched off during a recording, the ride ends by the usual automatic rules, timed from the scooter's last live reading, even when Volt reconnects to the switched-off scooter in the meantime. It is saved as **Saved automatically · Scooter switched off**, and it ends at its last movement. Afterwards, while Volt is out of sight, it stops trying to reconnect to that scooter by itself; opening Volt or tapping **Connect** brings reconnecting back.
+- **Waiting for speed.** Before a UT5 MAX has reported its speed, a refused control says **Waiting for the scooter to report its speed**, not **Bring the scooter to a stop first**.
+- **Range at this pace** shows the dash from opening until the estimate has settled (the same moment its number used to stop being marked ≈), and from then on keeps the number for the ride, dimmed during a long stop. Without Volt's energy model it falls back as before.
+
+### Controls
+
+- **A spinner while the scooter confirms.** If the scooter hasn't confirmed a change after one second, the control shows a spinner until it does or the change times out: inside the lock switch's thumb, in a Controls row's switch, on the Maximum speed buttons, on Home's tiles (**Updating…**) and in the charge limit's pill. A fast scooter shows no spinner at all. TalkBack says **Confirming** once.
+
+### Charging
+
+- **Estimating time left at plug-in (UT5 MAX).** The fast charger starts softly for a minute or two, and under **Auto** the charger isn't known for the first seconds, so the first time shown could be hours off. Volt now waits until the charger is known and its real current has started, plus one settling minute, and never more than three minutes. The live card, the Widgets and Charge done by wait too. Charge recordings still save what the estimator computed. On a narrow tile the words shorten to **Estimating**.
+- **Better estimates on a cold battery.** When a cold battery slows a UT5 MAX fast charge, the time to full now uses how fast this battery is actually warming, measured after 10 minutes, instead of a fixed rate. It is never more hopeful than before, and Charge done by stays as cautious. Warm charges are unchanged. Recordings from 2.0.5 carry the estimator version `ut5-fast-warming-v12.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1`.
+- **Time to full on models without a charge limit.** On a GT3 Max and other models with no charge limit, the time tile said **To 100% if uncapped**. It now says **Time to full (est.)**.
+- **The range stays with its unit.** Battery & charging's summary no longer wraps "about 38 km left" between the number and the unit.
+- **The charge invite.** Backing out of Android's email chooser no longer counts as sending the charge-data email, so the invite on the Battery page stays.
+
+### Maps and charts
+
+- **Dark map.** One switch for the inline ride map, the full-screen map and **Just back**, also in **Map settings**, kept in backups. On a dark map the route is outlined in white, so every colour on it stays visible, and loading tiles don't flash white. Search finds **Dark map** and **Map on Home's last ride**.
+- **Distance.** The new line comes last in the graph's choices and is off by default. It is named **GPS distance** when it comes from the phone. Old rides show it too.
+- **Every axis on a wide screen.** Each axis is as wide as its marks, so the unfolded Fold shows all five, and a phone three.
+- **The expanded ride graph fills its page** down to **Done**.
+- **The charge graph's detail line** stays inside its row, wrapping or shortening the estimator's name instead of running off the edge.
+
+### Home and Widgets
+
+- **Edit buttons clear of titles.** In Widgets edit mode, a card's move, options and duplicate buttons sit together at its end where there's room, instead of over the start of its title.
+- **Fold and unfold keep your place.** Before, folding or unfolding could drop you back a page or two. Now a ride's details, its expanded map (with its zoom) and graph, Charge history's open recording and graph, Battery & charging's sheets and riding mode's menu stay open. A ride you picked in the wide All rides pane folds back into its details page.
+- **Search finds rows by their translated names** on every page, not only on Ride recording: for example **Record charges automatically** typed in Polish or German.
+- **Reading tiles** drop their labels instead of growing past their card when a value gets longer.
+- **Release not confirmed** shows on every scooter whose release is held in **My scooters**, not only the current one.
+- Smaller fixes: the status bar icons stay dark over the light dock sheet; Enter right after Back no longer reaches the control under a closing sheet; quick tab switches no longer leave an old fade running; tabletop Home shows no scroll bar; the two panes keep their split.
+
+### Fixes
+
+- **Restoring a backup** no longer crashes Volt on Android 11 and later, and a backup with an unusual scooter ID no longer crashes Charge history.
+- **Write down your owner key.** If Volt took a few seconds to start after **Go to Home**, setup could finish without this popup. Home now shows it, and keeps showing it until you tap **Done**. TalkBack says **Go to Home, starting** while it waits.
+- **Find it nearby** no longer lets a wrong saved model ID hide your scooter, reads a short serial reply as unreadable rather than as another scooter, and checks again before acting on a find that had to wait for Bluetooth.
+- **Experimental controls** say **Tried before** (**Tried** where it's narrow) for a control whose try has been cleared, instead of **Not tried yet**.
+- **Unlock without phone** on the NT3, which has a brake lever at each grip, tells TalkBack which lever: the left one.
+- **Diagnostics files** shared from Volt carry their real date; some apps dated them 1969. With **Include diagnostics** ticked, a report now also says which live readings the scooter sent and whether Volt judged it switched off.
+
+### Upgrading and going back
+
+- Nothing needs doing to update, and scooters you've already set up keep working as before. Ride and charge exports and charge recordings keep 2.0.4's format.
+- A backup made by 2.0.5 restores only in 2.0.5 or later: Volt 2.0.4 refuses it and says the backup needs a newer app version.
+
 ## 2.0.4 — 2026-11-21
 
 Volt 2.0.4 is a small release: setup's **Make a new owner key** now says plainly that it's for a scooter that isn't in the NAVEE app, riding mode's GPS chip shows its words in every language, and a few fixes.
