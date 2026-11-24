@@ -134,6 +134,10 @@ public final class HubSearchTest {
             zones();
             T.install(new Catalog("pt", "pt-PT"));
             recordingInPortuguese();
+            T.install(new Catalog("pl", "pl"));
+            rowsInLanguage();
+            T.install(new Catalog("de", "de"));
+            rowsInLanguage();
             T.install(FOREIGN);
             shown();
         } finally {
@@ -376,6 +380,65 @@ public final class HubSearchTest {
         check(none, "without the gates' names, the Portuguese row name finds nothing (the case the review found)");
     }
 
+    /**
+     * Every row title a page's words name (HubSearchTables.pageRows), typed as the row shows it in the installed language,
+     * lists that page (#533 review: only Recording settings' rows were found outside English; "Automatycznie zapisuj
+     * ładowania" found nothing). The shown name is the catalog string whose English is the title, the one the row
+     * reads; a title the language leaves in English is skipped (its English words find it already).
+     */
+    private static void rowsInLanguage() {
+        String language = T.language();
+        java.util.Map<String, String> keyOf = new java.util.HashMap<>();
+        java.util.regex.Pattern string = java.util.regex.Pattern.compile("<string name=\"([^\"]+)\"[^>]*>(.*?)</string>", java.util.regex.Pattern.DOTALL);
+        try (java.util.stream.Stream<java.nio.file.Path> files = Files.list(Paths.get("res/values"))) {
+            for (java.nio.file.Path file : (Iterable<java.nio.file.Path>) files.sorted()::iterator) {
+                if (!file.getFileName().toString().startsWith("strings_")) continue;
+                java.util.regex.Matcher m = string.matcher(read(file.toString()));
+                while (m.find()) keyOf.putIfAbsent(m.group(2).replace("\\'", "'").replace("&amp;", "&").trim(), m.group(1));
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        Catalog shown = new Catalog(language, language);
+        List<HubSearch.Entry> index = HubSearch.pages(ALL);
+        List<String> missed = new ArrayList<>();
+        int translated = 0;
+        for (String page : HubPages.ALL) {
+            if (HubPages.RIDE_RECORDING.equals(page)) continue;
+            for (String title : HubSearchTables.pageRows(page)) {
+                String key = keyOf.get(title);
+                check(key != null, "a catalog string reads " + title);
+                String name = shown.text.get(key);
+                if (name == null || name.equals(title)) continue;
+                translated++;
+                boolean found = false;
+                for (HubSearch.Entry e : HubSearch.search(index, name)) found |= e.kind == HubSearch.Kind.PAGE && page.equals(e.page);
+                if (!found) missed.add(page + ": \"" + name + "\" (" + title + ")");
+            }
+        }
+        check(translated > 20, language + " translates the rows' titles (" + translated + ")");
+        check(missed.isEmpty(), "row names in " + language + " that do not list their page: " + missed);
+        // One for one with pageRows: the catalog's names are the strings whose English is each title, in its order.
+        for (String page : HubPages.ALL) {
+            String[] english = HubSearchTables.pageRows(page);
+            Msg[] names = HubText.pageRowTitles(page);
+            if (HubPages.RIDE_RECORDING.equals(page)) { check(names.length == 0, "Recording settings' rows are named by their own files"); continue; }
+            check(names.length >= english.length, page + ": a shown name for each of its " + english.length + " rows (" + names.length + ")");
+            for (int i = 0; i < english.length; i++)
+                check(english[i].equals(names[i].english()), page + ": row " + i + " reads " + names[i].english() + ", pageRows lists " + english[i]);
+            // After them, rows shown only in some states: their English is in the page's own words.
+            for (int i = english.length; i < names.length; i++)
+                check(HubSearchTables.pageOwnWords(page).contains(names[i].english().toLowerCase(Locale.ROOT)), page + ": " + names[i].english() + " is in its own words");
+        }
+        // Developer options' Scene (#533 review, F05), shown only while simulating, by its name in this language.
+        String scene = shown.text.get("more_dev_simulation_scene");
+        if (scene != null && !scene.equals("Scene")) {
+            boolean found = false;
+            for (HubSearch.Entry e : HubSearch.search(index, scene)) found |= e.kind == HubSearch.Kind.PAGE && HubPages.SETTINGS_DEVELOPER.equals(e.page);
+            check(found, "\"" + scene + "\" lists Developer options in " + language);
+        }
+    }
+
     private static String firstPage(List<HubSearch.Entry> index, String query) {
         List<HubSearch.Entry> found = HubSearch.search(index, query);
         check(!found.isEmpty(), "something matches " + query);
@@ -424,7 +487,9 @@ public final class HubSearchTest {
         }
         HubSearch.Entry history = null;
         for (HubSearch.Entry e : pages) if (e.page.equals(HubPages.BATTERY_HISTORY)) history = e;
-        check(history != null && history.words.length == 1 && history.words[0] != null, "its words in the current language match too");
+        // Its words, then the names its rows show (HubText.pageRowTitles, #533 review).
+        check(history != null && history.words.length == 1 + HubText.pageRowTitles(HubPages.BATTERY_HISTORY).length && history.words[0] != null,
+                "its words in the current language match too");
         // A sub-page with nothing on this model (its link hides) is not a result; subjects always are.
         HubSearch.Gates noAssists = new HubSearch.Gates() {
             @Override public boolean row(String id) { return true; }
@@ -830,9 +895,10 @@ public final class HubSearchTest {
         // A target still owed survives a recreation while the loading page waits (a theme change, a fold, process death): the
         // activity saves pageArgs with its state and restores it before its first rebuild (#393 council review, fourth round,
         // finding 3). Every field comes back; none saves as null.
-        HubNav.Args owed = new HubNav.Args("feature", true, "ride-7", "preference_riding_auto_record", "speed_kmh", true);
+        // (A control's key this build knows: an unknown one is dropped as it comes back, HubNavTest.)
+        HubNav.Args owed = new HubNav.Args("speed_limit", true, "ride-7", "preference_riding_auto_record", "speed_kmh", true);
         HubNav.Args back = HubNav.Args.restore(HubNav.Args.save(owed));
-        check(back != null && "feature".equals(back.inspect) && back.recovery && "ride-7".equals(back.ride)
+        check(back != null && "speed_limit".equals(back.inspect) && back.recovery && "ride-7".equals(back.ride)
                 && "preference_riding_auto_record".equals(back.anchor) && "speed_kmh".equals(back.reading) && back.backAfterRide,
                 "a saved target comes back whole");
         HubNav.Args anchorOnly = HubNav.Args.restore(HubNav.Args.save(HubNav.Args.anchor("update_check")));

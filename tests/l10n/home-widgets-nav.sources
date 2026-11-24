@@ -1,0 +1,5 @@
+# 2.0.5 Home / Widgets / navigation P3s: the Android-only parts of the fixes, checked in their source (the rules
+# with a pure core are unit tested beside it: ReadingSpanTest, SheetSpringTest, ReleaseHoldsTest, HubNavTest,
+# HubSearchTest). tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java
+# from the repository root.
+tests/l10n/HomeWidgetsNavTest.java

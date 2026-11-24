@@ -815,6 +815,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout tabletopPane=null;
         if(horizontalHinge()){
             ScrollView upper=new ScrollView(this);upper.setFillViewport(false);upper.setClipToPadding(false);pageHeader=upper;
+            // The pane above the hinge scrolls as part of the page: Home shows no page scroll bar there either (HubPages.pageScrollBar; #551 review).
+            upper.setVerticalScrollBarEnabled(HubPages.pageScrollBar(selectedPage));
             // Search's field joins the header in this pane (below), so the field stays above the hinge and its results start below it.
             if(HubPages.SEARCH.equals(selectedPage)){tabletopPane=column();tabletopPane.addView(header,new LinearLayout.LayoutParams(-1,-2));upper.addView(tabletopPane);}
             else upper.addView(header);

@@ -39,6 +39,7 @@ public final class ReadingSpanTest {
         require(ReadingSpan.width(3, 90, 12) == 294, "Three cells cover two gaps");
         require(ReadingSpan.width(0, 100, 10) == 100, "A zero span is one cell");
         splitThree();
+        refit();
         System.out.println("ReadingSpan: " + checks + " checks passed");
     }
     /** 3 readings wrap 2 + 1 in a tall, narrow card; sizes in dp (gap 10, full tile 96 at 1x text). */
@@ -82,6 +83,19 @@ public final class ReadingSpanTest {
         for (int width = 291; width <= 758 && flip == 0; width++)
             if (!ReadingSpan.splitThree(3, 3, width, 246, 10, 96)) flip = width;
         require(flip > 291 && flip < 758, "246 dp card: the flip lies between the Fold card and a full-width one (" + flip + ")");
+    }
+
+    /**
+     * Whether the Reading tiles search their label mode again (#514 review, F02): a change of space always does; in the
+     * same space, a value that grew past the row (a stored trips total gaining a digit) does, unless the tiles already
+     * show values only (the last mode: searching again can't fit more, and would only ask for another layout).
+     */
+    static void refit() {
+        require(ReadingSpan.refit(false, 40, 60, false) && ReadingSpan.refit(false, 80, 60, true), "a new size, budget or column count searches again");
+        require(!ReadingSpan.refit(true, 60, 60, false) && !ReadingSpan.refit(true, 40, 60, false), "the same space with tiles that still fit keeps its mode");
+        require(ReadingSpan.refit(true, 61, 60, false), "the same space with a value grown past the row searches again");
+        require(!ReadingSpan.refit(true, 80, 60, true), "values only and still too tall: nothing more to drop, no new search");
+        require(!ReadingSpan.refit(true, 80, Integer.MAX_VALUE, false), "no height budget: never too tall");
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }

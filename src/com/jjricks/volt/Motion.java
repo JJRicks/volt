@@ -521,6 +521,15 @@ final class Motion {
         }
         @Override public void captureStartValues(TransitionValues values) { capture(values); }
         @Override public void captureEndValues(TransitionValues values) { capture(values); }
+        /**
+         * The values a running fade is kept for. Android keeps a transition's running animator's values only for these
+         * names, and a later change on the same view cancels that animator when one of them differs; with none it kept
+         * nothing and cancelled nothing, so a quick reversal (tab A, B, A) left the first fade running beside the new one
+         * and its Echo drawn at the view's new place plus its old shift (#529 review, F01). Cancelled, it ends as
+         * onAnimationEnd says, and the new fade starts from the opacity captured before it.
+         */
+        @Override public String[] getTransitionProperties() { return PROPERTIES; }
+        private static final String[] PROPERTIES = {TOP, SHOWN};
         @Override public Transition setInterpolator(TimeInterpolator interpolator) { return this; }
         @Override public Animator createAnimator(ViewGroup root, TransitionValues start, TransitionValues end) {
             // Views that come or go are Veil's.

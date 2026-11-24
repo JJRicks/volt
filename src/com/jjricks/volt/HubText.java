@@ -618,6 +618,36 @@ public final class HubText {
         }
     }
 
+    /**
+     * The names a page's rows show, in the current language, for the rows HubSearchTables.pageRows lists by their English
+     * titles (one for one, in its order; then any row shown only in some states whose English is in the page's own words,
+     * HubSearchTables.pageOwnWords), so typing a row's name as it reads in Polish or German finds its page as its
+     * English title does (#533: only Recording settings' rows were found in another language). Recording settings' own
+     * come from the files that show them (MainActivity's search gates: MoreScreen and RidesScreen), so here it has none;
+     * so has any page pageRows lists nothing for. HubSearchTest checks each one's English is the title pageRows lists.
+     */
+    public static Msg[] pageRowTitles(String page) {
+        if (page == null) return new Msg[0];
+        switch (page) {
+            case HubPages.RIDE_RIDES: return new Msg[] {M.ridesCompareTwo()};
+            case HubPages.RIDE_RIDING: return new Msg[] {M.ridingDisplayRotation()};
+            case HubPages.BATTERY_HISTORY: return new Msg[] {M.moreChargeAutoRecord(), M.moreDevExport()};
+            case HubPages.SECURITY: return new Msg[] {M.morePinFallback(), M.morePinSetRow(), M.moreProximityPair(), M.morePinGuideRow()};
+            case HubPages.SERVICE: return new Msg[] {M.hubPageServiceDiagnostics()};
+            case HubPages.SERVICE_EXPERIMENTAL: return new Msg[] {M.moreLabUntested(), M.moreLabEvidence(), M.moreLabClearTries()};
+            case HubPages.DATA: return new Msg[] {M.statsFavouritesTitle()};
+            case HubPages.DATA_STORAGE: return new Msg[] {M.moreHistorySave(), M.moreHistoryClearScooter(), M.moreHistoryClearAll()};
+            case HubPages.SETTINGS: return new Msg[] {M.morePrefsAppearance()};
+            case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide()};
+            case HubPages.SETTINGS_SCOOTERS: return new Msg[] {M.morePrefsAutoConnect(), M.morePrefsBackground(), M.morePrefsRefresh()};
+            case HubPages.SETTINGS_ABOUT: return new Msg[] {M.moreAboutNearby(), M.moreAboutLocation(), M.moreAboutNotifications(),
+                    M.moreAboutOnlineMap(), M.moreAboutActivity(), M.moreAboutLicenses()};
+            // Then Scene, a row shown only while simulating, whose English is in the page's own words (#533 review, F05).
+            case HubPages.SETTINGS_DEVELOPER: return new Msg[] {M.moreDevCompat(), M.moreDevSimulate(), M.moreDevSimulatedModel(), M.moreDevSimulationScene()};
+            default: return new Msg[0];
+        }
+    }
+
     // ===== Widgets Home's dock and the wide Home's right pane =====
 
     /** What TalkBack reads for the dock's "All" item (and its long-press name), and the title of the sheet listing every subject. */

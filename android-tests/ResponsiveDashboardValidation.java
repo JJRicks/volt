@@ -1264,6 +1264,15 @@ public final class ResponsiveDashboardValidation extends ValidationInstrumentati
         Rect realHinge = new Rect(0, horizontal.top, horizontal.right, horizontal.top + activity.ui().dp(8));
         inject(new FakeFeature(realHinge, 2, 1));
         main(() -> require((Boolean)invoke(activity, "horizontalHinge"), "Physical hinge must remain separating while flat"));
+        // Home's header sits in the pane above the hinge, which scrolls as part of the page: no page scroll bar there,
+        // as on the page itself (HubPages.pageScrollBar; #551 review). After the first draw, once quietScrollbars has put
+        // back what the pane was built with.
+        settle();
+        main(() -> {
+            Object upper = field(activity, "pageHeader");
+            require(upper instanceof android.widget.ScrollView, "Tabletop Home has no pane above the hinge");
+            require(!((View) upper).isVerticalScrollBarEnabled(), "Tabletop Home's pane above the hinge keeps a page scroll bar");
+        });
         screenshot("physical-hinge");
         Rect realVertical = new Rect(vertical.left, 0, vertical.left + activity.ui().dp(8), vertical.bottom);
         inject(new FakeFeature(realVertical, 2, 1));

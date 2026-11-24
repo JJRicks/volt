@@ -29,7 +29,21 @@ public final class ReleaseHoldsTest {
         answers();
         clearing();
         connectionCode();
+        cardLine();
         System.out.println("ReleaseHoldsTest: " + checks + " checks");
+    }
+
+    /**
+     * My scooters' cards (#492 review): the current card shows its state line as before; another card shows it only while
+     * its release is held, so "Release not confirmed" is on every card it holds; the Current chip stays on the current one.
+     */
+    private static void cardLine() {
+        check(ReleaseHolds.cardLine(true, false) && ReleaseHolds.cardLine(true, true), "the current card shows its state line");
+        check(ReleaseHolds.cardLine(false, true), "a card whose release is held shows its line too, current or not");
+        check(!ReleaseHolds.cardLine(false, false), "another card with nothing held shows no state line");
+        String more = read("src/com/jjricks/volt/MoreScreen.java");
+        check(more.contains("Motion.reveal(glide, card.stateLine, ReleaseHolds.cardLine(selected, held));")
+                && more.contains("Motion.reveal(glide, card.current, selected);"), "MoreScreen's cards follow the rule, the Current chip on the current card only");
     }
 
     /** Only a sent release holds; nothing sent, no profile or a refusal's ending holds nothing. */

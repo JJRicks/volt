@@ -286,6 +286,12 @@ public final class SheetSpringTest {
         }
         // The light theme's sheet: dark icons at a short pull (a tenth of the dialog dim, 0.6), white at full open.
         require(!SheetSpring.whiteIcons(0xF3F3F0, .06) && SheetSpring.whiteIcons(0xF3F3F0, .6), "a short pull keeps dark icons; full open has white ones");
+        // A short window: the sheet's light surface reaches up under the status bar (its bounce past open, or a morph's
+        // box), so the icons sit on the sheet, not on the dim: dark icons there, whatever the dim (#510 review, round 5).
+        for (double alpha : new double[] {0, .06, .3, .6, 1})
+            require(!SheetSpring.whiteIcons(0xF3F3F0, alpha, true), "the sheet under the status bar keeps dark icons at dim " + alpha);
+        require(SheetSpring.whiteIcons(0xF3F3F0, .6, false) && !SheetSpring.whiteIcons(0xF3F3F0, .06, false),
+                "clear of the status bar, the dim decides as before");
     }
 
     private static void quickFlickStillOpens() {

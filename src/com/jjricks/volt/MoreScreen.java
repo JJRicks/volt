@@ -3271,10 +3271,13 @@ public final class MoreScreen implements AppScreen {
             boolean connecting = selected && state != BleController.State.DISCONNECTED && !connected;
             card.name.setText(item.displayName());
             // A held release (BleController.releaseHeld) says why Volt won't connect by itself; the line wraps at whole words.
-            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : s.ble.releaseHeld(item.id) ? T.bleReleaseHeld() : T.moreScootersOffline();
+            boolean held = !connected && !connecting && s.ble.releaseHeld(item.id);
+            String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : held ? T.bleReleaseHeld() : T.moreScootersOffline();
             // Connecting, connected or choosing another scooter changes a card's lines and its button: they fade while
-            // the cards glide.
-            Motion.reveal(glide, card.stateLine, selected);
+            // the cards glide. A held release shows on every card it holds, not only the current one (#492 review): its
+            // Current chip shows only on the current card (ReleaseHolds.cardLine).
+            Motion.reveal(glide, card.stateLine, ReleaseHolds.cardLine(selected, held));
+            Motion.reveal(glide, card.current, selected);
             card.status.setText(detail); card.status.setTextColor(ui.muted);
             DeviceDescriptor descriptor = item.savedDescriptor();
             boolean hasPhoto = ScooterPhotos.show(card.photo, descriptor, 4);

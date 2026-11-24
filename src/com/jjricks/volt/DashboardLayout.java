@@ -252,4 +252,15 @@ public final class DashboardLayout {
     private static int clamp(int value, int minimum, int maximum) {
         return Math.max(minimum, Math.min(maximum, value));
     }
+
+    /**
+     * Whether a card's edit-mode controls (move, options, duplicate, remove) sit together at the card's end rather than
+     * from its start (README pictures, #613: they covered the titles of Max. speed, Record ride, Usable ride energy and
+     * Battery, which start at the card's start). Only where all four fit on one row ({@code columns} 4) and leave at least
+     * {@code titleRoom} px before them for the title; a narrower card keeps them from the start, as before. Sizes in px:
+     * {@code available} is the card's width less the resize corner's lane, {@code target} one control's square.
+     */
+    public static boolean editorAtEnd(int available, int target, int columns, int titleRoom) {
+        return columns == 4 && target > 0 && available - 4 * target >= titleRoom;
+    }
 }

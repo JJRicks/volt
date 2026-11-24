@@ -111,6 +111,9 @@ final class HubPanes extends LinearLayout {
             apply(wanted, size);
             int height = MeasureSpec.makeMeasureSpec(Math.max(0, b - t - getPaddingTop() - getPaddingBottom()), MeasureSpec.EXACTLY);
             first.measure(MeasureSpec.makeMeasureSpec(wanted.left, MeasureSpec.EXACTLY), height);
+            // The gutter too: LinearLayout places each pane after the measured width before it, so a gutter left at its
+            // old width (a hinge's gap where the centre line's was, or back) put the second pane off its split (#532, F02).
+            gutter.measure(MeasureSpec.makeMeasureSpec(wanted.gap, MeasureSpec.EXACTLY), height);
             second.measure(MeasureSpec.makeMeasureSpec(wanted.right(size), MeasureSpec.EXACTLY), height);
         }
         super.onLayout(changed, l, t, r, b);

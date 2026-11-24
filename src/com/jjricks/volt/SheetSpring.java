@@ -159,6 +159,13 @@ final class SheetSpring {
     /** Whether the status bar's icons should be white over background dimmed by alpha (else dark): past the crossover. */
     static boolean whiteIcons(int background, double alpha) { return dimmed(background, alpha) < ICON_CROSSOVER; }
 
+    /**
+     * whiteIcons, with the sheet's own surface reaching up under the status bar ({@code sheetUnderBar}: a short window's
+     * bounce or rubber band past open): the icons then sit on the light sheet, not on the dim, so they stay dark
+     * whatever the dim (#510 review, round 5).
+     */
+    static boolean whiteIcons(int background, double alpha, boolean sheetUnderBar) { return !sheetUnderBar && whiteIcons(background, alpha); }
+
     /** WCAG 2 contrast ratio of two luminances. */
     static double contrast(double a, double b) { return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); }
 

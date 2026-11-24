@@ -814,7 +814,48 @@ public final class DockSheetValidation extends ValidationInstrumentation {
         awaitGone("ENTER in the sheet");
         requireHome();
         checks.add("Keys out of touch mode: All opened by TalkBack's click takes key focus off Home's lock (focus on " + focusedOpen + "; ENTER changes nothing on the lock)");
+        keysLockBack(lock);
         keysBack();
+    }
+
+    /**
+     * Back then ENTER at once, the sheet opened by TalkBack's click with Home's lock focused (#517 review, round 2): while
+     * the sheet settles closed the lock (shown and focusable under it) does not take key focus back yet, so the ENTER never
+     * reaches it under the closing sheet; gone, focus is back on the lock. Slowed until the ENTER lands mid-close.
+     */
+    private void keysLockBack(View lock) {
+        requireHome();
+        String during = "";
+        for (int slower = 5; ; slower *= 2) {
+            scale(slower);
+            main(() -> require(!lock.isInTouchMode() && lock.requestFocus() && lock.isFocused(), "Home's lock did not take key focus again"));
+            Object before = onMain(() -> invoke(lock, "shown"));
+            View all = onMain(() -> root().findViewWithTag("hub-dock-handle"));
+            main(() -> require(all.performAccessibilityAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK, null), "All did not take TalkBack's click"));
+            awaitOpen("All by TalkBack's click, lock focused");
+            Object sheet = onMain(this::drag);
+            sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
+            Object state = onMain(() -> field(sheet, "state"));
+            String focused = onMain(() -> focusName(root().findFocus()));
+            boolean lockFocused = onMain(lock::isFocused);
+            boolean closing = Integer.valueOf(CLOSING).equals(state) && onMain(() -> ((View) field(sheet, "frame")).isAttachedToWindow());
+            sendKeyDownUpSync(KeyEvent.KEYCODE_ENTER);
+            awaitGone("Back then ENTER, lock focused");
+            requireHome();
+            Object after = onMain(() -> invoke(lock, "shown"));
+            if (closing) {
+                require(java.util.Objects.equals(before, after), "ENTER straight after Back reached Home's lock under the closing sheet (" + before + " -> " + after + ", focus on " + focused + ")");
+                require(!lockFocused, "Home's lock took key focus back while the sheet was still closing (focus on " + focused + ")");
+                String home = onMain(() -> focusName(root().findFocus()));
+                require(onMain(lock::isFocused), "Key focus did not go back to Home's lock after the sheet closed (focus on " + home + ")");
+                during = focused;
+                break;
+            }
+            require(slower < 40, "The slowed close ended before an ENTER straight after Back (state " + state + ")");
+        }
+        scale(1);
+        checks.add("Keys out of touch mode: Back then ENTER at once, with All opened by TalkBack's click over Home's focused lock: the lock waits for the sheet to go "
+                + "(focus on " + during + " while it closes), ENTER changes nothing on it, and gone, focus is back on the lock");
     }
 
     /** Back then ENTER at once with Settings focused in the sheet (keys' second half; -e only keys-back runs it alone). */
