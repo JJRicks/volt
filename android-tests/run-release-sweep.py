@@ -245,9 +245,9 @@ STEPS += [
     inst('just-back-basemap-fold-folded', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold-folded', size='411x900'),
     inst('just-back-basemap-fold', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold', size='790x820'),
     # The shared dark/light map style (MapStyle): ride maps and Just back together, theme changes, a fold change, Map settings.
-    inst('map-style-344', PKG + '.MapStyleValidation', '-e', 'size_label', '344', size=PHONE[0]),
-    inst('map-style-412', PKG + '.MapStyleValidation', '-e', 'size_label', '412', size='412x915'),
-    inst('map-style-fold', PKG + '.MapStyleValidation', '-e', 'size_label', 'fold', size='790x820'),
+    inst('map-style-344', PKG + '.JustBackBasemapValidation', '-e', 'mode', 'map-style', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('map-style-412', PKG + '.JustBackBasemapValidation', '-e', 'mode', 'map-style', '-e', 'size_label', '412', size='412x915'),
+    inst('map-style-fold', PKG + '.JustBackBasemapValidation', '-e', 'mode', 'map-style', '-e', 'size_label', 'fold', size='790x820'),
     # Every model's photo framed like the UT5 MAX's (owner, Nov 17 2026): the whole set side by side, and Home (Widgets and Clean)
     # as the UT5 MAX, GT3 Max, GT5 Max and N65i, at 412 dp in light and dark and on the Fold unfolded.
     inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),

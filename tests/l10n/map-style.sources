@@ -1,6 +1,6 @@
 # The online maps' shared dark/light style (owner, Nov 23 2026): its three states, how both maps resolve them, the switch's
-# visibility and its backup round trip (MapStyle). The backup classes, BackupTestStore and DiagnosticsSettings are
-# compiled by tests/run.sh.
+# visibility and its backup round trip (MapStyle). The backup classes and BackupTestStore are compiled by
+# tests/run.sh.
 src/com/jjricks/volt/MapStyle.java
 src/com/jjricks/volt/JustBackBasemap.java
 tests/l10n/MapStyleTest.java

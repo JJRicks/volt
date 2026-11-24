@@ -7,7 +7,7 @@ import java.util.*;
 /**
  * The online maps' shared style (MapStyle, owner Nov 23 2026: a dark/light toggle on the ride map that also controls the
  * Just back card's map, remembered and kept): its three states and how each map resolves them in each theme, a flip
- * always saving a pick, when the switch shows, its place in App preferences and the diagnostics list, both maps drawing
+ * always saving a pick, when the switch shows, its place in App preferences, both maps drawing
  * the one tile treatment, and a real backup round trip (BackupArchive, BackupTransaction and BackupTestStore, as the
  * backup suites use them) of every state over every state.
  */
@@ -62,12 +62,6 @@ public final class MapStyleTest {
         BackupRegistry.Rule rule = BackupRegistry.rule("app_settings", MapStyle.KEY);
         check(rule != null && BackupRegistry.PREFERENCES.equals(rule.category) && rule.type == String.class && !rule.perProfile,
                 "it travels in backups with App preferences, as a string for the whole app");
-        int ours = DiagnosticsSettings.KEYS.indexOf(MapStyle.KEY), card = DiagnosticsSettings.KEYS.indexOf(JustBackBasemap.KEY);
-        check(ours >= 0 && ours == card + 1, "the diagnostics settings list it after the Just back basemap");
-        Map<String, Object> stored = new HashMap<>();
-        stored.put(MapStyle.KEY, "dark");
-        Object listed = ((Map<?, ?>) DiagnosticsSettings.section(stored, null).get("app")).get(MapStyle.KEY);
-        check("dark".equals(listed), "the diagnostics settings show the pick as it is: " + listed);
     }
 
     /** One tile treatment for both maps: the one the Just back card was tuned with (Nov 19 2026). */

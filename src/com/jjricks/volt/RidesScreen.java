@@ -1734,7 +1734,7 @@ public final class RidesScreen implements AppScreen {
         FrameLayout.LayoutParams creditParams = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
         creditParams.setMargins(ui.dp(8), 0, ui.dp(64), ui.dp(8)); mapFrame.addView(attribution, creditParams);
         attribution.setVisibility(View.GONE);
-        if (!track.points.isEmpty()) top.addView(MapPreferences.basemapControl(host, enabled -> {
+        if (!track.points.isEmpty()) top.addView(MapStyleControls.basemapRow(host, enabled -> {
             map.setStreets(enabled);
             attribution.setVisibility(enabled ? View.VISIBLE : View.GONE);
             if (enabled) MapPreferences.offerOsmSwitch(host, mapFrame, track.points);

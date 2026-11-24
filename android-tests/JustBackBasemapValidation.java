@@ -13,13 +13,17 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.SystemClock;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Switch;
 import android.widget.TextView;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -27,6 +31,8 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Disposable empty emulator, radio off. Clean Home's Just back card's basemap switch (owner, Nov 19 2026: "a tiny switch
@@ -53,6 +59,9 @@ import java.util.function.BooleanSupplier;
  * maps' tiles, one zoom finer, for comparison).
  * Pictures: off and on in both themes, the explanation, the unreachable provider and the corner ride. Argument
  * size_label names them. Sends no scooter command.
+ *
+ * <p>Argument mode map-style runs the online maps' shared dark/light style instead (MapStyle, the ride maps and this card
+ * together; see mapStyle).
  */
 public final class JustBackBasemapValidation extends ValidationInstrumentation {
     private MainActivity activity;
@@ -63,6 +72,10 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     /** Where the fixture rides are: a loop about 3 km across, and a line running north-west to south-east. */
     private static final double LAT = 45.5200, LON = -122.6800;
+    /** Mode map-style: the online maps' shared dark/light style (MapStyle), instead of the card's basemap switch. */
+    private static final String MAP_STYLE = "map-style";
+    /** Whether the fixture's GPS speed rises and falls (map-style, for the speed colours) rather than holding 8 m/s. */
+    private boolean varySpeed;
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
     @Override public void onStart() {
@@ -75,6 +88,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
                 ScooterProfiles.Profile p = profiles.create("Synthetic UT5 MAX", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
                 profiles.update(p); profiles.select(p.id); OnboardingScreen.markDone(getTargetContext());
             });
+            if (MAP_STYLE.equals(args.getString("mode"))) { mapStyle(); result.putString("result", "PASS"); return; }
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", "dark").putString("units", "mi").putFloat("text_scale", 1f)
@@ -344,6 +358,457 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
         return null;
     }
 
+    // ---- Mode map-style -------------------------------------------------------------------------------------------
+
+    /**
+     * Mode map-style. The online maps' shared dark/light style (MapStyle; owner, Nov 23 2026: "can we have a toggle for
+     * that on the ride recording map itself as well? Remember and save what the user picked last and keep it. Then that
+     * toggle could control both the 'just back' and ride recording maps together"), with both basemaps on and a ride whose
+     * GPS speed rises and falls:
+     * <ul>
+     *   <li>Never picked, the dark theme: the Just back card and the ride's maps (inline and expanded) draw dark tiles;
+     *       the Dark map switch beside Basemap is shown, checked, named Dark map and a switch to TalkBack, its label
+     *       whole (beside Basemap or on its own row).</li>
+     *   <li>Flipped on the expanded ride map: "light" is saved; the expanded and inline maps and, back on Home, the
+     *       Just back card all draw light.</li>
+     *   <li>The light theme with that pick: still light. Flipped there: "dark" saved, both maps dark in the light theme,
+     *       and the expanded map's paper under loading tiles is dark too.</li>
+     *   <li>The dark theme with the dark pick: dark. The pick removed (never picked): the light theme draws light and
+     *       the dark theme dark again, and showing the maps saves no pick.</li>
+     *   <li>A fold change (the emulator switched to the other form and back) with Home and then the expanded map open:
+     *       the style holds, and a flip at the other size reaches the card.</li>
+     *   <li>The ride maps' basemap off: no Dark map switch beside Basemap. Map settings: the Dark map row shows while
+     *       either basemap is on, flips the shared style (the card follows), and hides with both off.</li>
+     * </ul>
+     * Pictures: the Just back card and the expanded ride map (speed colours) dark and light in both app themes, the
+     * inline map with its switches, and Map settings' row in both themes.
+     */
+    private void mapStyle() throws Exception {
+        String sizeBefore = overrideSize();
+        try {
+            SharedPreferences.Editor seed = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
+                    .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
+                    .putString("theme", "dark").putString("units", "mi").putFloat("text_scale", 1f)
+                    .putString("home_style", "clean").putBoolean("home_style_chosen", true).putString("home_style_origin", "install")
+                    .putBoolean("map_basemap_enabled", true).putBoolean("map_basemap_explained", true).putBoolean(JustBackBasemap.KEY, true);
+            MapSource.OSM.put(seed);
+            require(seed.commit(), "Could not seed preferences");
+            launch();
+            simulate();
+            varySpeed = true;
+            seedRide(loop(), 5_000L);
+            darkThemeNeverPicked();
+            lightThemeKeepsPick();
+            darkThemeKeepsPick();
+            neverPickedFollowsTheme();
+            foldChange(sizeBefore);
+            basemapOff();
+        } finally {
+            try { shellText(sizeBefore == null ? "wm size reset" : "wm size " + sizeBefore); } catch (Throwable ignored) {}
+        }
+    }
+
+    /** The fixture's GPS speed at fix i of n: 8 m/s, or (map-style) rising and falling twice between 2 and 12 m/s. */
+    private Object gpsSpeed(int i, int n) {
+        return varySpeed ? String.format(Locale.US, "%.2f", 7 - 5 * Math.cos(i / (double) Math.max(1, n - 1) * 4 * Math.PI)) : (Object) 8;
+    }
+
+    /** The dark theme, never picked: dark everywhere; flipped on the expanded map: light everywhere, saved. */
+    private void darkThemeNeverPicked() throws Exception {
+        require(!settings().contains(MapStyle.KEY), "A fresh install has a saved map style");
+        showJustBack();
+        requireCard(true, "dark theme, never picked");
+        waitForCardTiles();
+        shot("dark-theme-just-back-dark");
+        openRide();
+        requireInline(true, true, "dark theme, never picked");
+        shot("dark-theme-ride-inline-dark");
+        expand();
+        requireExpanded(true, "dark theme, never picked");
+        speedColours();
+        waitForExpandedTiles();
+        shot("dark-theme-ride-map-dark");
+        flipExpanded();
+        require(MapStyle.LIGHT.equals(settings().getString(MapStyle.KEY, null)), "Flipping the dark map did not save the light pick: " + settings().getString(MapStyle.KEY, null));
+        requireExpanded(false, "dark theme, flipped to light");
+        main(() -> require(!inlineMap().darkTiles(), "The inline map under the expanded one did not follow the flip"));
+        waitForExpandedTiles();
+        shot("dark-theme-ride-map-light");
+        closeExpanded();
+        requireInline(false, true, "dark theme, after the flip");
+        closeRide();
+        showJustBack();
+        requireCard(false, "dark theme, light picked on the ride map");
+        waitForCardTiles();
+        shot("dark-theme-just-back-light");
+        checks.add(size + " dark theme: never picked, the card and both ride maps drew dark; a flip on the expanded map saved 'light' and the expanded map, the inline map and the Just back card all drew light");
+    }
+
+    /** The light theme keeps the light pick; flipped there to dark: dark everywhere in the light theme. */
+    private void lightThemeKeepsPick() throws Exception {
+        require(settings().edit().putString("theme", "light").commit(), "Could not choose the light theme");
+        relaunch();
+        showJustBack();
+        require(MapStyle.LIGHT.equals(settings().getString(MapStyle.KEY, null)), "The light pick was lost across the theme change");
+        requireCard(false, "light theme, light picked");
+        waitForCardTiles();
+        shot("light-theme-just-back-light");
+        openRide();
+        requireInline(false, true, "light theme, light picked");
+        expand();
+        requireExpanded(false, "light theme, light picked");
+        speedColours();
+        waitForExpandedTiles();
+        shot("light-theme-ride-map-light");
+        flipExpanded();
+        require(MapStyle.DARK.equals(settings().getString(MapStyle.KEY, null)), "Flipping the light map did not save the dark pick");
+        requireExpanded(true, "light theme, flipped to dark");
+        requireDarkPaper();
+        waitForExpandedTiles();
+        shot("light-theme-ride-map-dark");
+        closeExpanded();
+        requireInline(true, true, "light theme, after the flip");
+        shot("light-theme-ride-inline-dark");
+        closeRide();
+        showJustBack();
+        requireCard(true, "light theme, dark picked on the ride map");
+        waitForCardTiles();
+        shot("light-theme-just-back-dark");
+        checks.add(size + " light theme: the light pick held across the theme change; a flip there saved 'dark' and both maps drew dark in the light theme, the expanded map's paper dark under its tiles");
+    }
+
+    /** The dark theme keeps the dark pick. */
+    private void darkThemeKeepsPick() throws Exception {
+        require(settings().edit().putString("theme", "dark").commit(), "Could not choose the dark theme");
+        relaunch();
+        showJustBack();
+        requireCard(true, "dark theme, dark picked");
+        openRide();
+        requireInline(true, true, "dark theme, dark picked");
+        closeRide();
+        checks.add(size + " dark theme: the dark pick held across the theme change (card and ride map)");
+    }
+
+    /** Without a pick the maps follow the theme again, both ways. */
+    private void neverPickedFollowsTheme() throws Exception {
+        require(settings().edit().remove(MapStyle.KEY).putString("theme", "light").commit(), "Could not remove the pick");
+        relaunch();
+        showJustBack();
+        requireCard(false, "light theme, never picked");
+        openRide();
+        requireInline(false, true, "light theme, never picked");
+        closeRide();
+        require(settings().edit().putString("theme", "dark").commit(), "Could not choose the dark theme");
+        relaunch();
+        showJustBack();
+        requireCard(true, "dark theme, never picked again");
+        require(!settings().contains(MapStyle.KEY), "Showing the maps saved a pick nobody made");
+        checks.add(size + " never picked: the light theme drew light and the dark theme dark (card and ride map); merely showing the maps saved no pick");
+    }
+
+    /**
+     * A fold change: the emulator switched to the other form (a narrow phone ↔ an open Fold panel) and back, with Home and
+     * then the expanded map open. The style holds through each change, and a flip at the other size reaches the card.
+     */
+    private void foldChange(String before) throws Exception {
+        float density = getTargetContext().getResources().getDisplayMetrics().density;
+        int widthDp = Math.round(onMain(() -> root().getWidth()) / density);
+        // The other form: the open Fold panel from a phone, a phone from the open panel.
+        String other = widthDp >= 600 ? Math.round(411 * density) + "x" + Math.round(900 * density) : Math.round(790 * density) + "x" + Math.round(820 * density);
+        String back = before == null ? "reset" : before;
+        try {
+            showJustBack();
+            requireCard(true, "before the fold change");
+            shellText("wm size " + other); SystemClock.sleep(1800); settle();
+            showJustBack();
+            requireCard(true, "after the fold change to " + other);
+            openRide();
+            expand();
+            requireExpanded(true, "expanded at " + other);
+            flipExpanded();
+            requireExpanded(false, "flipped at " + other);
+            shellText("wm size " + back); SystemClock.sleep(1800); settle();
+            // The size change may rebuild the page; whatever map is still open shows the pick, and so does Home.
+            main(() -> { RouteMapView any = anyMap(); require(any == null || !any.darkTiles(), "A ride map open across the fold change lost the light pick"); });
+            closeAllRideWindows();
+            showJustBack();
+            requireCard(false, "back at the first size, after a flip at the other");
+            require(MapStyle.LIGHT.equals(settings().getString(MapStyle.KEY, null)), "The flip at the other size was not saved");
+            checks.add(size + " fold change (" + widthDp + " dp ↔ " + other + " px): the style held on Home and on the expanded map; a flip at the other size reached the card");
+        } finally {
+            shellText("wm size " + back); SystemClock.sleep(1200); settle();
+        }
+    }
+
+    /** The ride maps' basemap off: no Dark map switch there. Map settings: the row follows either basemap and flips the style. */
+    private void basemapOff() throws Exception {
+        require(settings().edit().putBoolean("map_basemap_enabled", false).putString(MapStyle.KEY, MapStyle.DARK).commit(), "Could not turn the ride maps' basemap off");
+        relaunch();
+        openRide();
+        requireInline(true, false, "ride maps' basemap off");
+        closeRide();
+        showJustBack();
+        // Map settings with only the card's basemap on: the row shows, checked (dark), and flips the shared style.
+        settingsRow("dark", true, true);
+        require(MapStyle.LIGHT.equals(settings().getString(MapStyle.KEY, null)), "Map settings' Dark map row did not save the light pick");
+        requireCard(false, "flipped in Map settings");
+        require(settings().edit().putBoolean(JustBackBasemap.KEY, false).commit(), "Could not turn the card's basemap off");
+        settle();
+        settingsRow("dark", false, false);
+        require(settings().edit().putString("theme", "light").putBoolean("map_basemap_enabled", true).commit(), "Could not choose the light theme");
+        relaunch();
+        showJustBack();
+        settingsRow("light", true, false);
+        checks.add(size + " basemap off: no Dark map switch beside Basemap; Map settings' Dark map row showed with either basemap on, flipped the shared style (the card followed) and hid with both off");
+    }
+
+    /** Map settings' Dark map row: shown or hidden; when shown, checked as the maps draw, and (flip) tapped once. */
+    private void settingsRow(String theme, boolean shownExpected, boolean flip) throws Exception {
+        AlertDialog[] dialog = {null};
+        main(() -> dialog[0] = MapPreferences.show((ScreenHost) field(clean(), "host")));
+        settle(); SystemClock.sleep(400);
+        Switch[] row = {null};
+        main(() -> {
+            View found = dialog[0].getWindow().getDecorView().findViewWithTag(MapStyleControls.TAG_SETTINGS);
+            require(found instanceof ViewGroup, "Map settings has no Dark map row");
+            require(found.isShown() == shownExpected, "Map settings' Dark map row is " + (found.isShown() ? "shown" : "hidden") + " with ride maps "
+                    + settings().getBoolean("map_basemap_enabled", false) + ", card " + settings().getBoolean(JustBackBasemap.KEY, false));
+            row[0] = (Switch) ((ViewGroup) found).getChildAt(0);
+            if (shownExpected) {
+                requireLabel(row[0], "Map settings' Dark map row");
+                boolean dark = MapStyle.dark(settings().getString(MapStyle.KEY, null), "dark".equals(theme));
+                require(row[0].isChecked() == dark, "Map settings' Dark map row shows " + row[0].isChecked() + " while the maps draw " + (dark ? "dark" : "light"));
+            }
+        });
+        if (shownExpected) shot(theme + "-theme-map-settings");
+        if (flip) { main(() -> row[0].performClick()); settle(); }
+        main(() -> dialog[0].dismiss());
+        settle();
+    }
+
+    /** Opens the Just back card's ride (its details in a window of their own) with the inline map on screen. */
+    private void openRide() throws Exception {
+        showJustBack();
+        main(() -> require(card().performClick(), "The card did not open its ride"));
+        settle();
+        await(() -> inlineMap() != null, 10000, "The ride's map did not open from the card");
+        main(() -> { View map = inlineMap(); map.requestRectangleOnScreen(new android.graphics.Rect(0, 0, map.getWidth(), map.getHeight()), true); });
+        SystemClock.sleep(600); settle();
+    }
+
+    /** The inline map's expand button: the Route screen opens with the expanded map. */
+    private void expand() throws Exception {
+        main(() -> {
+            View button = byDescription(inlineMap().getRootView(), T.ridesMapExpand());
+            require(button != null, "The inline map has no expand button");
+            require(button.performClick(), "The expand button took no tap");
+        });
+        settle();
+        await(() -> expandedMap() != null, 10000, "The expanded map did not open");
+        SystemClock.sleep(600); settle();
+    }
+
+    private void closeExpanded() throws Exception {
+        main(() -> {
+            View button = byDescription(expandedMap().getRootView(), T.ridesMapCloseExpanded());
+            require(button != null && button.performClick(), "The expanded map's close button took no tap");
+        });
+        settle();
+        await(() -> expandedMap() == null, 10000, "The expanded map did not close");
+        SystemClock.sleep(400); settle();
+    }
+
+    /** Back closes the ride's details; then Home. */
+    private void closeRide() throws Exception {
+        sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK);
+        settle();
+        await(() -> anyMap() == null, 10000, "The ride's details did not close on Back");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home"));
+        settle();
+    }
+
+    /** Back until no ride map is open (the expanded map, then the details), then Home. */
+    private void closeAllRideWindows() throws Exception {
+        for (int i = 0; i < 4 && onMain(() -> anyMap() != null); i++) { sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK); settle(); SystemClock.sleep(300); }
+        await(() -> anyMap() == null, 10000, "A ride map is still open after Back");
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home"));
+        settle();
+    }
+
+    /** The expanded map's Dark map switch, tapped once. */
+    private void flipExpanded() throws Exception {
+        main(() -> {
+            Switch style = styleSwitch(expandedMap());
+            require(style != null && style.isShown(), "The expanded map has no Dark map switch");
+            boolean was = style.isChecked();
+            // A Switch with no click listener answers false; the state is the proof it took the tap.
+            style.performClick();
+            require(style.isChecked() != was, "The Dark map switch took no tap");
+        });
+        settle(); SystemClock.sleep(300); settle();
+    }
+
+    /** The expanded map coloured by speed, so the ramp's dark and light ends both show against the tiles. */
+    private void speedColours() throws Exception {
+        main(() -> {
+            View option = byText(expandedMap().getRootView(), T.ridesRouteColorSpeed());
+            require(option != null && option.performClick(), "The expanded map's Speed colour took no tap");
+        });
+        settle();
+        main(() -> require("speed".equals(expandedMap().metric()), "The expanded map is not coloured by speed"));
+    }
+
+    /** The Just back card's tiles are drawn dark (or not), and its basemap is on. */
+    private void requireCard(boolean dark, String what) {
+        main(() -> {
+            View route = route();
+            boolean drawn = (Boolean) invoke(route, "darkTiles", new Class<?>[0]);
+            require(drawn == dark, what + ": the Just back card draws " + (drawn ? "dark" : "light") + " tiles");
+        });
+    }
+
+    /** The inline map draws dark (or not); its Dark map switch shows with the basemap on and is checked as it draws. */
+    private void requireInline(boolean dark, boolean basemap, String what) {
+        main(() -> {
+            RouteMapView map = inlineMap();
+            require(map != null, what + ": no inline map");
+            Switch style = styleSwitch(map);
+            require(style != null, what + ": no Dark map switch beside the inline map's Basemap switch");
+            require(style.isShown() == basemap, what + ": the Dark map switch is " + (style.isShown() ? "shown" : "hidden") + " with the basemap " + (basemap ? "on" : "off"));
+            if (!basemap) return;
+            require(map.darkTiles() == dark, what + ": the inline map draws " + (map.darkTiles() ? "dark" : "light") + " tiles");
+            require(style.isChecked() == dark, what + ": the inline Dark map switch reads " + style.isChecked());
+            requireSwitchRow(style, what + ", inline");
+        });
+    }
+
+    private void requireExpanded(boolean dark, String what) {
+        main(() -> {
+            RouteMapView map = expandedMap();
+            require(map != null, what + ": no expanded map");
+            require(map.darkTiles() == dark, what + ": the expanded map draws " + (map.darkTiles() ? "dark" : "light") + " tiles");
+            Switch style = styleSwitch(map);
+            require(style != null && style.isShown(), what + ": the expanded map has no Dark map switch");
+            require(style.isChecked() == dark, what + ": the expanded Dark map switch reads " + style.isChecked());
+            requireSwitchRow(style, what + ", expanded");
+        });
+    }
+
+    /** The switch: a 48 dp target, named and spoken as a switch, its label whole on one line; beside Basemap or below it. */
+    private void requireSwitchRow(Switch style, String what) {
+        float density = style.getResources().getDisplayMetrics().density;
+        require(style.getHeight() >= Math.round(48 * density), what + ": the Dark map switch is " + style.getHeight() + " px tall, under 48 dp");
+        requireLabel(style, what + ": the Dark map switch");
+        AccessibilityNodeInfo node = style.createAccessibilityNodeInfo();
+        require(T.mapsDarkMap().contentEquals(node.getContentDescription()) && node.isCheckable() && node.isChecked() == style.isChecked(),
+                what + ": TalkBack hears '" + node.getContentDescription() + "' checkable=" + node.isCheckable());
+        node.recycle();
+        // The row: the Basemap switch's own row (MapPreferences.basemapControl) first, then Dark map.
+        ViewGroup row = (ViewGroup) style.getParent();
+        View basemapRow = row.getChildAt(0);
+        Switch basemap = (Switch) ((ViewGroup) basemapRow).getChildAt(0);
+        requireLabel(basemap, what + ": the Basemap switch beside it");
+        boolean beside = ((android.widget.LinearLayout) row).getOrientation() == android.widget.LinearLayout.HORIZONTAL;
+        require(beside ? basemapRow.getRight() <= style.getLeft() || style.getRight() <= basemapRow.getLeft() : style.getTop() >= basemapRow.getBottom(),
+                what + ": the two switches overlap");
+        String note = size + " " + what + ": Dark map " + (beside ? "beside Basemap" : "on its own row under Basemap") + ", "
+                + Math.round(style.getWidth() / density) + " dp wide";
+        if (!checks.contains(note)) checks.add(note);
+    }
+
+    /** A switch's label is its full text on one line, never cut or shortened. */
+    private void requireLabel(Switch view, String what) {
+        android.text.Layout lines = view.getLayout();
+        require(lines != null && lines.getLineCount() == 1 && lines.getEllipsisCount(0) == 0, what + " label is cut or wrapped: '" + view.getText() + "'");
+    }
+
+    /** With the dark style over the light theme, the expanded map's paper (under tiles still loading) is dark. */
+    private void requireDarkPaper() throws Exception {
+        Bitmap[] drawn = {null};
+        main(() -> {
+            RouteMapView map = expandedMap();
+            // The paper alone: the map drawn with its tile cache emptied, then its tiles asked for again.
+            ((android.util.LruCache<?, ?>) field(map, "tiles")).evictAll();
+            Bitmap bitmap = Bitmap.createBitmap(map.getWidth(), map.getHeight(), Bitmap.Config.ARGB_8888);
+            map.draw(new android.graphics.Canvas(bitmap));
+            drawn[0] = bitmap;
+        });
+        // A corner well away from the route, the scale chip and the controls: the middle of the left edge.
+        int pixel = drawn[0].getPixel(Math.max(1, drawn[0].getWidth() / 40), drawn[0].getHeight() / 2);
+        drawn[0].recycle();
+        int light = Math.round(.2126f * ((pixel >> 16) & 255) + .7152f * ((pixel >> 8) & 255) + .0722f * (pixel & 255));
+        require(light < 80, "The dark map's paper under loading tiles is light in the light theme: #" + Integer.toHexString(pixel));
+        main(() -> expandedMap().invalidate());
+        checks.add(size + " light theme, dark map: the paper under tiles still loading is dark (#" + Integer.toHexString(pixel & 0xffffff) + "), no light flash");
+    }
+
+    /** Tiles on the card (with a network), or a note that none came. */
+    private void waitForCardTiles() {
+        boolean drawn = waitFor(() -> (Boolean) field(route(), "mapShown"), 20000);
+        SystemClock.sleep(700); settle();
+        if (!drawn) checks.add(size + " no tile reached the Just back card in 20 s (emulator without a network?)");
+    }
+
+    private void waitForExpandedTiles() {
+        boolean drawn = waitFor(() -> { RouteMapView map = expandedMap(); return map != null && ((android.util.LruCache<?, ?>) field(map, "tiles")).size() > 3; }, 20000);
+        SystemClock.sleep(900); settle();
+        if (!drawn) checks.add(size + " no tile reached the expanded map in 20 s (emulator without a network?)");
+    }
+
+    /** The Dark map switch in the controls of map's panel (its window's), or null. */
+    private static Switch styleSwitch(RouteMapView map) {
+        View found = map.getRootView().findViewWithTag(MapStyleControls.TAG_RIDE);
+        return found instanceof Switch ? (Switch) found : null;
+    }
+
+    /** The ride details' inline map (a minimum height; the expanded one has none), or null. */
+    private static RouteMapView inlineMap() { for (RouteMapView map : maps()) if (map.getMinimumHeight() > 0) return map; return null; }
+    private static RouteMapView expandedMap() { for (RouteMapView map : maps()) if (map.getMinimumHeight() == 0) return map; return null; }
+    private static RouteMapView anyMap() { List<RouteMapView> all = maps(); return all.isEmpty() ? null : all.get(0); }
+
+    /** Every ride map shown in any of the app's windows. */
+    private static List<RouteMapView> maps() {
+        List<RouteMapView> out = new ArrayList<>();
+        for (View window : android.view.inspector.WindowInspector.getGlobalWindowViews()) if (window.isAttachedToWindow()) collect(window, out);
+        return out;
+    }
+
+    private static void collect(View view, List<RouteMapView> out) {
+        if (view instanceof RouteMapView && view.isShown()) { out.add((RouteMapView) view); return; }
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) collect(((ViewGroup) view).getChildAt(i), out);
+    }
+
+    private static View byDescription(View view, String description) {
+        if (view.isShown() && description.contentEquals(String.valueOf(view.getContentDescription()))) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+            View found = byDescription(((ViewGroup) view).getChildAt(i), description);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    private static View byText(View view, String text) {
+        if (view.isShown() && view instanceof TextView && text.contentEquals(((TextView) view).getText())) return view;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) {
+            View found = byText(((ViewGroup) view).getChildAt(i), text);
+            if (found != null) return found;
+        }
+        return null;
+    }
+
+    /** The emulator's size override as the run found it ("1080x2400"), or null for none. */
+    private String overrideSize() {
+        Matcher m = Pattern.compile("Override size: (\\d+x\\d+)").matcher(shellText("wm size"));
+        return m.find() ? m.group(1) : null;
+    }
+
+    private String shellText(String command) {
+        try (ParcelFileDescriptor pfd = getUiAutomation().executeShellCommand(command); InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pfd)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] b = new byte[8192]; int n; while ((n = in.read(b)) > 0) out.write(b, 0, n);
+            return new String(out.toByteArray(), StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) { throw new IllegalStateException(command, e); }
+    }
+
     // ---- Checks --------------------------------------------------------------------------------------------------
 
     /** The switch: shown, a 48 dp target in the panel's bottom corner, named Basemap, a switch with this state. */
@@ -507,7 +972,7 @@ public final class JustBackBasemapValidation extends ValidationInstrumentation {
                 StringBuilder rows = new StringBuilder();
                 long gap = (end - start) / (fixes.length - 1);
                 for (int i = 0; i < fixes.length; i++)
-                    rows.append(PhoneRideStore.row("GPS", start + i * gap, mono + i * gap, fixes[i][0], fixes[i][1], 4, 8, 0.2, 1500, 4));
+                    rows.append(PhoneRideStore.row("GPS", start + i * gap, mono + i * gap, fixes[i][0], fixes[i][1], 4, gpsSpeed(i, fixes.length), 0.2, 1500, 4));
                 phone.appendBatch(id, rows.toString(), "");
                 phone.stop(id, end, monoEnd);
                 require(!service.isRecording(), "The synthetic ride is still recording");

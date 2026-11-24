@@ -700,7 +700,7 @@ final class JustBackView extends LinearLayout {
 
         /** The map style shared with the ride maps (MapStyle), followed when it changes; the cached tiles stay. */
         private void followStyle() {
-            boolean dark = MapPreferences.darkMap(settings, ui.dark);
+            boolean dark = MapStyleControls.dark(settings, ui.dark);
             if (dark == (tileColors != null)) return;
             tileColors = dark ? new ColorMatrixColorFilter(MapStyle.darkTiles()) : null;
             invalidate();
