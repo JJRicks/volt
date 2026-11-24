@@ -20,6 +20,13 @@ public final class OffRowsTapTest {
                 "the choices stay enabled (greyed) while off, so the tap reaches them");
         check(src.contains("else if(offWords!=null)toast(offWords);else if(toggle.isEnabled())") && src.contains("else if(offWords!=null)toast(offWords);else editFeature(feature);"),
                 "switch and chevron rows, as before");
+        // Council round 3 F04: tapping the selected pattern still says why (the selector's refusal runs before its early return).
+        String selector = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/SegmentedSelector.java")), StandardCharsets.UTF_8).replace("\r", "");
+        check(selector.indexOf("if (refusal != null) { refusal.run(); return; }") >= 0
+                && selector.indexOf("if (refusal != null) { refusal.run(); return; }") < selector.indexOf("if (selected == choice) return;"), "the selector refuses before its same-choice return");
+        check(src.contains("patternSelector.setRefusal(offWords!=null?()->toast(offWords):null);"), "the row gives the selector the off refusal");
+        // Council round 3 F05: the disabled switch doesn't swallow the tap while off; the row's listener gets it.
+        check(src.contains("toggle.setClickable(offWords==null);"), "the switch passes taps to the row while off");
         System.out.println("OffRowsTapTest: " + checks + " checks passed");
     }
     private static void check(boolean ok, String what) { if (!ok) throw new AssertionError(what); checks++; }

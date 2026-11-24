@@ -122,7 +122,7 @@ public final class RideAutoStopPolicy {
     private boolean bound, moved, fresh = true;
     /** The link is up but the scooter is switched off (scooterOff): its countdown runs while rule 3 keeps counting. */
     private boolean off;
-    /** Since the last push: Volt saw the scooter off on a live link (an off verdict, or a reconnect that answered with no push). */
+    /** Since the last push: Volt saw the scooter off on a live link (ScooterPowerState's off verdict, never a first-push wait alone). */
     private boolean seenOff;
     private long lastNow, lastMotion, lastFrame, runStart, runLast, lossMono;
     private int runCount;
@@ -321,15 +321,13 @@ public final class RideAutoStopPolicy {
         public final boolean connected, switchedOff;
         /** Up, but no push yet on a scooter that is judged (ScooterPowerState.awaitingPush): not yet a reconnect. */
         public final boolean awaitingPush;
-        /** Awaiting its first push on a ready link: the scooter answered, and pushed nothing (a switched-off scooter does this). */
-        public final boolean answered;
         final String profile, serial;
         final int transport, speedRaw, driving;
         final long frameMono, motionMono, pushMono;
         final Loss loss;
-        private Link(boolean connected, boolean switchedOff, boolean awaitingPush, boolean answered, String profile, String serial, int transport, long frameMono, long motionMono,
+        private Link(boolean connected, boolean switchedOff, boolean awaitingPush, String profile, String serial, int transport, long frameMono, long motionMono,
                 int speedRaw, int driving, long pushMono, Loss loss) {
-            this.connected = connected; this.switchedOff = switchedOff; this.awaitingPush = awaitingPush; this.answered = answered; this.profile = profile; this.serial = serial; this.transport = transport;
+            this.connected = connected; this.switchedOff = switchedOff; this.awaitingPush = awaitingPush; this.profile = profile; this.serial = serial; this.transport = transport;
             this.frameMono = frameMono; this.motionMono = motionMono; this.speedRaw = speedRaw; this.driving = driving; this.pushMono = pushMono; this.loss = loss;
         }
         /** An authenticated link, as {@link #connected} takes it; pushMono is its latest push (0 for none). */
@@ -340,16 +338,10 @@ public final class RideAutoStopPolicy {
         /** As above; awaitingPush: no push yet on this connection to a judged scooter ({@link #awaitingPush}). */
         public static Link up(String boundProfile, String transportSerial, int transport, long frameMono, long motionMono, int speedRaw, int driving,
                 boolean switchedOff, boolean awaitingPush, long pushMono) {
-            return up(boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, switchedOff, awaitingPush, false, pushMono);
-        }
-        /** As above; answered: awaiting its first push on a ready link (BleController.ready). */
-        public static Link up(String boundProfile, String transportSerial, int transport, long frameMono, long motionMono, int speedRaw, int driving,
-                boolean switchedOff, boolean awaitingPush, boolean answered, long pushMono) {
-            boolean awaiting = awaitingPush && !switchedOff;
-            return new Link(true, switchedOff, awaiting, awaiting && answered, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, pushMono, null);
+            return new Link(true, switchedOff, awaitingPush && !switchedOff, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, pushMono, null);
         }
         /** No authenticated link: the loss as {@link #loss} classifies it. */
-        public static Link down(Loss loss) { return new Link(false, false, false, false, "", "", 0, 0, 0, -1, -1, 0, loss); }
+        public static Link down(Loss loss) { return new Link(false, false, false, "", "", 0, 0, 0, -1, -1, 0, loss); }
         /**
          * Whether the ride takes readings from this link: up, and showing the scooter on. A switched-off scooter's answered
          * polls, and a reconnect's before its first push, are a gap like a drop, so a ride's saved end and duration never
@@ -372,7 +364,9 @@ public final class RideAutoStopPolicy {
             if (!bound && !armed()) connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
             scooterOff(now, link.pushMono, link.frameMono);
         }
-        else if (link.awaitingPush) { awaitingPush(now); if (link.answered) seenOff = true; }
+        // Awaiting its first push is not an off verdict (an on scooter at the edge of range does it too): only the
+        // verdict on a live link (scooterOff above) marks the scooter seen off.
+        else if (link.awaitingPush) awaitingPush(now);
         else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
     }
 
@@ -387,9 +381,10 @@ public final class RideAutoStopPolicy {
     public void awaitingPush(long now) { clock(now); }
 
     /**
-     * Whether, since the scooter's last push, Volt saw it switched off on a live link: an off verdict ({@link #scooterOff})
-     * or a reconnect that answered and pushed nothing. A drop that never came back is not that (a walk-away out of range
-     * looks the same): OffReconnectHold then sets no hold. A push or a reset clears it.
+     * Whether, since the scooter's last push, Volt saw it switched off on a live link: the off verdict ({@link #scooterOff}),
+     * on the first link or on a reconnect that answered long enough for one. A drop that never came back is not that (a
+     * walk-away out of range looks the same), and neither is a reconnect that dropped again inside the first-push grace (an
+     * on scooter at the edge of range): OffReconnectHold then sets no hold. A push or a reset clears it.
      */
     public boolean seenOffWhileLinked() { return seenOff; }
 

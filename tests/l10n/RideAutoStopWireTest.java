@@ -38,6 +38,7 @@ public final class RideAutoStopWireTest {
             pushlessReconnectKeepsTheCountdown();
             offThenReconnectCycles();
             walkAwayKeepsBackgroundReconnect();
+            edgeOfRangeOnScooterSetsNoHold();
             pushlessReconnectEndsAtTheLastReading();
             settingOffCancels();
             text();
@@ -102,7 +103,7 @@ public final class RideAutoStopWireTest {
         RideAutoStopPolicy.Link link;
         /** BleController's reconnect hold, and whether Volt is in sight (the hold governs background reconnects only). */
         final OffReconnectHold hold = new OffReconnectHold(); boolean visible;
-        String stoppedWith; long stoppedAt = -1; RideStore.Summary saved;
+        String stoppedWith; long stoppedAt = -1; RideStore.Summary saved; boolean seenOff;
         /** BleController's connection event log, oldest first. */
         final List<ConnectionEventLog.Record> events = new ArrayList<>();
         Service(String label, long start) throws IOException {
@@ -130,7 +131,7 @@ public final class RideAutoStopWireTest {
                 v.put("speed_kmh", new RideStore.Sample(speedRaw / 10.0, motion)); v.put("voltage_v", new RideStore.Sample(50, lastFrame));
                 v.put("current_a", new RideStore.Sample(1, lastFrame)); v.put("battery_percent", new RideStore.Sample(60, lastFrame));
                 rides.sample(WALL0 + now, now, v);
-            } else if (!gapMarked) { rides.markGap(WALL0 + now, now, connected ? "Scooter switched off" : "Bluetooth disconnected"); gapMarked = true; }
+            } else if (!gapMarked) { rides.markGap(WALL0 + now, now, link.switchedOff ? "Scooter switched off" : "Bluetooth disconnected"); gapMarked = true; }
             else rides.heartbeat(WALL0 + now, now);
             observe();
             // ScooterService.autoStopDue (serviceWiring checks the service lines).
@@ -151,7 +152,7 @@ public final class RideAutoStopWireTest {
             boolean fresh = connected && lastFrame > 0 && now - lastFrame <= CapabilityResolver.STATUS_MAX_AGE_MS;
             ScooterPowerState.Result verdict = power.verdict(now, false, fresh, armed, fresh, false);
             boolean off = connected && verdict.off(), awaiting = connected && power.awaitingPush(verdict, armed);
-            return connected ? RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving, off, awaiting, awaiting && fresh, lastPush)
+            return connected ? RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving, off, awaiting, lastPush)
                     : RideAutoStopPolicy.Link.down(loss());
         }
         void observe() {
@@ -168,6 +169,7 @@ public final class RideAutoStopWireTest {
         void stop(String reason) throws IOException {
             saved = rides.stop(WALL0 + now, now, reason); stoppedWith = reason; stoppedAt = now;
             // ScooterService.autoStopRide → BleController.rideEndedAutomatically.
+            seenOff = policy != null && policy.seenOffWhileLinked();
             if (policy != null && OffReconnectHold.pauses(reason, armed, policy.seenOffWhileLinked())) hold.hold(PROFILE);
             policy = null;
         }
@@ -393,6 +395,28 @@ public final class RideAutoStopWireTest {
     }
 
     /**
+     * Council round 3 F06 on #627 (timeline D): a scooter that is ON, at the edge of range. The link drops; Volt
+     * reconnects, the scooter answers status reads, and the link drops again inside the ten-second first-push grace,
+     * before any push and before any off verdict, three times. Nothing showed it off: the ride ends, with no hold.
+     */
+    private static void edgeOfRangeOnScooterSetsNoHold() throws IOException {
+        Service s = new Service("Edge of range", 10000); s.armed = true;
+        s.ride(250, 1, 200000);
+        long last = s.lastPush;
+        s.connected = false; s.run(last + 20000);
+        for (int c = 0; c < 3; c++) {
+            s.connected = true; s.transport++;
+            for (long end = s.now + 6000; s.now < end; ) { if (s.now % 2000 == 0) s.poll(); s.tick(); }
+            check(s.link.awaitingPush && !s.link.switchedOff, "answered inside the grace: awaiting its first push, no off verdict");
+            s.connected = false;
+            s.run(s.now + 30000);
+        }
+        s.run(last + 400000);
+        check(s.stoppedAt == last + 300000 && !s.seenOff, "the ride ends on its countdown, never seen off");
+        check(!s.hold.held(PROFILE, false), "no hold: an answered reconnect is not an off verdict, so background reconnect carries on");
+    }
+
+    /**
      * Council F06 on #627: switched off at speed, the link drops, and Volt reconnects to the off scooter, which answers
      * polls. Those answers are not ride readings (a gap, as for a drop), so the saved ride ends at its last real reading,
      * not at the countdown's deadline.
@@ -452,7 +476,7 @@ public final class RideAutoStopWireTest {
         String link = between(src, "private RideAutoStopPolicy.Link autoStopLink(){", "\n    }");
         check(link.contains("return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));"),
                 "the service reports Bluetooth off as its own loss");
-        check(link.contains("ble.scooterOff(),ble.awaitingPush(),ble.ready(),ble.lastPushMs());"), "and a scooter switched off but answering, or still awaiting its first push (answered once ready), with its last push");
+        check(link.contains("ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());"), "and a scooter switched off but answering, or still awaiting its first push, with its last push (no 'answered' shortcut: round 3 F06)");
         String auto = between(src, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
         check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("!RideAutoStopPolicy.mayEnd(autoStopLink()))return;"),
                 "an automatic end goes through stopRide(reason) after the ownership checks, with the scooter gone or switched off");
@@ -474,15 +498,26 @@ public final class RideAutoStopWireTest {
         check(!between(svc, "private void autoStopNoMotion(RideAutoStopPolicy policy){", "\n    }").contains("rideEndedAutomatically"), "rule 3 (connected and on) never does");
         check(svc.contains("&& ble.state() == BleController.State.DISCONNECTED\n                && !ble.reconnectPaused()) ble.connectLast();"), "auto-connect asks first");
         String failed = between(ble, "private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){", "\n    }");
-        check(failed.contains("if(profile!=null&&offHold.held(profile.id,visible))reconnect=false;") && failed.contains("workAllowed()&&!offHold.held(profile.id,visible))connect(profile,profile.mac);"),
-                "the retry loop neither schedules nor runs a reconnect while paused");
+        check(failed.contains("if(profile!=null&&offHold.held(profile.id,visible))reconnect=false;"), "the retry loop schedules no reconnect while paused");
+        check(failed.contains("workAllowed()){if(offHold.held(profile.id,visible))applyHold();else connect(profile,profile.mac);}"),
+                "a posted retry that finds the hold active runs none and ends the wait in DISCONNECTED, so reopening Volt reconnects (round 3 F02)");
+        String phone = between(svc, "private void recordPhoneTelemetry(long now){", "\n    }");
+        check(phone.contains("if(autoStopLink().recordsReadings())for(Telemetry.Metric m:ble.telemetry.metrics()){"), "the phone's route points take scooter values only from a link that shows it on (round 3 F07)");
         check(ble.contains("STATE_ON&&wanted&&gatt==null&&workAllowed()&&!reconnectPaused())connectLast();"), "Bluetooth back on asks first");
         check(ble.contains("if(resumed&&offHold.releaseAll())"), "Volt opening again releases every pause");
         String ended = between(ble, "public void rideEndedAutomatically(", "\n    }");
-        check(ended.contains("if(OffReconnectHold.closesAttempt(gatt!=null,authenticated))"), "an attempt not yet authenticated is closed when the hold starts (F01)");
+        check(ended.contains("offHold.hold(profileId);") && ended.endsWith("applyHold();"), "a ride end applies the hold at once when it is active (out of sight)");
+        String apply = between(ble, "private void applyHold(){", "\n    }");
+        check(apply.contains("if(profile==null||!offHold.held(profile.id,visible))return;") && apply.contains("switch(OffReconnectHold.drop(gatt!=null,authenticated,state==State.WAITING)){")
+                && apply.contains("case CLOSE_ATTEMPT:event(\"Reconnect attempt closed\");close(State.DISCONNECTED);") && apply.contains("case STOP_WAITING:state=State.DISCONNECTED;"),
+                "applyHold closes an attempt not yet authenticated, or stops a waiting reconnect (OffReconnectHoldTest.timelines)");
+        check(between(ble, "public void visibility(boolean v,boolean r,long deadline){", "\n").contains("visible=v;recording=r;backgroundDeadlineMs=deadline;if(left)applyHold();"),
+                "Volt leaving sight applies a recorded hold (round 3 F01)");
         check(auto.contains("ble.rideEndedAutomatically(policy.profile,reason,policy.seenOffWhileLinked());"), "the hold needs the scooter seen off on a live link (F05)");
         String tick = between(svc, "if (isRecording()) {\n                        recordPhoneTelemetry(mono);", "rides.sample(wall, mono, values);");
         check(tick.contains("if (!autoStopLink().recordsReadings()) {"), "the recording tick takes readings only from a link that shows the scooter on (F06)");
+        check(tick.contains("rides.markGap(wall, mono, ble.scooterOff() ? \"Scooter switched off\" : \"Bluetooth disconnected\");"),
+                "the gap is a switch-off only with the off verdict; a reconnect's first-push wait continues the drop's gap (round 3 F09)");
         check(between(ble, "private void pushed(){", "\n    }").contains("offHold.release(p.id)"), "a push releases its scooter");
         check(between(ble, "public void connectLast(){", "\n").contains("if(heldBack(p))return;resumeReconnects(p.id);"), "the rider's connect releases it");
         check(ble.contains("resumeReconnects(p.id);wanted=true;retries=0;"), "so does a scan pick");

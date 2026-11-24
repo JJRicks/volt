@@ -16,9 +16,10 @@ import java.util.Set;
  * No hold applies while Volt is in sight ({@link #held(String, boolean)}): there the retry loop and auto-connect run as
  * before, so a power-cycle at a stop with Volt in front reconnects. A ride that ended because the link dropped and never
  * came back (a walk-away out of range) sets none, so background reconnect and auto-record carry on. In this process only:
- * a service or process restart has no hold. When a hold starts out of sight, a reconnect attempt that has not
- * authenticated yet is closed ({@link #closesAttempt}); an authenticated link is never closed by a hold. Pure:
- * BleController asks it before each automatic reconnect.
+ * a service or process restart has no hold. Whenever a hold becomes active (the ride ends out of sight, Volt leaves
+ * sight with a hold recorded, or a posted retry finds one), BleController applies {@link #drop}: an attempt that has
+ * not authenticated yet is closed, a waiting reconnect ends in DISCONNECTED (so opening Volt auto-connects again), and
+ * an authenticated link is never closed by a hold. Pure: BleController asks it before each automatic reconnect.
  */
 final class OffReconnectHold {
     private final Set<String> held = new LinkedHashSet<>();
@@ -47,6 +48,16 @@ final class OffReconnectHold {
     synchronized boolean held(String profileId, boolean visible) { return !visible && held(profileId); }
     /** When a hold starts out of sight: close an attempt whose GATT client is open but not yet authenticated. */
     static boolean closesAttempt(boolean gattOpen, boolean authenticated) { return gattOpen && !authenticated; }
+    /** What an active hold does to the link as it stands: {@link #drop}. */
+    enum Drop { NONE, CLOSE_ATTEMPT, STOP_WAITING }
+    /**
+     * When a hold becomes active: close an attempt not yet authenticated, stop a waiting reconnect (DISCONNECTED, never
+     * left WAITING with nothing scheduled), and leave an authenticated link, or one already idle, alone.
+     */
+    static Drop drop(boolean gattOpen, boolean authenticated, boolean waiting) {
+        if (gattOpen) return closesAttempt(true, authenticated) ? Drop.CLOSE_ATTEMPT : Drop.NONE;
+        return waiting ? Drop.STOP_WAITING : Drop.NONE;
+    }
     /** The rider connected, or the scooter pushed: true when a hold ended. */
     synchronized boolean release(String profileId) { return profileId != null && held.remove(profileId); }
     /** Volt opened again: true when any hold ended. */

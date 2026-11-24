@@ -2661,7 +2661,7 @@ public final class ScooterService extends Service {
     private RideAutoStopPolicy.Link autoStopLink(){
         if(!ble.connected())return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
         ScooterProfiles.Profile bound=ble.profile();
-        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.ready(),ble.lastPushMs());
+        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());
     }
     /** Called from the tick only, after this tick's observation: ends the ride when one of the three rules is due (RideAutoStopPolicy.due). */
     private void autoStopDue(RideAutoStopPolicy policy,long now){
@@ -2795,7 +2795,8 @@ public final class ScooterService extends Service {
     private void recordPhoneTelemetry(long now){
         if (simulating()) return;
         if(phoneRecorder==null)return;Telemetry.Metric speedMetric=null,volts=null,amps=null,battery=null;
-        if(ble.connected())for(Telemetry.Metric m:ble.telemetry.metrics()){
+        // Scooter values ride along only from a link that shows the scooter on (Link.recordsReadings), as the ride's own.
+        if(autoStopLink().recordsReadings())for(Telemetry.Metric m:ble.telemetry.metrics()){
             if(m.numericValue==null||m.updatedMs<0||now<m.updatedMs||now-m.updatedMs>3000)continue;
                 if (m.key.equals("speed_kmh")) speedMetric = m;
                 else if (m.key.equals("voltage_v")) volts = m;
@@ -2861,7 +2862,8 @@ public final class ScooterService extends Service {
                                     // its answered polls are not ride readings, so the saved end and duration stop here.
                                     boolean linked = ble.connected();
                                     if (!gapMarked) {
-                                        rides.markGap(wall, mono, linked ? "Scooter switched off" : "Bluetooth disconnected");
+                                        // A switch-off only with the off verdict; a reconnect's first-push wait continues the drop's gap.
+                                        rides.markGap(wall, mono, ble.scooterOff() ? "Scooter switched off" : "Bluetooth disconnected");
                                         gapMarked = true;
                                     }
                                     rides.heartbeat(wall, mono);

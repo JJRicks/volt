@@ -344,11 +344,23 @@ public final class BleController {
     public void rideEndedAutomatically(String profileId,String stopReason,boolean seenOff){
         if(!OffReconnectHold.pauses(stopReason,powerJudged(profileId),seenOff))return;
         offHold.hold(profileId);event("Ride ended with the scooter off or gone: reconnects paused until you connect or open Volt");
-        // In sight the hold doesn't apply (OffReconnectHold.held): the retry loop carries on. Out of sight it drops a
-        // waiting reconnect, and closes an attempt that hasn't authenticated yet, as Disconnect does before READY.
-        if(visible||profile==null||!profile.id.equals(profileId))return;
-        if(OffReconnectHold.closesAttempt(gatt!=null,authenticated)){event("Reconnect attempt closed");close(State.DISCONNECTED);message=notConnected();changed();}
-        else if(gatt==null&&state==State.WAITING){state=State.DISCONNECTED;message=notConnected();changed();}
+        // In sight the hold doesn't apply (OffReconnectHold.held): the retry loop carries on, and Volt leaving sight
+        // applies it later (visibility). Out of sight it applies now.
+        applyHold();
+    }
+    /**
+     * A recorded hold that is active now (Volt out of sight), applied to the link as it stands (OffReconnectHold.drop):
+     * an attempt that hasn't authenticated yet is closed, as Disconnect does before READY, and a waiting reconnect ends
+     * in DISCONNECTED, so opening Volt auto-connects again. An authenticated link stays. Called when a ride end records
+     * the hold, when Volt leaves sight, and when a posted retry finds the hold.
+     */
+    private void applyHold(){
+        if(profile==null||!offHold.held(profile.id,visible))return;
+        switch(OffReconnectHold.drop(gatt!=null,authenticated,state==State.WAITING)){
+            case CLOSE_ATTEMPT:event("Reconnect attempt closed");close(State.DISCONNECTED);message=notConnected();changed();break;
+            case STOP_WAITING:state=State.DISCONNECTED;message=notConnected();changed();break;
+            default:break;
+        }
     }
     /** The idle state's words, at start and when a paused reconnect is dropped. */
     private static CharSequence notConnected(){return M.bleStatusNotConnected();}
@@ -553,7 +565,7 @@ public final class BleController {
      * Moving the poll also moves its silence check, so a switch checks silence itself first: requests and switches alone
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
-    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;if(resumed&&offHold.releaseAll())event("Volt opened: reconnects resume");visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
+    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,left=!v&&visible,started=r&&!recording;if(resumed&&offHold.releaseAll())event("Volt opened: reconnects resume");visible=v;recording=r;backgroundDeadlineMs=deadline;if(left)applyHold();boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
     /**
      * Connects to the active scooter. Every automatic caller checks reconnectPaused() first (OffReconnectHold), so a call
      * that gets here is the rider's own (or a recording's) and ends that pause.
@@ -774,7 +786,8 @@ public final class BleController {
         notice(shown,code==-1?shown:shown+" ("+code+")");
         if(reconnect){
             int session=generation;long delay=Math.min(60000,1000L<<Math.min(6,retries++));event("Reconnect in "+delay/1000+"s");
-            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed()&&!offHold.held(profile.id,visible))connect(profile,profile.mac);},delay);
+            // Held by the time it fires (Volt left sight): no attempt, and the wait ends in DISCONNECTED (applyHold).
+            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed()){if(offHold.held(profile.id,visible))applyHold();else connect(profile,profile.mac);}},delay);
         }
     }
     private void notice(CharSequence text){notice(text,ConnectionText.english(text));}

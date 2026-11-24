@@ -4503,7 +4503,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             else row.setSub(joinNote(rowDetail(feature),note));
             // Switched off: the choices stay tappable (greyed) so a tap says why, like the other rows (offWords).
             boolean tappable=usable||offWords!=null;
-            if(patternSelector!=null){restorePatternSelection(true);patternSelector.setEnabled(tappable);patternSelector.setAlpha(usable?1f:.5f);}
+            if(patternSelector!=null){restorePatternSelection(true);patternSelector.setEnabled(tappable);patternSelector.setAlpha(usable?1f:.5f);patternSelector.setRefusal(offWords!=null?()->toast(offWords):null);}
             if(swatchRow!=null)extraSwatches(decision);
             for(Map.Entry<Integer,View> option:options.entrySet()){
                 boolean on=actual!=null&&actual.intValue()==option.getKey();View view=option.getValue();
@@ -4522,7 +4522,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             action.setContentDescription(labelValueState(shortLabel(feature),shown,pending?rowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?rowStateNote(note):""));
             // The first second shows the asked side (as the lock switch does), so the tap doesn't look refused; the readback decides after.
             Long asked=pending?ble.pendingValue():null;
-            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(asked!=null?asked==1:actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
+            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setClickable(offWords==null);toggle.setChecked(asked!=null?asked==1:actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
         }
         private void refreshChargeSchedule(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
