@@ -67,6 +67,7 @@ public final class ServiceConsumersEnglishTest {
         REASONS.put(CapabilityResolver.Reason.NEEDS_REAL_SCOOTER, "Needs a real scooter");
         REASONS.put(CapabilityResolver.Reason.PARKED_UNCONFIRMED, "Confirm the scooter is parked");
         REASONS.put(CapabilityResolver.Reason.NO_TEST, "No test running");
+        REASONS.put(CapabilityResolver.Reason.SCOOTER_OFF, "Turn the scooter on first");
     }
 
     private static void reasons() {
