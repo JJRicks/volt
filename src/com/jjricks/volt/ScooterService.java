@@ -3593,6 +3593,8 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
+                                // Switched off but answering: Scooter off, as Home says (BleController.scooterOffShown).
+                                : ble.ready() && ble.scooterOffShown() ? ScooterOffWords.state()
                                 : ble.linked() ? T.serviceNoticeConnected() : "Volt";
         // linked(), not ready(): out of sight status comes every 15 s, and the notice must not read the gaps as lost (StatusCadence).
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,

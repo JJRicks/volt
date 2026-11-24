@@ -46,6 +46,12 @@ public final class CapabilityResolver {
         public boolean testTry;
         /** The scooter is switched off but answering (ScooterPowerState): every change but the charging settings is refused. */
         public boolean scooterOff;
+        /**
+         * The scooter reports charging while scooterOff (ScooterPowerState.shownOff): its off words are suspended, so a
+         * refusal says its plain reason, never "Turn the scooter on first". scooterOff itself, and so the charging
+         * settings' waiver, stays the raw verdict.
+         */
+        public boolean offWordsSuspended;
         public long nowMs;
     }
 
@@ -368,7 +374,7 @@ public final class CapabilityResolver {
     /** Refused because the scooter is switched off: all but ScooterPowerState.usableWhileOff (the charging settings). */
     private static boolean off(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&!ScooterPowerState.usableWhileOff(feature);}
     /** This reason came from the switched-off check: the off check runs before the preconditions, so OFF_REASON with off() true is its own. */
-    private static boolean offRefused(String feature,Reason reason,Runtime rt){return reason==OFF_REASON&&off(feature,rt);}
+    private static boolean offRefused(String feature,Reason reason,Runtime rt){return reason==OFF_REASON&&off(feature,rt)&&!rt.offWordsSuspended;}
     /** Switched off, a charging setting needs no motion report (ScooterPowerState.parkedWaivedWhileOff); ordinary changes only. */
     private static boolean waived(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&ScooterPowerState.parkedWaivedWhileOff(feature);}
     private static EnumSet<Precondition> withoutMotion(EnumSet<Precondition> p){EnumSet<Precondition> out=EnumSet.copyOf(p);out.remove(Precondition.STATIONARY);out.remove(Precondition.MOTION_REPORT);return out;}

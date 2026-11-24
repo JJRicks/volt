@@ -43,6 +43,11 @@ final class RideAutoStopText {
         return ride.label.isEmpty() ? T.serviceRideSwitchedOffAt(shownEnd) : T.serviceRideSwitchedOffLabelAt(ride.label, shownEnd);
     }
 
+    /** The Saved automatically pill's visible words: a switch-off names itself, as its notice did. */
+    static String pill(RideStore.Summary ride) {
+        return ride != null && ride.stopSwitchedOff ? T.serviceRideSwitchedOffLabel(T.ridesSavedAutomatically()) : T.ridesSavedAutomatically();
+    }
+
     /** The Saved automatically pill's screen-reader text for an automatic stop. */
     static String description(RideStore.Summary ride) {
         if (ride != null && ride.noMotionStop) return T.ridesSavedAutomaticallyNoMotionDescription();

@@ -1724,7 +1724,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String word;int tone;
         if(!permission){word=T.mainConnectionNoPermission();tone=design.dim;}
         else if(ble==null){word=T.mainConnectionStarting();tone=design.muted;}
-        else if(ready&&ble.scooterOff()&&ScooterOffWords.state()!=null){word=ScooterOffWords.state();tone=design.orange;}
+        else if(ready&&ble.scooterOffShown()&&ScooterOffWords.state()!=null){word=ScooterOffWords.state();tone=design.orange;}
         else if(ready){word=simulated?T.mainConnectionSimulated():T.bleStatusConnected();tone=design.ok;}
         else if(state==BleController.State.WAITING){word=T.mainConnectionRetrying();tone=design.orange;}
         else if(state==BleController.State.SCANNING){word=T.bleStatusSearching();tone=design.orange;}
@@ -1739,11 +1739,11 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout body=column();body.setPadding(design.dp(24),design.dp(4),design.dp(24),design.dp(4));
         TextView stateValue=connectionRow(body,T.mainConnectionState(),word);
         // Switched off (its words shown above): no check mark, as for a scooter that isn't connected.
-        View dot=design.icon(ready&&!(ble.scooterOff()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
+        View dot=design.icon(ready&&!(ble.scooterOffShown()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
         stateValue.setTextColor(ready?design.text:design.muted);
         ((LinearLayout)stateValue.getParent()).addView(dot,((LinearLayout)stateValue.getParent()).indexOfChild(stateValue),connectionIcon());
         // Switched off but answering: what to do (ScooterPowerState).
-        String offDetail=ready&&ble.scooterOff()?ScooterOffWords.detail():null;
+        String offDetail=ready&&ble.scooterOffShown()?ScooterOffWords.detail():null;
         if(offDetail!=null){TextView off=design.caption(offDetail);off.setPadding(0,design.dp(4),0,design.dp(6));body.addView(off);}
         if(profile!=null&&profile.lastConnected>0)connectionRow(body,T.mainConnectionLastConnected(),DisplayTime.dateTime(this,preferences,profile.lastConnected));
         if(error!=null){
@@ -1769,7 +1769,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     else connect();
                 }).create();
         controlDialog.show();styleDialog(controlDialog,active?0:AlertDialog.BUTTON_NEGATIVE);
-        connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOff();
+        connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOffShown();
     }
     /** The open connection details and whether they showed the scooter off: they are built once, so the pulse rebuilds them when that changes. */
     private AlertDialog connectionDetails;private boolean connectionDetailsOff;
@@ -1777,7 +1777,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(connectionDetails==null)return;
         if(!connectionDetails.isShowing()||connectionDetails!=controlDialog){connectionDetails=null;return;}
         BleController ble=scooterService==null?null:scooterService.ble;
-        boolean off=ble!=null&&ble.ready()&&ble.scooterOff();
+        boolean off=ble!=null&&ble.ready()&&ble.scooterOffShown();
         if(off==connectionDetailsOff)return;
         connectionDetails.dismiss();connectionDetails=null;showConnectionDetails();
     }
@@ -2105,7 +2105,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
             // Switched off but answering (ScooterPowerState): Scooter off, not Connected.
-            String offWord=ready&&ble.scooterOff()?ScooterOffWords.state():null;
+            String offWord=ready&&ble.scooterOffShown()?ScooterOffWords.state():null;
             String state=ready?(offWord!=null?offWord:T.bleStatusConnected()):connecting?T.mainLockConnecting():T.bleStatusDisconnected();
             String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,simulatedName!=null?simulatedName:active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));

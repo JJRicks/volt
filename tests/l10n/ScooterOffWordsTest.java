@@ -18,9 +18,13 @@ public final class ScooterOffWordsTest {
         words();
         refusals();
         chargingSuspendsTheOffWords();
+        offAndPluggedInKeepsTheChargingSettings();
         unlockStaysTheRecoveryPath();
         ridingPill();
+        recordingPillSaysOff();
         detailsFollowTheState();
+        notificationTitle();
+        guide();
         System.out.println("ScooterOffWordsTest: " + checks + " checks passed");
     }
 
@@ -65,7 +69,8 @@ public final class ScooterOffWordsTest {
 
     /**
      * Council F02 on #624: switched off, then plugged in (the usual way to charge). A charging reading suspends the off
-     * words and refusals, so "Scooter off" never sits over the Charging view; the verdict itself stays off until a push.
+     * words, so "Scooter off" never sits over the Charging view; the verdict itself stays off until a push, and the logic
+     * (the charging settings' waiver, the ride's auto-end) keeps reading the verdict (council round 2 F05, F04 on #628).
      */
     private static void chargingSuspendsTheOffWords() {
         ScooterPowerState p = new ScooterPowerState(); p.start(1000);
@@ -75,7 +80,31 @@ public final class ScooterOffWordsTest {
         check(plugged.off() && !ScooterPowerState.shownOff(plugged, true), "Plugged in afterwards: the verdict stays off, but nothing says Scooter off");
         check(ScooterPowerState.shownOff(p.verdict(40_000, false, true, true, true, false), false), "Unplugged again with no push: off again");
         check(!p.shownOff(p.verdict(50_000, false, true, true, true, true)) && p.shownOff(p.verdict(60_000, false, true, true, true, false)), "The verdict's own charging reading decides");
-        check(src("BleController").contains("public boolean scooterOff(){ScooterPowerState.Result verdict=powerVerdict();return power.shownOff(verdict);}"), "BleController.scooterOff follows it");
+        String ble = src("BleController");
+        check(ble.contains("public boolean scooterOff(){return powerVerdict().off();}"), "BleController.scooterOff is the raw verdict, for logic");
+        check(ble.contains("public boolean scooterOffShown(){ScooterPowerState.Result verdict=powerVerdict();return power.shownOff(verdict);}"), "scooterOffShown follows the charging reading, for words");
+    }
+
+    /**
+     * Council round 2 F05 on #628 (timeline T3): switched off, then plugged in. The resolver still sees the scooter off
+     * (rt.scooterOff, the raw verdict), so the charging settings keep their waiver and go out with no motion report; the
+     * other rows stay refused, in the plain no-motion words while the off words are suspended (rt.offWordsSuspended).
+     */
+    private static void offAndPluggedInKeepsTheChargingSettings() {
+        DeviceDescriptor ut5 = ModelRegistryTest.serial("Q2538ZZ9US7777777");
+        StatusFields s = CapabilityResolverTest.status(CapabilityResolverTest.full(), 100000);
+        CapabilityResolver.Runtime rt = CapabilityResolverTest.parked(); rt.stationary = false; rt.motionSeen = false; rt.scooterOff = true; rt.offWordsSuspended = true;
+        for (String key : new String[]{"charge_limit", "timed_charging"}) check(CapabilityResolver.decide(key, ut5, s, rt).available(), "Off and plugged in: " + key + " sends");
+        check(MutationGate.check(new MutationGate.Request(MutationGate.Kind.CHARGE_START, "charge_start", 0, MutationGate.Origin.USER), ut5, s, rt).available(), "and so does the scheduled charge start");
+        CapabilityResolver.Decision cruise = CapabilityResolver.decide("cruise_control", ut5, s, rt);
+        check(cruise.reason == CapabilityResolver.OFF_REASON && !cruise.switchedOff, "Other rows stay refused, without the off words");
+        same("Waiting for the scooter to report its speed", CapabilityResolver.noMotionNotice(cruise, true), "their notice while charging");
+        rt.offWordsSuspended = false;
+        check(CapabilityResolver.decide("cruise_control", ut5, s, rt).switchedOff, "Unplugged: the off words are back");
+        CapabilityResolver.Runtime fresh = CapabilityResolverTest.parked();
+        check(!fresh.offWordsSuspended, "Not suspended by default");
+        String ble = src("BleController");
+        check(ble.contains("rt.scooterOff=scooterOff();rt.offWordsSuspended=rt.scooterOff&&!scooterOffShown();"), "BleController.runtime gives the resolver the raw verdict, and the words' suspension apart");
     }
 
     /**
@@ -95,9 +124,32 @@ public final class ScooterOffWordsTest {
         check(RidingFocus.showsOff(RidingFocus.Link.CONNECTED, true), "Ready but switched off: the pill shows off");
         check(!RidingFocus.showsOff(RidingFocus.Link.CONNECTED, false) && !RidingFocus.showsOff(RidingFocus.Link.RECONNECTING, true), "Otherwise as before");
         String riding = src("RidingScreen");
-        check(riding.contains("boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOff());")
-                && riding.contains("ui.statusRungs(status, ScooterOffWords.state());") && riding.contains("statusPill.setContentDescription(ScooterOffWords.state());"),
-                "RidingScreen.showStatus uses it, words and spoken state");
+        check(riding.contains("boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOffShown());")
+                && riding.contains("ui.statusRungs(status, ScooterOffWords.state(), \"\");") && riding.contains("statusPill.setContentDescription(ScooterOffWords.state());"),
+                "RidingScreen.showStatus uses it, words (the orange dot alone where they don't fit: round 2 F11) and spoken state");
+    }
+
+    /**
+     * Council round 2 F12 on #628 (timeline T6): while a ride records, the red recording pill replaces the connection
+     * words, so it carries the switch-off itself: the problem look (no healthy pulse), the time alternating with "Scooter
+     * off" (held on the words with animations off), and TalkBack hears both.
+     */
+    private static void recordingPillSaysOff() {
+        long rec = 768_900L;
+        check(RecordingPill.look(rec, RidingFocus.Link.CONNECTED, null, false, true) == RecordingPill.Look.RECORDING_PROBLEM, "Recording, switched off: the problem look");
+        check(RecordingPill.look(rec, RidingFocus.Link.CONNECTED, null, false, false) == RecordingPill.Look.RECORDING, "Recording, on: as before");
+        check(RecordingPill.look(null, RidingFocus.Link.CONNECTED, null, false, true) == RecordingPill.Look.STATUS, "Not recording: the status pill says it");
+        check(!RecordingPill.pulses(RecordingPill.Look.RECORDING_PROBLEM, true), "No healthy pulse while off");
+        String[] time = RecordingPill.offRungs(rec, 0, true), words = RecordingPill.offRungs(rec, RecordingPill.ALTERNATE_MS, true);
+        check(time.length == 2 && time[0].equals(T.ridingStatusRecording("12:48")) && time[1].equals("12:48"), "First half: the time: " + String.join("|", time));
+        check(words.length == 1 && words[0].equals(ScooterOffWords.state()), "Second half: Scooter off");
+        String[] still = RecordingPill.offRungs(rec, 0, false);
+        check(still.length == 1 && still[0].equals(ScooterOffWords.state()), "Animations off: held on the words");
+        same(T.ridingReadingSpoken(RecordingPill.spoken(rec, RidingFocus.Link.CONNECTED, null), ScooterOffWords.state()), RecordingPill.offSpoken(rec), "spoken: the time, then Scooter off");
+        String riding = src("RidingScreen");
+        check(riding.contains("RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic, off);"), "RidingScreen passes the off state");
+        check(riding.contains("if (off) {\n                ui.statusRungs(status, RecordingPill.offRungs(recordingMs, now, Ui.motionEnabled()));\n                statusPill.setContentDescription(RecordingPill.offSpoken(recordingMs));"),
+                "and the recording branch shows and speaks it");
     }
 
     /** Council F05 on #624: the connection details, built once, are rebuilt when the off state changes while open. */
@@ -105,7 +157,26 @@ public final class ScooterOffWordsTest {
         String main = src("MainActivity");
         check(main.contains("private void refreshConnectionDetails(){") && main.contains("maybeLaunchSave();refreshConnectionDetails();"),
                 "the screen's 1 s pulse looks at the open details");
-        check(main.contains("connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOff();"), "the details remember what they showed");
+        check(main.contains("connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOffShown();"), "the details remember what they showed");
+        int raw = 0;
+        for (String screen : new String[]{"MainActivity", "DashboardScreen", "RidingScreen"}) raw += src(screen).split("ble\\.scooterOff\\(\\)", -1).length - 1;
+        check(raw == 0, "Every screen's words read scooterOffShown, never the raw verdict: " + raw);
+    }
+
+    /** Council round 2 F14 on #628: the ongoing connection notification says Scooter off while Home does. */
+    private static void notificationTitle() {
+        check(src("ScooterService").contains(": ble.ready() && ble.scooterOffShown() ? ScooterOffWords.state()\n                                : ble.linked() ? T.serviceNoticeConnected() : \"Volt\";"),
+                "the notification's title while connected and switched off");
+    }
+
+    /** Council round 2 F01 on #628: the guide lists only what is refused; starting a ride is not. */
+    private static void guide() {
+        String guide;
+        try { guide = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("docs/user-guide.md")), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError(e); }
+        int a = guide.indexOf("- **Scooter off.**"); check(a >= 0, "the guide's Scooter off entry");
+        String entry = guide.substring(a, guide.indexOf('\n', a));
+        check(entry.contains("Until the scooter is switched on, locking, lights,") && !entry.contains("starting a ride"), "starting a ride is not refused while off");
     }
 
     private static String src(String name) {

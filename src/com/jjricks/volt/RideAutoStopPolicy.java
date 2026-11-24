@@ -196,7 +196,8 @@ public final class RideAutoStopPolicy {
     public void connected(long now, String boundProfile, String transportSerial, int transport,
             long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
         if (!clock(now)) return;
-        // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off.
+        // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off (observe
+        // keeps the mark across a reconnect that hasn't pushed yet).
         lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false; offCountdown = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
@@ -303,9 +304,11 @@ public final class RideAutoStopPolicy {
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
     }
 
-    /** The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. */
+    /**
+     * The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. A switch-off
+     * seen since the last push keeps its mark (offCountdown): only a push or a reset clears it.
+     */
     private void arm(long now, Loss loss) {
-        offCountdown = false;
         long frame = lastFrame > 0 ? lastFrame : now;
         boolean parked = loss == Loss.RECOVERABLE && runCount >= STATIONARY_SAMPLES && runLast - runStart >= STATIONARY_SPAN_MS
                 && lastFrame >= runLast && lastFrame - runLast <= MOTION_FRESH_MS
@@ -349,7 +352,13 @@ public final class RideAutoStopPolicy {
         if (link == null) return;
         if (!link.connected) disconnected(now, link.loss);
         else if (link.switchedOff) scooterOff(now, link.pushMono, link.frameMono);
-        else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
+        else {
+            // A reconnect is not a push: until the scooter pushes on this link (pushMono), a switch-off countdown's mark
+            // stays, so a drop before the next off verdict still counts down as a switch-off.
+            boolean stillOff = offCountdown && link.pushMono <= 0;
+            connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
+            if (stillOff) offCountdown = true;
+        }
     }
 
     /** Whether rules 1 and 2 may end the ride with this link: gone, or up to a scooter switched off; never one that is on. */

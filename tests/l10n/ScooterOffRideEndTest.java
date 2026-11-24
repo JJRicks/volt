@@ -28,6 +28,8 @@ public final class ScooterOffRideEndTest {
             serviceWiring();
             startedWhileOff();
             noMovementNoMovementWords();
+            pushlessReconnectKeepsTheSwitchOff();
+            offThenPluggedInEndsSwitchedOff();
         } finally { T.install(null); }
         System.out.println("ScooterOffRideEndTest: " + checks + " checks passed");
     }
@@ -90,6 +92,7 @@ public final class ScooterOffRideEndTest {
             long lastReading = now - 1000;
             RideStore.Summary plain = rides.stop(WALL0 + now + 60_000, now + 60_000, RideStore.quietStopReason(8, false));
             check(!plain.stopSwitchedOff && plain.shownEndWallMs == WALL0 + lastReading && plainId.equals(plain.id), "A plain went-quiet stop is unchanged");
+            check("Saved automatically".equals(RideAutoStopText.pill(plain)), "and its pill keeps the plain words");
         } finally { remove(dir); }
     }
     private static void sample(RideStore rides, long now, Double kmh, long motion) throws IOException {
@@ -112,7 +115,11 @@ public final class ScooterOffRideEndTest {
                     "named ride: " + RideAutoStopText.notice(reason, s, "4:12 PM"));
             check("Scooter switched off".equals(RideAutoStopText.notice(reason, null, null)), "unreadable ride: the reason alone");
             check("Saved automatically after the scooter was switched off".equals(RideAutoStopText.description(s)), "pill description");
+            // Council round 2 F07 on #628: the visible pill says it too, not only TalkBack.
+            check("Saved automatically · Scooter switched off".equals(RideAutoStopText.pill(s)), "visible pill: " + RideAutoStopText.pill(s));
             check(!RideAutoStopText.notice(reason, s, "4:12 PM").contains("Bluetooth"), "never Bluetooth lost while parked");
+            String screen = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidesScreen.java")), StandardCharsets.UTF_8).replace("\r", "");
+            check(screen.contains("TextView automatic = pill(RideAutoStopText.pill(s), ui.blue);"), "RidesScreen shows those words");
             rides.start(PROFILE, "", WALL0 + now + 30_000, now + 30_000);
             for (now += 30_000; now < 90_000; now += 1000) sample(rides, now, 15.0, now);
             RideStore.Summary u = rides.stop(WALL0 + now, now, reason);
@@ -156,4 +163,61 @@ public final class ScooterOffRideEndTest {
 
     private static void remove(File f) { File[] kids = f.listFiles(); if (kids != null) for (File k : kids) remove(k); f.delete(); }
     private static void check(boolean ok, String what) { if (!ok) throw new AssertionError(what); checks++; }
+
+    /**
+     * Council round 2 F06 on #628 (timeline T4): off verdict, the link drops, Volt reconnects to the still-off scooter
+     * (no push), and the link drops again before a new off verdict. Only a push proves it on, so the countdown that the
+     * second drop starts is still a switch-off and the ride is saved as one. A reconnect that pushes clears it.
+     */
+    private static void pushlessReconnectKeepsTheSwitchOff() {
+        RideAutoStopPolicy p = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        push(p, T0, 150, 1); push(p, T0 + 1000, 30, 1);
+        long last = T0 + 1000;
+        p.scooterOff(last + 10_500, last, last + 10_000);
+        check(p.switchedOffCountdown(), "Off verdict on a live link");
+        p.disconnected(last + 20_000, RideAutoStopPolicy.Loss.RECOVERABLE);
+        p.observe(last + 30_000, RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 2, last + 30_000, last, 0, 0, false, 0));
+        check(p.switchedOffCountdown(), "A reconnect with no push keeps the switch-off");
+        p.disconnected(last + 35_000, RideAutoStopPolicy.Loss.RECOVERABLE);
+        check(p.armed() && p.switchedOffCountdown(), "The second drop's countdown is still a switch-off");
+        boolean due = false;
+        for (long t = last + 36_000; t < last + 400_000 && !due; t += 1000) due = p.dueQuiet(t);
+        check(due && p.switchedOffCountdown(), "It comes due, and the ride is saved as switched off");
+        RideAutoStopPolicy q = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        push(q, T0, 150, 1); push(q, T0 + 1000, 30, 1);
+        q.scooterOff(last + 10_500, last, last + 10_000);
+        q.disconnected(last + 20_000, RideAutoStopPolicy.Loss.RECOVERABLE);
+        q.observe(last + 30_000, RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 2, last + 30_000, last + 30_000, 30, 1, false, last + 30_000));
+        check(!q.switchedOffCountdown(), "A reconnect that pushes: switched on, cleared");
+    }
+
+    /**
+     * Council round 2 F04 on #628 (timeline T5): switched off at the end of a ride, then plugged in. The ride's auto-end
+     * reads the raw verdict (ScooterService.autoStopLink, ble.scooterOff()), which stays off while charging, so the
+     * countdown keeps running, the ride ends switched off on time, and the automatic charge recording, held back only
+     * while a ride records, can start.
+     */
+    private static void offThenPluggedInEndsSwitchedOff() throws IOException {
+        ScooterPowerState power = new ScooterPowerState(); power.start(T0);
+        RideAutoStopPolicy p = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        long t = T0;
+        for (; t < T0 + 30_000; t += 1000) { power.frame(0x92, t); push(p, t, t < T0 + 20_000 ? 150 : 0, t < T0 + 20_000 ? 1 : 0); }
+        long last = t - 1000, plugged = last + 20_000, ended = -1;
+        for (; t < last + 700_000 && ended < 0; t += 1000) {
+            boolean charging = t >= plugged;
+            ScooterPowerState.Result verdict = power.verdict(t, false, true, true, true, charging);
+            RideAutoStopPolicy.Link link = RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 1, t, last, 0, 0, verdict.off(), last);
+            p.observe(t, link);
+            if (charging) check(verdict.off() && !ScooterPowerState.shownOff(verdict, true) && p.armed() && RideAutoStopPolicy.mayEnd(link),
+                    "Plugged in: words suspended, the countdown and the right to end kept at " + (t - last));
+            if (p.due(t, link) == RideAutoStopPolicy.Stop.QUIET) ended = t;
+        }
+        check(ended > plugged && ended <= last + 120_000, "Ends on the switch-off's countdown, not rule 3's ten minutes: " + (ended - last));
+        check(p.switchedOffCountdown(), "Saved as switched off");
+        check(!ChargeAutoRecordPolicy.shouldStart(true, true, true, false, true, false, false, false), "While the ride records, charge recording waits (chargeCaptureBlocked)");
+        check(ChargeAutoRecordPolicy.shouldStart(true, true, true, false, false, false, false, false), "Once it ends, automatic charge recording starts");
+        String svc = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
+        check(svc.contains("ble.drivingStatus(),ble.scooterOff(),ble.lastPushMs());") && svc.contains("if(isRecording()||phoneSaving())return M.serviceChargeFinishRide();"),
+                "the service feeds the ride the raw verdict, and holds charge recording only while a ride records");
+    }
 }

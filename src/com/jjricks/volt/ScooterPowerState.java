@@ -124,9 +124,10 @@ final class ScooterPowerState {
     }
 
     /**
-     * Whether Volt says "Scooter off" (and refuses as off) for this verdict: off, and not charging now. Switched off and
-     * then plugged in, the usual way to charge, the verdict stays off until a push, but a charging reading suspends the
-     * words and refusals, so "Scooter off" never sits over the Charging view. The simulator's hook is shown as set.
+     * Whether Volt says "Scooter off" (and "Turn the scooter on first") for this verdict: off, and not charging now.
+     * Switched off and then plugged in, the usual way to charge, the verdict stays off until a push, and the logic (the
+     * charging settings' waiver, the refusals, a ride's auto-end) keeps reading it; a charging reading suspends only the
+     * words, so "Scooter off" never sits over the Charging view. The simulator's hook is shown as set.
      */
     static boolean shownOff(Result verdict, boolean chargingNow) {
         return verdict != null && verdict.off() && (verdict.why == Why.SIMULATION || !chargingNow);
