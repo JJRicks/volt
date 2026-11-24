@@ -715,6 +715,8 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
         File file = new File(dir, label + "-" + theme + "-" + state + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { image.get().compress(Bitmap.CompressFormat.PNG, 100, out); }
         finally { image.get().recycle(); }
+        // The app's windows, the popup's among them.
+        main(() -> TextCensus.write(this, file));
         shots++;
     }
 
