@@ -202,7 +202,12 @@ public final class ChargingWordingValidation extends ValidationInstrumentation {
         settle();
         shell("pm disable " + STUB); stubEnabled = false;
         battery();
-        main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") == null, "The invite banner still shows after the email was taken"));
+        main(() -> {
+            Object screen = field(activity, "screen");
+            View page = screen instanceof com.jjricks.volt.AppScreen ? ((com.jjricks.volt.AppScreen) screen).view() : null;
+            View banner = page == null ? null : page.findViewWithTag("battery-charge-invite");
+            require(page != null && (banner == null || !banner.isShown()), "The invite banner still shows after the email was taken");
+        });
         shot("invite-after-send");
         checks.add("Email to Volt, another app's screen over the chooser, as a picked email app's (Volt stopped behind it): \"sent\" stored, the invite gone");
     }
