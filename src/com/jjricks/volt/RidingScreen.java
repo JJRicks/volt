@@ -1064,10 +1064,16 @@ final class RidingScreen implements AppScreen {
     private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
         boolean ready = ble != null && ble.ready();
         RidingFocus.Link link = RidingFocus.link(ready, reconnecting(ble, ready));
-        int color = link == RidingFocus.Link.CONNECTED ? ui.ok : ui.orange;
+        // Switched off but answering: Scooter off, orange, as Home says it (RidingFocus.showsOff), never a green Connected.
+        boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOffShown());
+        int color = link == RidingFocus.Link.CONNECTED && !off ? ui.ok : ui.orange;
         dot.setBackground(oval(color));
-        status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
-        if (link == RidingFocus.Link.CONNECTED) {
+        status.setTextColor(link == RidingFocus.Link.CONNECTED && !off ? ui.text : ui.orange);
+        if (off) {
+            // Abbreviated to Off where the words don't fit (the narrow-label ladder: never a cut word).
+            ui.statusRungs(status, ScooterOffWords.state(), T.commonOff());
+            statusPill.setContentDescription(ScooterOffWords.state());
+        } else if (link == RidingFocus.Link.CONNECTED) {
             String mode = mode(ble);
             // The green dot alone is the last rung: the pill's icon (the narrow-label ladder).
             if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort(), "");
@@ -1089,7 +1095,7 @@ final class RidingScreen implements AppScreen {
             }
         }
         // While a ride records, the red recording pill replaces the connection text set above (owner, Nov 6).
-        RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic);
+        RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic, off);
         showLook(look);
         if (look == RecordingPill.Look.SAVED) {
             // The brief "Ride saved" confirmation keeps the connection's dot colour, and TalkBack hears both.
@@ -1100,9 +1106,15 @@ final class RidingScreen implements AppScreen {
         } else if (look != RecordingPill.Look.STATUS) {
             dot.setBackground(recordingDot(look));
             status.setTextColor(ui.onAccent);
-            ui.statusRungs(status, RecordingPill.rungs(recordingMs, link, roomForBoth(recordingMs, link), now, Ui.motionEnabled()));
-            long seen = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
-            statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, seen >= 0 ? clock(now - seen) : null));
+            // Switched off while recording: the red pill names it, as Home does (RecordingPill.offRungs).
+            if (off) {
+                ui.statusRungs(status, RecordingPill.offRungs(recordingMs, now, Ui.motionEnabled()));
+                statusPill.setContentDescription(RecordingPill.offSpoken(recordingMs));
+            } else {
+                ui.statusRungs(status, RecordingPill.rungs(recordingMs, link, roomForBoth(recordingMs, link), now, Ui.motionEnabled()));
+                long seen = link == RidingFocus.Link.NOT_CONNECTED ? session.lastReadingMs(now) : -1;
+                statusPill.setContentDescription(RecordingPill.spoken(recordingMs, link, seen >= 0 ? clock(now - seen) : null));
+            }
         }
         RidingValues.Reading code = session.values.reading("warning_code", now);
         long warningCode = code == null ? 0 : Math.round(code.value);

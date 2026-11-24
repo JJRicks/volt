@@ -128,6 +128,12 @@ final class RidingFocus {
         return ready ? Link.CONNECTED : reconnecting ? Link.RECONNECTING : Link.NOT_CONNECTED;
     }
 
+    /**
+     * Whether the status pill says Scooter off: a ready link to a scooter switched off but answering (BleController.scooterOff),
+     * which Home and the connection details say too. Never a green Connected then.
+     */
+    static boolean showsOff(Link link, boolean switchedOff) { return link == Link.CONNECTED && switchedOff; }
+
     /** Filled battery segments: 72 % fills 7 of 10; any charge above zero lights at least one. */
     static int segments(double percent) {
         if (!Double.isFinite(percent) || percent <= 0) return 0;

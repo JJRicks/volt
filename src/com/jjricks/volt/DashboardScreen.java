@@ -1308,7 +1308,7 @@ public final class DashboardScreen implements AppScreen {
         // Connected, but the scooter is switched off and only answering (ScooterPowerState): say so, and what to do,
         // instead of Connected. Narrow, the line keeps Scooter off.
         // (ScooterOffWords: the words come with their catalog strings; until then Home keeps Connected.)
-        String off = ready && ble.scooterOff() ? ScooterOffWords.status() : null;
+        String off = ready && ble.scooterOffShown() ? ScooterOffWords.status() : null;
         if (off != null) {
             ui.statusRungs(status, off, ScooterOffWords.statusShort());
             status.setContentDescription(ScooterOffWords.spoken());

@@ -313,11 +313,18 @@ public final class BleController {
     public long lastFrameMs(){return simulating()?0:lastFrameMs;}public int connectionGeneration(){return generation;}public long connectionStartMs(){return generationStartMs;}
     public boolean stationary(){if(simulating())return simulation!=null&&state==State.READY;return motionMs>0&&now()>=motionMs&&now()-motionMs<6000&&speedRaw==0&&driving==0;}
     /**
-     * Whether the scooter is switched off but still answering (ScooterPowerState): a ready link with fresh status, no
-     * push for 10 s of awake time (10 s after connecting at first), not charging, on a scooter known to push. Home then
-     * says "Scooter off" and every change but the charging settings is refused with "Turn the scooter on first".
+     * Whether the scooter is switched off but still answering (ScooterPowerState's raw verdict): a ready link with fresh
+     * status, no push for 10 s of awake time (10 s after connecting at first), on a scooter known to push; sticky until a
+     * push, a charging reading included. Logic reads this: every change but the charging settings is refused, the charging
+     * settings keep their waiver, and a recording ride's auto-end counts it as gone. The words read {@link #scooterOffShown}.
      */
     public boolean scooterOff(){return powerVerdict().off();}
+    /**
+     * Whether Volt says so: switched off, and not charging now (ScooterPowerState.shownOff). Home's "Scooter off", riding
+     * mode's pill, the connection details and notification, and "Turn the scooter on first" (CapabilityResolver.Runtime
+     * offWordsSuspended) follow this, so "Scooter off" never sits over the Charging view.
+     */
+    public boolean scooterOffShown(){ScooterPowerState.Result verdict=powerVerdict();return power.shownOff(verdict);}
     /** The verdict and why (diagnostics). */
     public ScooterPowerState.Result powerVerdict(){
         if(simulating())return power.verdict(awake(),true,ready(),false,false,false);
@@ -509,7 +516,7 @@ public final class BleController {
         rt.discovery=discovering&&!"lock".equals(feature);
         // A guided test holds every other change; locking stays a normal decision (a pending test write still makes it wait).
         rt.test=testing()&&!"lock".equals(feature);rt.testFeature=test==null?"":test.feature;rt.recording=recording;rt.parkedConfirmed=testParked;rt.testTry=test!=null&&test.keeps();
-        rt.simulation=simulating();rt.ready=ready();rt.busy=mutation!=null;rt.scooterOff=scooterOff();rt.stationary=stationary();rt.motionSeen=rt.simulation||motionMs>0;
+        rt.simulation=simulating();rt.ready=ready();rt.busy=mutation!=null;rt.scooterOff=scooterOff();rt.offWordsSuspended=rt.scooterOff&&!scooterOffShown();rt.stationary=stationary();rt.motionSeen=rt.simulation||motionMs>0;
         rt.warningActive=warning!=0&&now-warningMs<6000;rt.owner=p!=null&&p.role==0;
         if(bondCheckedMs==0||now-bondCheckedMs>1000){bondCache=bonded();bondCheckedMs=now;}rt.bonded=bondCache;
         rt.pinEnabledFresh=pinFresh()&&pinState!=null&&pinState.status==0&&pinState.configured&&Boolean.TRUE.equals(pinState.enabled);

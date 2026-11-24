@@ -37,6 +37,31 @@ final class RecordingPill {
         return savedAgoMs != null && savedAgoMs >= 0 && savedAgoMs < (automatic ? SAVED_AUTO_MS : SAVED_MS) ? Look.SAVED : Look.STATUS;
     }
 
+    /**
+     * As above, with the scooter switched off but answering (RidingFocus.showsOff): the link is up, but a recording pill
+     * that looked healthy would hide the switch-off, so it takes the problem look.
+     */
+    static Look look(Long recordingMs, RidingFocus.Link link, Long savedAgoMs, boolean automatic, boolean off) {
+        Look look = look(recordingMs, link, savedAgoMs, automatic);
+        return off && look == Look.RECORDING ? Look.RECORDING_PROBLEM : look;
+    }
+
+    /**
+     * The recording pill's text while the scooter is switched off: the time and "Scooter off" alternate every
+     * ALTERNATE_MS (there is no combined line), held on the words with the system's animations off; the words shorten to
+     * Off where they don't fit, as the status pill's do.
+     */
+    static String[] offRungs(long recordingMs, long nowMs, boolean motionEnabled) {
+        String clock = RidingFocus.clockText(recordingMs);
+        if (motionEnabled && timeHalf(nowMs)) return new String[]{T.ridingStatusRecording(clock), clock};
+        return new String[]{ScooterOffWords.state(), T.commonOff()};
+    }
+
+    /** Spoken while switched off: the time in words, then "Scooter off". */
+    static String offSpoken(long recordingMs) {
+        return T.ridingReadingSpoken(spoken(recordingMs, RidingFocus.Link.CONNECTED, null), ScooterOffWords.state());
+    }
+
     /** The saved confirmation's rungs, full first. */
     static String[] savedRungs(boolean automatic) {
         return automatic ? new String[]{T.ridingStatusRideSavedAuto(), T.ridingStatusRideSavedAutoShort(), T.ridingStatusRideSavedShort()}

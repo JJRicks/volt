@@ -2706,6 +2706,8 @@ public final class ScooterService extends Service {
     private void autoStopRide(RideAutoStopPolicy policy,String reason){
         if(destroyed||policy==null||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId())||!RideAutoStopPolicy.mayEnd(autoStopLink()))return;
         String id=policy.rideId;
+        // A countdown the switch-off started (ScooterPowerState) is saved as a switch-off: its own words, its last movement as its end.
+        if(policy.switchedOffCountdown())reason=RideStore.switchedOffStopReason(reason);
         if(stopRide(reason)){
             // Switched off or gone: stop reconnecting to it by itself until the rider connects, Volt opens or it pushes (OffReconnectHold).
             ble.rideEndedAutomatically(policy.profile,reason,policy.seenOffWhileLinked());
@@ -3600,6 +3602,8 @@ public final class ScooterService extends Service {
                                 ? (recordingError == null
                                         ? T.serviceNoticeRideActive()
                                         : T.serviceNoticeRideAttention())
+                                // Switched off but answering: Scooter off, as Home says (BleController.scooterOffShown).
+                                : ble.ready() && ble.scooterOffShown() ? ScooterOffWords.state()
                                 : ble.linked() ? T.serviceNoticeConnected() : "Volt";
         // linked(), not ready(): out of sight status comes every 15 s, and the notice must not read the gaps as lost (StatusCadence).
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,

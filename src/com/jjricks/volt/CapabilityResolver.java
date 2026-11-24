@@ -24,9 +24,10 @@ public final class CapabilityResolver {
         NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST }
     /**
      * The reason a change is refused while the scooter is switched off but answering (ScooterPowerState): every change
-     * but the charging settings. No motion report until the scooter-off reason and its words arrive with their catalog
-     * strings (ScooterOffWords): a switched-off scooter sends none, so that reason is true, and it keeps the control
-     * tappable so the tap says why (blockedByRide).
+     * but the charging settings. No motion report, which a switched-off scooter never sends, so the reason is true and
+     * keeps the control tappable so the tap says why (blockedByRide). Its words are the decision's own: a decision
+     * marked switchedOff says "Turn the scooter on first" (ScooterOffWords.refusal), not "No motion report yet", so no
+     * new Reason (and no change to the reasons' pinned English) is needed.
      */
     static final Reason OFF_REASON=Reason.NO_MOTION_REPORT;
     /** Status older than this is stale (BleController.ready() uses the same bound). */
@@ -45,6 +46,12 @@ public final class CapabilityResolver {
         public boolean testTry;
         /** The scooter is switched off but answering (ScooterPowerState): every change but the charging settings is refused. */
         public boolean scooterOff;
+        /**
+         * The scooter reports charging while scooterOff (ScooterPowerState.shownOff): its off words are suspended, so a
+         * refusal says its plain reason, never "Turn the scooter on first". scooterOff itself, and so the charging
+         * settings' waiver, stays the raw verdict.
+         */
+        public boolean offWordsSuspended;
         public long nowMs;
     }
 
@@ -125,9 +132,9 @@ public final class CapabilityResolver {
          * logged (BleController.notice's event log and journal) or stored (ChargeScheduleController's status) takes
          * reasonMessage() instead and keeps its english() (plan R2).
          */
-        public String reasonText(){return text(reason);}
+        public String reasonText(){return switchedOff?ScooterOffWords.refusal():text(reason);}
         /** reasonText() deferred: "" for no reason, else a Msg whose english() is what a log or a stored status keeps. */
-        public CharSequence reasonMessage(){return message(reason);}
+        public CharSequence reasonMessage(){return switchedOff?ScooterOffWords.refusalMessage():message(reason);}
         /** variant.read(status) or null. */
         public Integer current(){return variant==null?null:variant.read(status);}
         @Override public String toString(){return feature+":"+support+"/"+reason+(variant==null?"":"/"+variant.id);}
@@ -179,6 +186,8 @@ public final class CapabilityResolver {
         if(feature.equals("lock")&&value==0&&rt!=null&&!rt.simulation){
             // Recovery: an owner can always unlock offline. Supported layer, authenticated and ready,
             // the lock field present in a fresh status, and no pending change. No motion or warning checks.
+            // Deliberately not refused while the scooter is switched off (rt.scooterOff): unlocking is the owner's recovery
+            // path, which nothing else may close, and a switched-off scooter that still answers takes it (2.0.5 item 5).
             ModelRegistry.Resolution r=ModelRegistry.resolve(d);ModelRegistry.Rule rule=ModelRegistry.rule(feature,d,r,status);
             Reason reason=rule.support!=Support.KNOWN_ENCODING||rule.reason!=Reason.NONE?rule.reason
                 :!rt.ready?Reason.NOT_CONNECTED:rt.busy?Reason.BUSY:!status.fresh(rt.nowMs,STATUS_MAX_AGE_MS)?Reason.STATUS_STALE
@@ -370,7 +379,7 @@ public final class CapabilityResolver {
     /** Refused because the scooter is switched off: all but ScooterPowerState.usableWhileOff (the charging settings). */
     private static boolean off(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&!ScooterPowerState.usableWhileOff(feature);}
     /** This reason came from the switched-off check: the off check runs before the preconditions, so OFF_REASON with off() true is its own. */
-    private static boolean offRefused(String feature,Reason reason,Runtime rt){return reason==OFF_REASON&&off(feature,rt);}
+    private static boolean offRefused(String feature,Reason reason,Runtime rt){return reason==OFF_REASON&&off(feature,rt)&&!rt.offWordsSuspended;}
     /** Switched off, a charging setting needs no motion report (ScooterPowerState.parkedWaivedWhileOff); ordinary changes only. */
     private static boolean waived(String feature,Runtime rt){return rt!=null&&rt.scooterOff&&ScooterPowerState.parkedWaivedWhileOff(feature);}
     private static EnumSet<Precondition> withoutMotion(EnumSet<Precondition> p){EnumSet<Precondition> out=EnumSet.copyOf(p);out.remove(Precondition.STATIONARY);out.remove(Precondition.MOTION_REPORT);return out;}
@@ -382,6 +391,7 @@ public final class CapabilityResolver {
      * words (ScooterOffWords.waitingForSpeed); until then, and on other models, the reason's own "No motion report yet".
      */
     static CharSequence noMotionNotice(Decision d,boolean ut5){
+        if(d.switchedOff)return d.reasonMessage();
         CharSequence waiting=ut5&&d.reason==Reason.NO_MOTION_REPORT?ScooterOffWords.waitingForSpeed():null;
         return waiting!=null?waiting:d.reasonMessage();
     }

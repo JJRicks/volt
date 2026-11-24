@@ -1,0 +1,8 @@
+# 2.0.5 item 5: a scooter switched off but answering, its words in the catalog (ScooterOffWords) and its refusal
+# (CapabilityResolver.OFF_REASON). tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each
+# tests/l10n/**Test.java from the repository root. The resolver and its test helpers also run with the compat suites.
+src/com/jjricks/volt/ScooterOffWords.java
+src/com/jjricks/volt/ScooterPowerState.java
+src/com/jjricks/volt/CapabilityResolver.java
+src/com/jjricks/volt/LockTapQueue.java
+tests/l10n/ScooterOffWordsTest.java

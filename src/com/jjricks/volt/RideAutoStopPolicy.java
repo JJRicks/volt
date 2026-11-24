@@ -122,6 +122,11 @@ public final class RideAutoStopPolicy {
     private boolean bound, moved, fresh = true;
     /** The link is up but the scooter is switched off (scooterOff): its countdown runs while rule 3 keeps counting. */
     private boolean off;
+    /**
+     * The countdown running (or just due) was started by a switch-off (scooterOff), not by a drop: kept through later
+     * drops and through reconnects that bring no push (a first-push wait included). Only a push or a reset clears it.
+     */
+    private boolean offCountdown;
     /** Since the last push: Volt saw the scooter off on a live link (ScooterPowerState's off verdict, never a first-push wait alone). */
     private boolean seenOff;
     private long lastNow, lastMotion, lastFrame, runStart, runLast, lossMono;
@@ -176,7 +181,7 @@ public final class RideAutoStopPolicy {
 
     /** Explicit stop, user disconnect, profile change, setting off or uncertain state: forget all evidence. */
     public void reset() {
-        bound = moved = fresh = off = seenOff = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
+        bound = moved = fresh = off = offCountdown = seenOff = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
         clearRun(); clearSpeed(); clearQuiet(); clearStill(); clearHeld();
     }
 
@@ -196,8 +201,9 @@ public final class RideAutoStopPolicy {
     public void connected(long now, String boundProfile, String transportSerial, int transport,
             long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
         if (!clock(now)) return;
-        // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off.
-        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false; seenOff = false;
+        // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off (observe
+        // keeps the switch-off mark across a reconnect that hasn't pushed yet).
+        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false; offCountdown = false; seenOff = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
             // A serial not read yet right after a reconnect may still be this scooter: keep rule 3's held count.
@@ -286,18 +292,29 @@ public final class RideAutoStopPolicy {
      */
     public void scooterOff(long now, long pushMono, long frameMono) {
         seenOff = true;
-        if (!bound) { disconnected(now, Loss.RECOVERABLE); return; }
+        if (!bound) {
+            // Nothing bound: a ride started while the scooter was already off (a fresh policy), or the off verdict on a
+            // reconnect still awaiting its first push while the drop's countdown runs. Either way the countdown now
+            // running is a switch-off's.
+            disconnected(now, Loss.RECOVERABLE);
+            if (armed()) offCountdown = true;
+            return;
+        }
         if (!clock(now)) return;
         if (!off) {
             off = true;
             if (pushMono > 0 && pushMono <= now && pushMono < lastFrame) lastFrame = pushMono;
             arm(now, Loss.RECOVERABLE);
+            offCountdown = true;
             clearRun(); clearSpeed();
         }
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
     }
 
-    /** The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. */
+    /**
+     * The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. A switch-off
+     * seen since the last push keeps its mark (offCountdown): only a push or a reset clears it.
+     */
     private void arm(long now, Loss loss) {
         long frame = lastFrame > 0 ? lastFrame : now;
         boolean parked = loss == Loss.RECOVERABLE && runCount >= STATIONARY_SAMPLES && runLast - runStart >= STATIONARY_SPAN_MS
@@ -365,8 +382,14 @@ public final class RideAutoStopPolicy {
             scooterOff(now, link.pushMono, link.frameMono);
         }
         // Awaiting its first push is not an off verdict (an on scooter at the edge of range does it too): only the
-        // verdict on a live link (scooterOff above) marks the scooter seen off.
+        // verdict on a live link (scooterOff above) marks the scooter seen off. It is not a push either, so the running
+        // countdown and its switch-off mark (offCountdown) both stand.
         else if (link.awaitingPush) awaitingPush(now);
+        // A reconnect is not a push, judged or not (a scooter reporting charging isn't judged): once the scooter was seen
+        // switched off, a link with no push on it yet keeps the running countdown whole, its deadline, its kind and its
+        // switch-off mark, as a first-push wait does. Switched off, plugged in, dropped and reconnected, the ride still
+        // ends on the switch-off's deadline (mayEnd). A scooter never seen off is cancelled by any reconnect, as before.
+        else if (offCountdown && link.pushMono <= 0) awaitingPush(now);
         else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
     }
 
@@ -388,8 +411,16 @@ public final class RideAutoStopPolicy {
      */
     public boolean seenOffWhileLinked() { return seenOff; }
 
-    /** Whether rules 1 and 2 may end the ride with this link: gone, or up to a scooter switched off; never one that is on. */
-    public static boolean mayEnd(Link link) { return link == null || !link.connected || link.switchedOff; }
+    /**
+     * Whether rules 1 and 2 may end the ride with this link: gone, up to a scooter switched off, or up with nothing showing
+     * it on (no push and no first-push wait, such as a switched-off scooter reconnected while it charges); never one that
+     * is on, and never inside a first-push wait.
+     */
+    public static boolean mayEnd(Link link) {
+        // Up with no push on it and no first-push wait: not judged right now (charging), so nothing shows it on. A
+        // countdown runs there only when it was seen switched off (observe), so the switch-off's deadline still ends it.
+        return link == null || !link.connected || link.switchedOff || link.pushMono <= 0 && !link.awaitingPush;
+    }
 
     /** Which rule ends the ride at a tick. */
     public enum Stop { NONE, PARKED, QUIET, NO_MOTION }
@@ -405,6 +436,13 @@ public final class RideAutoStopPolicy {
         }
         return dueNoMotion(now) ? Stop.NO_MOTION : Stop.NONE;
     }
+
+    /**
+     * Whether the countdown that is running, or that just came due, was started by the scooter being switched off while
+     * still answering ({@link #scooterOff}), through any drops and push-less reconnects since. The ride's end is then
+     * saved as a switch-off (RideStore.switchedOffStopReason): its own words, and its last movement as its shown end.
+     */
+    public boolean switchedOffCountdown() { return offCountdown; }
 
     /** True once when the parked grace has run out; the caller then ends this ride through its normal stop. */
     public boolean due(long now) {
