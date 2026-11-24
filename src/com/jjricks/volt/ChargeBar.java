@@ -88,7 +88,7 @@ final class ChargeBar extends View {
     /** Redraws when the spinner is due, and tells a screen reader once. */
     private final Runnable waitTick = () -> {
         long now = android.os.SystemClock.elapsedRealtime();
-        String said = isShown() && words != null ? words.waiting() : null;
+        String said = isShown() && this.words != null ? this.words.waiting() : null;
         if (said != null && waitLook.announce(KEY, now)) announceForAccessibility(said);
         long next = waitLook.nextLookIn(now);
         if (next > 0) postDelayed(this.waitTick, next + 16);
