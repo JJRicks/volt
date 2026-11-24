@@ -213,6 +213,13 @@ tiles and attribution together. Clean Home's Just back card has its own switch,
 `map_basemap_enabled` (owner: a light map popping into Home could "flashbang"
 someone); it shares the provider and the explanation (`map_basemap_explained`),
 and approving the explanation from the card turns on only the card's switch.
+Both maps share one style, `map_style` (`MapStyle.KEY`): absent follows the app
+theme (dark tiles in the dark theme, light in the light one); a flip of the Dark
+map switch, beside a ride map's Basemap switch or in Map settings, saves `dark` or
+`light`, kept in either theme until the next flip. Dark tiles are the light tiles
+drawn through `MapStyle.darkTiles` on both maps, and a ride map's placeholder
+under them is dark too, so nothing flashes white while tiles load. The switch
+shows only while an online map is on.
 
 `PhoneRideValidation` and `UiOrganizationValidation` are fresh-emulator-only. They
 refuse owner phones and existing app data; synthetic routes are test fixtures, not
