@@ -875,6 +875,18 @@ public final class ChargingEstimate {
 
     private static boolean same(Double a,Double b){return a==null?b==null:a.equals(b);}
 
+    /** Every wording of the unknown-cutoff sentence the statuses here carry ("Cutoff unknown; …", "Charge cutoff unknown; the …"). */
+    private static final java.util.regex.Pattern CUTOFF_UNKNOWN=java.util.regex.Pattern.compile(
+            " ?(?:Charge c|C)utoff unknown; (?:the )?100% (?:time )?assumes charging continues\\.");
+
+    /**
+     * A status for a model with no charge limit at all (ModelRegistry.noChargeLimit): it charges to 100%, so its cutoff
+     * is known and the unknown-cutoff sentence goes. The estimate stays as it was: a limit is never guessed from the model.
+     */
+    public static String knownFullCutoff(String status) {
+        return status==null?null:CUTOFF_UNKNOWN.matcher(status).replaceAll("").trim();
+    }
+
     private static String cutoffNote(Double target) {
         return target==null?" Cutoff unknown; 100% assumes charging continues."
                 :target<100?" The 100% time assumes a higher charge limit.":"";

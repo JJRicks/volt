@@ -260,6 +260,17 @@ STEPS += [
     inst('charge-invite-412-dark', T + 'ChargeInviteValidation', '-e', 'size_label', '412', '-e', 'theme', 'dark', size='412x915'),
     inst('charge-invite-344', T + 'ChargeInviteValidation', '-e', 'size_label', '344', '-e', 'theme', 'dark', size=PHONE[0]),
     inst('charge-invite-fold', T + 'ChargeInviteValidation', '-e', 'size_label', 'fold', '-e', 'theme', 'light', size='790x820'),
+    # 2.0.5 charging wording: a model with no charge limit at all (GT3 Max) names its time the plain time to full, a UT5 MAX
+    # whose limit isn't read yet keeps "if uncapped" (README #613), in English and German at 1.3x, both themes, phone and
+    # the Fold open; Clean on the simulator's GT3 Max. Battery & charging's range line keeps "38 km" together (#452), also
+    # at its trigger (344 dp, 1.4x). Email to Volt's chooser closed with Back leaves the invite unanswered (#537, F03).
+    inst('charge-time-tile-wording-412', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charge-time-tile-wording-fold', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'size_label', 'fold', '-e', 'text_scale', '1.3', size='790x820'),
+    inst('charge-time-tile-wording-clean-412', T + 'ChargeTimeTileValidation', '-e', 'mode', 'wording', '-e', 'home', 'clean', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charging-range-line-412', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('charging-range-line-fold', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', 'fold', '-e', 'text_scale', '1.3', size='790x820'),
+    inst('charging-range-line-344-large', T + 'ChargingWordingValidation', '-e', 'mode', 'range', '-e', 'size_label', '344', '-e', 'text_scale', '1.4', '-e', 'themes', 'dark', size=PHONE[0]),
+    inst('charge-invite-handover', T + 'ChargingWordingValidation', '-e', 'mode', 'invite', size='412x915'),
     # Charge history & recordings' What Volt has learned (owner's 2.0.1 item 13): a card per learned charger from synthesized
     # recordings (nothing learned, one partial, a joined pair, stock and high-speed, a gap and a disagreement, the scooter's
     # own percent jump); 412 dp both themes and large text, 344 dp, the Fold unfolded.
