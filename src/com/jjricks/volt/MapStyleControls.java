@@ -17,7 +17,7 @@ final class MapStyleControls {
     private MapStyleControls() { }
 
     /** View tags: the Dark map switch beside a ride map's Basemap switch, and Map settings' Dark map row. */
-    static final String TAG_RIDE = "ride-map-style", TAG_SETTINGS = "map-settings-style";
+    static final String TAG_RIDE = "ride_map_style", TAG_SETTINGS = "map_settings_style";
 
     /** The switches' name, "Dark map". */
     static String name() { return T.mapsDarkMap(); }
