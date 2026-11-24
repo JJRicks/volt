@@ -43,7 +43,7 @@
     <!-- Same, with the charging power after it: %2$s is a power such as "412 W". -->
     <string name="charge_live_text_eta_watts" volt:screen="Live charging notification" volt:purpose="notification text"
         volt:safety="charge">Done %1$s · %2$s</string>
-    <!-- Card text while Volt has no time estimate yet. -->
+    <!-- Card text while Volt has no time estimate yet. Also Home's charging time tile in the first minutes of a charge, which shows charging_estimate_estimating instead where these words don't fit on one line. -->
     <string name="charge_live_text_estimating" volt:screen="Live charging notification" volt:purpose="notification text"
         volt:max="300dp@14sp" volt:safety="charge">Estimating time left</string>
     <!-- Same, with the charging power: %1$s is a power such as "412 W". -->

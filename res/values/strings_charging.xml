@@ -76,6 +76,9 @@
     <!-- No fresh battery percentage yet. The percent sign stands for "battery percentage". -->
     <string name="charging_estimate_waiting_battery" formatted="false" volt:screen="Home charging card" volt:purpose="status"
         volt:safety="charge">Waiting for battery %</string>
+    <!-- The first minutes of a charge, before Volt shows a time: the short form of charge_live_text_estimating ("Estimating time left"), shown where those words don't fit on one line in the charging time tile beside Charging power. Keep it as short as the other states here; one word if you can. TalkBack still reads the full words. -->
+    <string name="charging_estimate_estimating" volt:screen="Home charging card" volt:purpose="status"
+        volt:max="120dp@12sp" volt:safety="charge">Estimating</string>
     <!-- The readings give no usable time estimate. -->
     <string name="charging_estimate_no_estimate" volt:screen="Home charging card" volt:purpose="status"
         volt:safety="charge">No estimate</string>
