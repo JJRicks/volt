@@ -6,9 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 
 /**
- * ChargingWordingValidation's stand-in email app (-e mode invite): an opaque screen that takes a mailto email, as a real
+ * ChargingWordingValidation's stand-in email app (-e mode invite): an opaque screen that takes an email (mailto, or a shared file), as a real
  * email app's compose screen would, and closes itself a moment later. Disabled in the manifest; the validation enables
- * it for its one step with pm and disables it again, so no other validation ever sees an email app.
+ * it for its one step with pm and disables it again, so no other validation ever sees it.
  */
 public final class MailStub extends Activity {
     @Override protected void onCreate(Bundle saved) {

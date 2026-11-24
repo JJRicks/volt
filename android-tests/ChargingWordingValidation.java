@@ -42,11 +42,10 @@ import com.jjricks.volt.TelemetryHistory;
  *   ("about 38 km left") keeps the number and its unit together with a no-break space, and wherever the line wraps no
  *   line starts with the unit (#452: "about 38 / km left" at 344 dp, 1.4x). For each language of -e locales ("en,de")
  *   in both themes at -e text_scale, with a screenshot of the card.</li>
- *   <li>-e mode invite: Email to Volt's hand-over (#537 review, F03). The recordings' email handed to Android opens a
- *   chooser over Volt (Android's "Open with" list where this package's stand-in email app joins the emulator's one email
- *   app, else Volt's fallback share chooser); backing out of it leaves the invite unanswered (before: "sent", and the
- *   Battery page's invite gone for good). Then one email app takes the email (the emulator's own, or the stand-in,
- *   MailStub, enabled with pm for this step only): Volt stops behind it, and the answer is "sent".</li>
+ *   <li>-e mode invite: Email to Volt's hand-over (#537 review, F03). With this package's stand-in email app (MailStub,
+ *   enabled with pm for this step only) beside the emulator's own, Android asks which app takes the recordings' email.
+ *   Backing out of that chooser leaves the invite unanswered (before: "sent", and the Battery page's invite gone for
+ *   good); picking the stand-in, Volt stops behind it and the answer is "sent".</li>
  * </ul>
  */
 public final class ChargingWordingValidation extends ValidationInstrumentation {
@@ -147,9 +146,6 @@ public final class ChargingWordingValidation extends ValidationInstrumentation {
                 "Could not seed preferences");
         launch();
         require(!settings().contains(KEY), "The invite has an answer before anyone gave one");
-        // The emulator's own email apps (often Gmail alone). Volt has no package visibility for them, so the shell counts.
-        int found = handlers();
-        require(found <= 1, "This emulator has " + found + " email apps; the steps below need one at most");
         boolean[] stop = {false};
         android.app.Application.ActivityLifecycleCallbacks watch = new android.app.Application.ActivityLifecycleCallbacks() {
             @Override public void onActivityStopped(android.app.Activity a) { if (a == activity) stop[0] = true; }
@@ -161,56 +157,71 @@ public final class ChargingWordingValidation extends ValidationInstrumentation {
             @Override public void onActivityDestroyed(android.app.Activity a) { }
         };
         main(() -> activity.getApplication().registerActivityLifecycleCallbacks(watch));
-        // 1. A chooser over Volt, closed with Back. With one email app installed the stand-in makes two, so Android shows
-        // its "Open with" list (the case a rider with two email apps meets); with none, Volt's fallback share chooser.
-        if (found == 1) { shell("pm enable " + STUB); stubEnabled = true; SystemClock.sleep(800); }
-        String chooser = found == 1 ? "the \"Open with\" list" : "the share chooser";
+        // This package's stand-in email app joins the emulator's own (often Gmail), so more than one app can take the
+        // email and Android always asks: its "Open with" list, or (where the email-apps-only hand-over finds no match, as on
+        // Android 15 and later with Gmail) Volt's fallback share sheet.
+        shell("pm enable " + STUB); stubEnabled = true; SystemClock.sleep(800);
+        // 1. The chooser closed with Back.
         send();
         await(() -> !activity.resumed(), "Nothing opened over Volt for the email");
         SystemClock.sleep(1500);
         shot("invite-chooser");
-        require(!activity.isFinishing() && !stop[0], chooser + " stopped Volt: it isn't a see-through window here");
+        require(!activity.isFinishing() && !stop[0], "The chooser stopped Volt: it isn't a see-through window here");
         require(getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK), "Back was not sent");
-        await(() -> activity.resumed(), "Volt did not come back after " + chooser + " closed");
+        await(() -> activity.resumed(), "Volt did not come back after the chooser closed");
         SystemClock.sleep(600); settle();
-        require(!stop[0], "Volt stopped while " + chooser + " was open");
-        require(!settings().contains(KEY), "Backing out of " + chooser + " answered the invite: " + settings().getString(KEY, ""));
+        require(!stop[0], "Volt stopped while the chooser was open");
+        require(!settings().contains(KEY), "Backing out of the chooser answered the invite: " + settings().getString(KEY, ""));
         battery();
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") != null, "The invite banner is gone after a cancelled email"));
         shot("invite-after-cancel");
-        checks.add("Email to Volt, " + chooser + " closed with Back: no answer stored, the Battery page's invite still shows");
-        // 2. One email app takes it: the emulator's own, or the stand-in where there is none. Volt stops behind it.
-        if (found == 1) { shell("pm disable " + STUB); stubEnabled = false; }
-        else { shell("pm enable " + STUB); stubEnabled = true; }
-        SystemClock.sleep(800);
-        String taker = found == 1 ? "the emulator's email app" : "the stand-in email app";
+        checks.add("Email to Volt, the chooser closed with Back: no answer stored, the Battery page's invite still shows");
+        // 2. The stand-in picked in the chooser takes the email: Volt stops behind it, and the answer is "sent".
         send();
-        await(() -> "sent".equals(settings().getString(KEY, "")), taker + " took the email, but the invite has no answer");
-        require(stop[0], "Volt never stopped behind " + taker);
+        await(() -> !activity.resumed(), "Nothing opened over Volt for the email");
+        SystemClock.sleep(1200);
+        pick("A stand-in email app");
+        await(() -> "sent".equals(settings().getString(KEY, "")), "The stand-in email app took the email, but the invite has no answer");
+        require(stop[0], "Volt never stopped behind the stand-in email app");
         main(() -> activity.getApplication().unregisterActivityLifecycleCallbacks(watch));
-        shot("invite-taken");
-        // Back to Volt: the stand-in closes itself; a real email app is left with Back (a draft it keeps is its own).
-        for (int i = 0; i < 6 && !resumedNow(); i++) {
-            if (found == 1) getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
-            SystemClock.sleep(1500);
-        }
-        await(() -> activity.resumed(), "Volt did not come back after " + taker + " closed");
+        await(() -> activity.resumed(), "Volt did not come back after the stand-in email app closed itself");
         settle();
-        if (stubEnabled) { shell("pm disable " + STUB); stubEnabled = false; }
+        shell("pm disable " + STUB); stubEnabled = false;
         battery();
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") == null, "The invite banner still shows after the email was taken"));
         shot("invite-after-send");
-        checks.add("Email to Volt, " + taker + " took it (Volt stopped behind it): \"sent\" stored, the invite gone");
+        checks.add("Email to Volt, the stand-in picked in the chooser took it (Volt stopped behind it): \"sent\" stored, the invite gone");
     }
 
-    /** How many apps take a mailto email on this emulator, this package's stand-in left out. */
-    private int handlers() throws Exception {
-        String out = shell("cmd package query-activities --brief -a android.intent.action.SENDTO -d mailto:");
-        int n = 0;
-        for (String line : out.split("\n")) { String t = line.trim(); if (t.contains("/") && !t.contains(" ") && !t.startsWith("com.jjricks.volt.tests/")) n++; }
-        return n;
+    /** Taps the app named name in whatever chooser shows (scrolling it if needed), then "Just once" if Android asks. */
+    private void pick(String name) throws Exception {
+        long end = SystemClock.uptimeMillis() + 12000;
+        while (SystemClock.uptimeMillis() < end) {
+            android.view.accessibility.AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow();
+            if (root != null) {
+                for (android.view.accessibility.AccessibilityNodeInfo node : root.findAccessibilityNodeInfosByText(name)) {
+                    android.view.accessibility.AccessibilityNodeInfo target = node;
+                    while (target != null && !target.isClickable()) target = target.getParent();
+                    if (target != null && target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)) {
+                        SystemClock.sleep(1200);
+                        android.view.accessibility.AccessibilityNodeInfo next = getUiAutomation().getRootInActiveWindow();
+                        if (next != null) for (String once : new String[] {"Just once", "JUST ONCE"})
+                            for (android.view.accessibility.AccessibilityNodeInfo b : next.findAccessibilityNodeInfosByText(once)) b.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
+                        return;
+                    }
+                }
+                ArrayDeque<android.view.accessibility.AccessibilityNodeInfo> nodes = new ArrayDeque<>(); nodes.push(root);
+                while (!nodes.isEmpty()) {
+                    android.view.accessibility.AccessibilityNodeInfo n = nodes.pop();
+                    if (n.isScrollable()) { n.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); break; }
+                    for (int i = 0; i < n.getChildCount(); i++) if (n.getChild(i) != null) nodes.push(n.getChild(i));
+                }
+            }
+            SystemClock.sleep(500);
+        }
+        shot("invite-pick-missing");
+        throw new IllegalStateException("The chooser never showed \"" + name + "\"");
     }
-    private boolean resumedNow() { boolean[] r = {false}; main(() -> r[0] = activity.resumed()); return r[0]; }
 
     /** The recordings' email, as Charge history & recordings' Email to Volt hands it over once the export is ready. */
     private void send() throws Exception {

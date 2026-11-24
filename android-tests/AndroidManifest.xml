@@ -3,8 +3,9 @@
   <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="36" />
   <application android:allowBackup="false" android:label="Navee local validation">
     <!-- ChargingWordingValidation's stand-in email app: disabled, enabled with pm for its one step only. -->
-    <activity android:name="com.jjricks.volt.tests.MailStub" android:enabled="false" android:exported="true">
+    <activity android:name="com.jjricks.volt.tests.MailStub" android:label="A stand-in email app" android:enabled="false" android:exported="true">
       <intent-filter><action android:name="android.intent.action.SENDTO" /><category android:name="android.intent.category.DEFAULT" /><data android:scheme="mailto" /></intent-filter>
+      <intent-filter><action android:name="android.intent.action.SEND" /><category android:name="android.intent.category.DEFAULT" /><data android:mimeType="*/*" /></intent-filter>
     </activity>
   </application>
   <instrumentation android:name="com.jjricks.volt.tests.RidingChipRowValidation" android:targetPackage="com.jjricks.volt" android:label="Riding chip row validation" />
