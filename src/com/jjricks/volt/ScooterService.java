@@ -91,6 +91,8 @@ public final class ScooterService extends Service {
     private final FastChargeTaper chargeTaper = new FastChargeTaper();
     /** The UT5 MAX fast charger's "Charging slowed" observer; the estimate and the charging status share its state. */
     private final ChargeSlowdown chargeSlowdown = new ChargeSlowdown();
+    /** "Estimating time left" at plug-in, until the charge's time can be trusted (ChargeEstimateHold); display and planning only. */
+    private final ChargeEstimateHold chargeEstimateHold = new ChargeEstimateHold();
     /** Charge done by's bounded measuring step; at most one, for the selected scooter. */
     private final ChargeMeasureWindow chargeMeasure = new ChargeMeasureWindow();
     private boolean chargeModelLoading, chargeUpdating, chargeExporting;
@@ -480,6 +482,8 @@ public final class ScooterService extends Service {
         if(chargeCharger()!=null)return ChargerBasis.MANUAL;
         return detectedCharger()!=null?ChargerBasis.DETECTED:ChargerBasis.UNKNOWN;
     }
+    /** The charger in effect is an explicit choice (the setting, or a running recording's label), not detection's. */
+    private boolean chargerChosen(){ChargerBasis basis=chargerBasis();return basis==ChargerBasis.MANUAL||basis==ChargerBasis.RECORDING;}
     public ChargeSessionStore.Charger effectiveChargeCharger(){
         switch(chargerBasis()){
             case RECORDING:return chargeStore.charger();
@@ -1084,11 +1088,13 @@ public final class ScooterService extends Service {
     }
     /** Same service calculation used by the dashboard, also evaluated with the screen off. */
     private ChargeSessionStore.Estimate chargeRecordingEstimate(){
-        return ChargingEstimate.recordingSnapshot(chargingEstimate(displayReadings()));
+        // What the estimator computed, never the plug-in hold's "Estimating": recordings stay scoreable against the estimator.
+        Map<String,TelemetryHistory.Reading> readings=displayReadings();
+        return ChargingEstimate.recordingSnapshot(computedChargingEstimate(readings,chargingValue(readings,"charge_limit_percent")));
     }
     /** Fresh paired data first; recognized models get defaults without requiring capture setup. */
     public ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings){
-        return chargingEstimate(readings,chargingValue(readings,"charge_limit_percent"));
+        return shownChargingEstimate(computedChargingEstimate(readings,chargingValue(readings,"charge_limit_percent")));
     }
     /**
      * The charging hero's countdown to a charge alert's level, or null when it has none (ChargeAlertPolicy.countdownLevel).
@@ -1098,9 +1104,27 @@ public final class ScooterService extends Service {
     public ChargingEstimate.Result chargeAlertEstimate(Map<String,TelemetryHistory.Reading> readings){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent");
         Integer level=ChargeAlertPolicy.countdownLevel(chargeAlertsOffered(),chargeAlerts(),soc.fresh?soc.number:null);
-        return level==null?null:chargingEstimate(readings,new ChargingEstimate.Value(level.doubleValue(),true,soc.observedMs));
+        return level==null?null:shownChargingEstimate(computedChargingEstimate(readings,new ChargingEstimate.Value(level.doubleValue(),true,soc.observedMs)));
     }
-    private ChargingEstimate.Result chargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
+    /**
+     * Test-only: true holds every shown estimate as at plug-in, so the "Estimating time left" state can be drawn on the
+     * simulator (which never holds). Null in the app: nothing here writes it, and there is no setter; only the emulator
+     * validation sets it, by reflection.
+     */
+    private static volatile Boolean testEstimateHold;
+    /** Whether the active scooter's charge shows "Estimating time left" now (ChargeEstimateHold); never while simulating. */
+    private boolean holdingChargeEstimate(){
+        Boolean forced=testEstimateHold;
+        if(forced!=null)return forced;
+        ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
+        return !destroyed&&!simulating()&&profile!=null&&chargeEstimateHold.holding(profile.id,SystemClock.elapsedRealtime());
+    }
+    /** The estimate as every screen, the live card and Charge done by see it: the computed one, or held at plug-in. */
+    private ChargingEstimate.Result shownChargingEstimate(ChargingEstimate.Result computed){
+        return holdingChargeEstimate()?ChargingEstimate.estimating(computed):computed;
+    }
+    /** The estimator's own result for these readings, before the plug-in hold: what charge recordings save. */
+    private ChargingEstimate.Result computedChargingEstimate(Map<String,TelemetryHistory.Reading> readings,ChargingEstimate.Value target){
         ChargingEstimate.Value soc=chargingValue(readings,"battery_percent"),rated=chargingValue(readings,"rated_capacity_ah");
         // The current is the last minute's mean, so a reading moving between two of the battery's current steps doesn't
         // flip every time shown by a couple of minutes (ChargeCurrentAverage); a real change still shows at once.
@@ -1684,6 +1708,16 @@ public final class ScooterService extends Service {
             long now=SystemClock.elapsedRealtime();
             restoreChargeLiveStopped();
             ChargeLiveHold.Facts facts=chargeLiveFacts();
+            // The charging state the card follows (status every 15 s out of sight, and the reports between), so a pause and
+            // resume that updateChargerDetection's 7 s window misses still starts a new plug-in hold (ChargeEstimateHold).
+            ScooterProfiles.Profile active=profiles.active();
+            if(facts.connected&&active!=null&&active.id.equals(facts.profile)){
+                int product=ModelRegistry.chargeReferenceProduct(modelDescriptor(active));
+                // A pause seen only here ends detection's charge too, so a charger swapped in the pause isn't taken for the
+                // old one (ChargerDetection forgets its choice when charging stops).
+                if(Boolean.FALSE.equals(facts.charging))chargerDetection.observe(active.id,product,false,null,null,null,0,now);
+                chargeEstimateHold.observe(active.id,product,facts.charging,effectiveChargeCharger(),chargerChosen(),null,null,now,now);
+            }
             if(!facts.profile.equals(chargeLiveCacheProfile)){chargeLiveCacheProfile=facts.profile;chargeLivePercent=chargeLiveLimit=null;}
             if(facts.percent!=null)chargeLivePercent=facts.percent;
             if(facts.connected)chargeLiveLimit=facts.limit;
@@ -2317,6 +2351,7 @@ public final class ScooterService extends Service {
         chargeCurrent.reset();
         chargeTaper.reset();
         chargeSlowdown.reset();
+        chargeEstimateHold.reset();
     }
 
     /**
@@ -2326,7 +2361,7 @@ public final class ScooterService extends Service {
      */
     private void updateChargerDetection(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active();
-        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeCurrent.reset();chargeTaper.reset();chargeSlowdown.reset();return;}
+        if(destroyed||simulating()||profile==null){chargerDetection.reset();learnedCharger.reset();chargerHint.reset();chargeProgress.reset();chargeCurrent.reset();chargeTaper.reset();chargeSlowdown.reset();chargeEstimateHold.reset();return;}
         if(ble!=null&&ble.currentTransportSerial().isEmpty()){chargerDetection.disconnected();learnedCharger.disconnected();chargerHint.disconnected();}
         if(ble==null||!ble.ready()||ble.profile()==null||!profile.id.equals(ble.profile().id))return;
         long now=SystemClock.elapsedRealtime();
@@ -2351,6 +2386,9 @@ public final class ScooterService extends Service {
                 effectiveChargeCharger(),frame.state.value==1d,
                 paired?frame.soc.value:null,paired?frame.voltage.value:null,paired?frame.current.value:null,
                 liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null,ble.liveNumber("charge_limit_percent"),paired?frame.current.mono:0);
+        // After detection, so the charger in effect is this frame's.
+        chargeEstimateHold.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,effectiveChargeCharger(),
+                chargerChosen(),paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
     }
     private static boolean liveCharge(ChargeSessionStore.Value value,String key,long now){
         return value!=null&&value.value!=null&&Double.isFinite(value.value)&&value.mono>0&&now>=value.mono
