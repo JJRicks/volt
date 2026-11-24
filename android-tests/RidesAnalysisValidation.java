@@ -626,7 +626,7 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
         int casing=(int)invoke(map,"routeCasingColor",new Class[0]);check(casing==(activity.ui().dark?android.graphics.Color.WHITE:0xff20242c),"Map canvas chooses contrasting route casing");
         setField(map,"streets",true);int tileCasing=(int)invoke(map,"routeCasingColor",new Class[0]);setField(map,"streets",false);
         // A basemap's casing follows the map style (MapStyle): dark on light tiles, white on dark ones, in either theme.
-        check(tileCasing==(map.darkTiles()?android.graphics.Color.WHITE:0xff20242c),"Basemap casing contrasts with the map style's tiles");
+        check(tileCasing==((boolean)invoke(map,"darkTiles",new Class[0])?android.graphics.Color.WHITE:0xff20242c),"Basemap casing contrasts with the map style's tiles");
         check((android.graphics.Color.luminance(0xffe2e2e2)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Neutral route has at least 3:1 against casing");
         check((android.graphics.Color.luminance(0xffffd246)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Yellow route endpoint has at least 3:1 against casing");
     }
