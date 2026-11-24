@@ -354,8 +354,12 @@ public final class RouteMapView extends View {
         canvas.drawLine(ui.dp(16), ui.dp(30), ui.dp(96), ui.dp(30), paint);
     }
 
-    /** Tiles can be pale in either theme; the casing keeps every ramp value visible. */
-    private int routeCasingColor() { return streets || !ui.dark ? 0xff20242c : Color.WHITE; }
+    /**
+     * The casing keeps every ramp value visible: dark on light paper (a light map, or the light theme without one), white
+     * on dark paper (a dark map, MapStyle, or the dark theme without one), where the ramp's dark blue end would otherwise
+     * sink into the tiles.
+     */
+    private int routeCasingColor() { return darkPaper() ? Color.WHITE : 0xff20242c; }
 
     /** Volt map plate: near-black with light text in both themes, so it reads on any basemap. */
     private int paper() {
