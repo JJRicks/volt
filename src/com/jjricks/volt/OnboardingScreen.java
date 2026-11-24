@@ -1775,7 +1775,7 @@ public final class OnboardingScreen implements AppScreen {
             case MadeKeyPrompt.HOME_AFTER_PROMPT:
                 if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
                 if (homeButton != null) homeButton.setEnabled(true);
-                if (homeButton != null) homeButton.setContentDescription(null);
+                if (homeButton != null) homeButton.setContentDescription(T.onboardingDoneHome());
                 keyPrompt();
                 // Never stranded: a popup that didn't come up leaves Go to Home to finish.
                 if (keyPrompt != null && keyPrompt.isShowing()) return;
@@ -1790,6 +1790,7 @@ public final class OnboardingScreen implements AppScreen {
                 homeFor = null; homeWaitStart = 0;
                 if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
                 if (homeButton != null) homeButton.setEnabled(true);
+                if (homeButton != null) homeButton.setContentDescription(T.onboardingDoneHome());
                 return;
             default:
                 finish(false);
