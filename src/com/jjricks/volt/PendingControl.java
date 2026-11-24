@@ -53,7 +53,8 @@ final class PendingControl {
 
     /**
      * True once per wait of this control key, on the first look its spinner shows: the moment to tell a screen reader
-     * "Waiting for the scooter". Another view of the same control (a second lock switch on two panes) gets false.
+     * that the scooter hasn't answered yet (ScreenHost.pendingWords). Another view of the same control (a second lock
+     * switch on two panes) gets false.
      */
     boolean announce(String key, long now) {
         if (!showing(now)) return false;

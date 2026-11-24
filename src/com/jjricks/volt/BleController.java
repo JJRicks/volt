@@ -987,7 +987,7 @@ public final class BleController {
         mutation=pending;changed();
         handler.postDelayed(()->{
             if(mutation!=pending||simulation==null||state!=State.READY)return;
-            if(delay==SimulatedConfirmation.NEVER){logMutation(pending,CommandLog.Outcome.TIMEOUT,-1,null);result(key,RESULT_NOT_CONFIRMED);clearMutation();notice(M.bleFailedNotConfirmed());return;}
+            if(delay==SimulatedConfirmation.NEVER){logMutation(pending,CommandLog.Outcome.TIMEOUT,-1,null);result(key,RESULT_NOT_CONFIRMED);clearMutation();changed();return;}
             // As the simulator's immediate change does, once the wait is over.
             try{Integer before=featureValue(key);simulation.set(key,value,variant);if(request.origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();
                 logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,featureValue(key),delay);

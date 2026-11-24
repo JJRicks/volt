@@ -643,6 +643,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(pendingRedrawAt>=now&&pendingRedrawAt<=at)return;
         handler.removeCallbacks(pendingRedraw);pendingRedrawAt=at;handler.postAtTime(pendingRedraw,at);
     }
+    /**
+     * What TalkBack hears once when a control's pending spinner appears (PendingControl): the Maximum speed buttons'
+     * spoken "Confirming", which they already said while waiting; one string for every control.
+     */
+    private static String waitingWords(){return T.mainSpeedConfirming();}
+    @Override public CharSequence pendingWords(){return waitingWords();}
     @Override public void redraw(){
         if(destroyed||design==null||enteringMaintenance||startupRedirect)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::redraw);return;}
@@ -2732,6 +2738,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         @Override public String withNote(String value,String note){return joinNote(value,note);}
         @Override public String confirming(){return rowConfirmingPart();}
+        @Override public String waiting(){return waitingWords();}
         @Override public String stateNote(String note){return rowStateNote(note);}
         @Override public String spoken(String name,String value,String note){return labelValueState(name,value,note);}
     };
@@ -4638,7 +4645,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             int index=-1;for(int i=0;i<buttons.size();i++)if(requested!=null&&requested==feature.optionValues[i])index=i;
             boolean spin=pendingLook(waitLook,feature.key,pending,ble==null?0:ble.pendingSinceMs(),card);
             for(int i=0;i<bars.size();i++)bars.get(i).waiting(spin&&i==index);
-            if(pending&&index>=0&&Build.VERSION.SDK_INT>=30)buttons.get(index).setStateDescription(T.mainSpeedConfirming());
+            if(pending&&index>=0&&Build.VERSION.SDK_INT>=30)buttons.get(index).setStateDescription(waitingWords());
             // A change with no tapped button (an automatic one, or a tap from before the activity was rebuilt) says it in words.
             String feedback=pending?(spin&&index<0?T.mainSpeedConfirmingVisible():null):resultChip(ble,feature.key);
             // An owner saw this model keep its old top speed after a change: say so until a report shows it kept.

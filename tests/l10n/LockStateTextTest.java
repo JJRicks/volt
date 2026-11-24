@@ -167,8 +167,8 @@ public final class LockStateTextTest {
         String grid = L10nFiles.read(new File("src/com/jjricks/volt/QuickAccessGrid.java"));
         int lock = grid.indexOf(": lockState != null ? lockState");
         int variant = grid.indexOf(": decision != null && decision.oemText(value) != null ? decision.oemText(value).render()");
-        int pending = grid.indexOf(": unmapped ? NO_VALUE : updating ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE");
-        check(pending >= 0 && lock > pending && variant > lock, "pending (updating, PendingControl) and no-value come first, then the lock's state, then the variant's label");
+        int pending = grid.indexOf(": unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE");
+        check(pending >= 0 && lock > pending && variant > lock, "pending and no-value come first, then the lock's state, then the variant's label");
         check(grid.contains("String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);"), "the word does not depend on whether the reading is live");
         check(!L10nFiles.read(new File("src/com/jjricks/volt/DisplayUnits.java")).contains("mainLockLastKnownWord"), "these tiles have no Last known text");
         check(grid.contains("int tone = highlight ? ui.onAccent : muted ? ui.muted : ui.text;") && grid.contains("cell.value.setTextColor(tone);") && grid.contains("boolean muted = (feature != null || chargeControl) && !featureLive;"), "a stale Setting tile dims");
@@ -183,7 +183,7 @@ public final class LockStateTextTest {
         check(grid.indexOf("cell.value.setText(state);\n") < grid.indexOf("ui.setIcon(cell.icon, DisplayUnits.quickAccessIcon(feature, value, cell.entry.icon));"), "a Quick access button's padlock follows the reading");
         check(grid.contains("cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);"), "a stale button stays muted");
         check(grid.contains("T.dashboardModelTileDescPart(state)") && grid.contains("cell.setStateDescription(state);"), "TalkBack keeps the full state");
-        check(grid.contains("cell.lockState = !updating && lockState != null;"), "Updating is not a lock state");
+        check(grid.contains("cell.lockState = !pending && lockState != null;"), "Updating is not a lock state");
         check(L10nFiles.read(new File("src/com/jjricks/volt/Ui.java")).contains("key.equals(\"unlock\") ? 210 : 180"), "the open padlock is the shared icon set's");
         check(grid.contains("if (lockState && !StatusRungs.wholeLines(value.getText().toString(), value, room, 2)) value.setVisibility(GONE);"), "a Quick access lock state never breaks mid-word");
     }

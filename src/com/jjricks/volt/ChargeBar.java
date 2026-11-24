@@ -69,6 +69,8 @@ final class ChargeBar extends View {
         String withNote(String value, String note);
         /** The row's spoken notes: a write in flight, and a note as the row speaks it. */
         String confirming();
+        /** Said once when the limit's pending spinner appears (PendingControl); null says nothing. */
+        default String waiting() { return null; }
         String stateNote(String note);
         /** The row's spoken name, value and note, for TalkBack before Android 11. */
         String spoken(String name, String value, String note);
@@ -86,7 +88,8 @@ final class ChargeBar extends View {
     /** Redraws when the spinner is due, and tells a screen reader once. */
     private final Runnable waitTick = () -> {
         long now = android.os.SystemClock.elapsedRealtime();
-        if (isShown() && waitLook.announce(KEY, now)) announceForAccessibility(T.mainControlWaiting());
+        String said = isShown() && words != null ? words.waiting() : null;
+        if (said != null && waitLook.announce(KEY, now)) announceForAccessibility(said);
         long next = waitLook.nextLookIn(now);
         if (next > 0) postDelayed(this.waitTick, next + 16);
         invalidate();

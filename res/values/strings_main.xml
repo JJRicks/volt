@@ -42,8 +42,6 @@
     <!-- ===== Lock row and lock switch ===== -->
     <string name="main_lock_title" volt:screen="Home lock row" volt:purpose="heading" volt:safety="lock">Lock</string>
     <string name="main_lock_updating" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Updating…</string>
-    <!-- Spoken once when a control's pending spinner appears: the scooter hasn't confirmed the change after a second (lock, lights, cruise, riding mode, speed and other settings). -->
-    <string name="main_control_waiting" volt:screen="Scooter controls" volt:purpose="screen reader">Waiting for the scooter</string>
     <string name="main_lock_locked" volt:screen="Home lock row" volt:purpose="state" volt:ladder="full" volt:max="220dp@16sp" volt:safety="lock">Locked</string>
     <!-- The lock bar's state word when Locked does not fit the slide switch; narrower still, the switch shows the lock icon. -->
     <string name="main_lock_locked_short" volt:screen="Narrow lock bar" volt:purpose="switch word" volt:ladder="short" volt:safety="lock">Locked</string>

@@ -16,9 +16,11 @@ public interface ScreenHost {
     void redraw(); void rebuild(); void toast(String text); void connect();
     /** A redraw in delayMs, when a control's pending spinner is due (PendingControl.nextLookIn). Nothing by default. */
     default void redrawIn(long delayMs) {}
+    /** What a screen reader hears once when a control's pending spinner appears; null (nothing) by default. */
+    default CharSequence pendingWords() { return null; }
     /**
      * One look at a control waiting on the scooter (PendingControl): true while its spinner shows. Schedules the redraw
-     * that starts (or backstops) it, and has speaker tell a screen reader "Waiting for the scooter" once per wait.
+     * that starts (or backstops) it, and has speaker tell a screen reader pendingWords() once per wait.
      */
     default boolean pendingLook(PendingControl look, String key, boolean waiting, long sinceMs, android.view.View speaker) {
         long now = android.os.SystemClock.elapsedRealtime();
@@ -26,8 +28,8 @@ public interface ScreenHost {
         long next = look.nextLookIn(now);
         if (next > 0) redrawIn(next);
         boolean spin = look.showing(now);
-        if (spin && resumed() && speaker != null && speaker.isShown() && look.announce(key, now))
-            speaker.announceForAccessibility(T.mainControlWaiting());
+        CharSequence words = spin && resumed() && speaker != null && speaker.isShown() ? pendingWords() : null;
+        if (words != null && look.announce(key, now)) speaker.announceForAccessibility(words);
         return spin;
     }
     /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */

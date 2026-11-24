@@ -421,8 +421,8 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
 
     private String waitingWords() {
         Context app = getTargetContext();
-        int id = app.getResources().getIdentifier("main_control_waiting", "string", app.getPackageName());
-        require(id != 0, "string main_control_waiting");
+        int id = app.getResources().getIdentifier("main_speed_confirming", "string", app.getPackageName());
+        require(id != 0, "string main_speed_confirming");
         return app.getString(id);
     }
 

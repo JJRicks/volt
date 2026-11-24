@@ -119,7 +119,7 @@ final class QuickAccessGrid extends ViewGroup {
                 Integer fresh = ble.featureValue(feature.key);
                 if (fresh != null) value = fresh;
             }
-            boolean pending = feature != null && ble != null && feature.key.equals(ble.pending());
+            boolean writing = feature != null && ble != null && feature.key.equals(ble.pending());
             // The resolver's decision for this model; an unmapped tile stays in the saved layout, muted.
             CapabilityResolver.Decision decision = feature == null || ble == null ? null : ble.decision(feature.key);
             boolean unmapped = decision != null && ShortcutPicker.unmapped(feature.key, decision, ble.controlOffered(feature.key));
@@ -132,17 +132,17 @@ final class QuickAccessGrid extends ViewGroup {
             // then "Updating" and a spinner on the tile's cue or the round action's circle (PendingControl). A charge
             // control's schedule writes go one after another, so its second counts from the first busy look.
             boolean chargeWait = chargeControl && charge != null && !unmapped;
-            boolean updating = host.pendingLook(cell.waitLook, cell.entry.id, chargeWait ? charge.busy : pending,
+            boolean pending = host.pendingLook(cell.waitLook, cell.entry.id, chargeWait ? charge.busy : writing,
                     chargeWait || ble == null ? 0 : ble.pendingSinceMs(), cell);
-            cell.waiting(updating);
+            cell.waiting(pending);
             String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);
             String state = feature == null || feature.sensitive && !unmapped ? ""
-                    : unmapped ? NO_VALUE : updating ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
+                    : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
                     : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
             boolean wasLockState = cell.lockState;
-            cell.lockState = !updating && lockState != null;
+            cell.lockState = !pending && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
@@ -157,7 +157,6 @@ final class QuickAccessGrid extends ViewGroup {
             if (measuring) chargeBlocked = null;
             if (chargeControl && charge != null && !unmapped) {
                 value = (doneBy || doneTime ? charge.doneByEnabled : charge.manualEnabled) ? 1 : 0;
-                pending = charge.busy;
                 featureLive = (doneTime || live) && chargeBlocked == null;
                 if (doneBy || doneTime) {
                     Calendar deadline = Calendar.getInstance();
@@ -166,13 +165,13 @@ final class QuickAccessGrid extends ViewGroup {
                     String time = DisplayTime.clock(host.activity(), preferences, deadline.getTimeInMillis());
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
-                    state = updating ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
-                } else if (manual) state = updating ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
+                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
+                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
             // Clean Home's Record action says so while a ride is being recorded.
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
-            if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !updating)
+            if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             String shortValue = null;
             Integer level = null, low = null;
@@ -206,7 +205,7 @@ final class QuickAccessGrid extends ViewGroup {
                 look = QuickActionLayout.setting(value, offValue(feature, decision), featureLive);
             boolean lockUnknown = look != null && look.look == QuickActionLayout.Look.UNKNOWN;
             // The lock's spoken state on Clean (its circle has no value line): Locked, Unlocked or Lock state unknown.
-            if (clean && isLock && !updating)
+            if (clean && isLock && !pending)
                 state = lockUnknown ? MainActivity.lockUnknownText() : DisplayUnits.lockWord(value == 1);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
             boolean selected = toggle && value != null && value == 1 && featureLive;
