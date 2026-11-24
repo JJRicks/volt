@@ -102,6 +102,26 @@ public final class PendingControlTest {
         p.look(true, t0 + 5000, t0 + 6000);
         require(p.announce("lock", t0 + 6000), "The next wait is announced again");
 
+        // An operation of several writes (a charge schedule: clock, time, switch): the backstop counts from the latest
+        // write, so a long but healthy operation keeps its spinner; the second still counts from the operation's start.
+        p = new PendingControl();
+        p.look(true, t0, t0, t0 + 500);
+        require(!p.showing(t0 + 500), "Still the operation's first second");
+        p.look(true, t0, t0 + 12_000, t0 + 12_000);
+        p.look(true, t0, 0, t0 + 13_000);
+        require(p.showing(t0 + PendingControl.LIMIT_MS + 5000), "A later write moves the backstop on");
+        require(p.nextLookIn(t0 + 20_000) == 12_000 + PendingControl.LIMIT_MS - 20_000, "The backstop's look is due from the latest write");
+        require(!p.showing(t0 + 12_000 + PendingControl.LIMIT_MS), "Stopped a backstop after the latest write");
+        p.look(true, t0, t0 + 40_000, t0 + 39_000);
+        require(p.showing(t0 + 39_000), "A write start in the future counts from now");
+        p.look(false, 0, 0, t0 + 41_000);
+        p.look(true, t0 + 50_000, 0, t0 + 50_000);
+        require(!p.showing(t0 + 50_500) && p.showing(t0 + 51_000) && !p.showing(t0 + 50_000 + PendingControl.LIMIT_MS),
+                "The next operation starts with no write remembered from the last");
+        p.look(true, t0 + 50_000, 0, t0 + 52_000);
+        p.look(true, t0 + 60_000, 0, t0 + 60_000);
+        require(!p.showing(t0 + 60_500), "A new start mid-wait forgets the old operation's writes");
+
         System.out.println("PendingControlTest: " + checks + " checks passed");
     }
 

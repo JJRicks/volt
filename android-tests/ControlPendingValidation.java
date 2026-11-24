@@ -64,9 +64,14 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
         try {
             String hw = Build.HARDWARE.toLowerCase(Locale.ROOT);
             require(hw.contains("ranchu") || hw.contains("goldfish"), "emulator only");
+            // A disposable app only: this run seeds a profile and changes settings it doesn't put back.
+            for (String store : new String[]{"app_settings", "profiles", "scooter"})
+                require(getTargetContext().getSharedPreferences(store, Context.MODE_PRIVATE).getAll().isEmpty(), "Refusing existing " + store + " preferences; clear the disposable app first");
+            require(getTargetContext().databaseList().length == 0, "Refusing existing databases");
+            String[] files = getTargetContext().getFilesDir().list();
+            require(files == null || files.length == 0, "Refusing existing files");
             evidence = new File(getTargetContext().getExternalFilesDir(null), "control-pending");
             require(evidence.mkdirs() || evidence.isDirectory(), "evidence directory");
-            previousScale = shell("settings get global animator_duration_scale").trim();
             launch();
             if ("render".equals(part)) render();
             else {
@@ -90,8 +95,9 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
         } finally {
             try { delay(0); } catch (Throwable ignored) { }
             try { getUiAutomation().setOnAccessibilityEventListener(null); } catch (Throwable ignored) { }
-            try {
-                shell(previousScale == null || previousScale.isEmpty() || previousScale.equals("null") ? "settings put global animator_duration_scale 1"
+            // Only what this run changed goes back: the animator scale, when the animations-off check set it.
+            if (previousScale != null) try {
+                shell(previousScale.isEmpty() || previousScale.equals("null") ? "settings delete global animator_duration_scale"
                         : "settings put global animator_duration_scale " + previousScale);
             } catch (Throwable ignored) { }
             if (activity != null) try {
@@ -283,9 +289,19 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
         int heard = announcements.get();
         View spinner = (View) field(row, "spinner"), toggle = (View) field(row, "toggle");
         List<long[]> frames = new ArrayList<>();
-        sample(toggle::performClick, 3300, frames, () -> spinner.getVisibility() == View.VISIBLE && toggle.getVisibility() != View.VISIBLE);
+        android.widget.Switch shown = (android.widget.Switch) toggle;
+        sample(toggle::performClick, 3300, frames, () -> spinner.getVisibility() == View.VISIBLE && toggle.getVisibility() != View.VISIBLE,
+                () -> toggle.getVisibility() == View.VISIBLE ? (shown.isChecked() ? 1 : 0) : -1);
         require(Integer.valueOf(1 - before).equals(feature("headlight")), "The slow headlight change lands");
         judge(frames, 2500, "headlight row");
+        // The first second shows the tapped side, never the old one (the tap must not look refused).
+        int early = 0;
+        for (long[] f : frames) if (f[0] < DELAY - 50 && f[0] > 0) {
+            early++;
+            require(f[2] == 1 - before, "headlight row: the switch shows " + (f[2] == -1 ? "nothing" : f[2] == before ? "the old side" : "?") + " at " + f[0] + " ms");
+        }
+        require(early > 0, "headlight row: frames in the first second");
+        note("headlight row: the tapped side in all " + early + " frames of the first second");
         require(spinner.getVisibility() != View.VISIBLE && toggle.getVisibility() == View.VISIBLE, "The switch is back, the spinner gone");
         await(() -> announcements.get() > heard, "TalkBack hears the row's wait");
         SystemClock.sleep(500);
@@ -319,6 +335,7 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
 
     /** Animations off: the spinner still shows after a second, as a still picture, and nothing redraws for ever. */
     private void stillWithAnimationsOff() throws Exception {
+        previousScale = shell("settings get global animator_duration_scale").trim();
         shell("settings put global animator_duration_scale 0");
         SystemClock.sleep(500);
         delay(3000);
@@ -335,7 +352,6 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
         shot(shots + "-lock-still");
         await(() -> locked() == !before && !lockSpinning(), "Lands and stops with animations off");
         delay(0);
-        shell("settings put global animator_duration_scale 1");
     }
 
     // ---- Pictures ----------------------------------------------------------------------------------------------------
@@ -367,18 +383,19 @@ public final class ControlPendingValidation extends ValidationInstrumentation {
     /** Samples the lock switch on every drawn frame from the tap (run on the main thread): {ms since the tap, spinning 0/1}. */
     private List<long[]> sampleLock(Runnable tap, long forMs) throws Exception {
         List<long[]> frames = new ArrayList<>();
-        sample(tap, forMs, frames, this::lockSpinningNow);
+        sample(tap, forMs, frames, this::lockSpinningNow, () -> 0);
         return frames;
     }
 
-    private void sample(Runnable tap, long forMs, List<long[]> frames, BooleanSupplier spinning) throws Exception {
+    /** Each frame: {ms since the tap, spinning 0/1, side(): what else the frame shows}. */
+    private void sample(Runnable tap, long forMs, List<long[]> frames, BooleanSupplier spinning, java.util.function.IntSupplier side) throws Exception {
         boolean[] run = {true};
         long[] start = new long[1];
         Choreographer.FrameCallback[] tick = new Choreographer.FrameCallback[1];
         main(() -> {
             tick[0] = t -> {
                 if (!run[0]) return;
-                frames.add(new long[]{SystemClock.elapsedRealtime() - start[0], spinning.getAsBoolean() ? 1 : 0});
+                frames.add(new long[]{SystemClock.elapsedRealtime() - start[0], spinning.getAsBoolean() ? 1 : 0, side.getAsInt()});
                 // Frames keep coming while nothing animates (the validation holds endless motion still).
                 activity.getWindow().getDecorView().invalidate();
                 Choreographer.getInstance().postFrameCallback(tick[0]);
