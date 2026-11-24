@@ -337,6 +337,7 @@ public final class CapabilityResolverTest {
         check(decide("cruise_control",simulated,StatusFields.NONE,sim).reason==CapabilityResolver.OFF_REASON&&decide("charge_limit",simulated,StatusFields.NONE,sim).available(),"Simulated off refuses the same way");
         rt=parked();check(!rt.scooterOff,"Off by default");
         offRows();
+        offRowsTappable();
     }
 
     /**
@@ -381,5 +382,18 @@ public final class CapabilityResolverTest {
         check(CapabilityResolver.noMotionNotice(none,false).toString().equals("No motion report yet"),"Other models keep their text");
         rt.scooterOff=true;CapabilityResolver.Decision off=decide("headlight",ut5,s,rt);
         check(off.reason==CapabilityResolver.OFF_REASON&&!CapabilityResolver.noMotionNotice(off,true).toString().equals("Bring the scooter to a stop first"),"Switched off: never 'stop first'");
+    }
+    /** #623 round 2: rows refused because the scooter is off stay tappable, so a tap gives the refusal. */
+    private static void offRowsTappable() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.scooterOff=true;
+        for(String key:new String[]{"headlight","cruise_control","turn_sound","maximum_speed"}){
+            CapabilityResolver.Decision d=decide(key,ut5,s,rt);
+            check(d.rowTappable()&&!d.available()&&!d.parkedOnly()&&d.rowRefusal()!=null,"Off: tappable, and the tap says the off reason: "+key);
+        }
+        CapabilityResolver.Runtime on=parked();on.stationary=false;on.motionSeen=true;
+        check(decide("timed_charging",ut5,s,on).rowTappable(),"Moving: tappable to say Stop to change, as before");
+        on=parked();on.ready=false;
+        check(!decide("headlight",ut5,s,on).rowTappable(),"Not connected: not tappable, as before");
     }
 }

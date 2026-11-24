@@ -107,6 +107,17 @@ final class ScooterPowerState {
         return new Result(State.OFF, Why.SILENT);
     }
 
+    /**
+     * Connected, but not yet shown to be on: no push on this connection (before the link is ready, in the grace, or with
+     * its status stale), on a judged scooter ({@code armed}), not charging, not the simulator, and not already off. A
+     * switched-off scooter that keeps answering looks exactly like this until its verdict; a ride's auto-end does not take
+     * such a link as a reconnect (RideAutoStopPolicy.Link), only its first push.
+     */
+    boolean awaitingPush(Result verdict, boolean armed) {
+        if (!armed || lastPush > 0 || verdict == null || verdict.off()) return false;
+        return verdict.why != Why.SIMULATION && verdict.why != Why.CHARGING && verdict.why != Why.PUSHING;
+    }
+
     /** What BleController's event log records for a verdict, given whether it last logged off. */
     enum Logged { NONE, SWITCHED_OFF, SWITCHED_ON, CLEARED }
 
@@ -114,10 +125,16 @@ final class ScooterPowerState {
      * The event-log line for this verdict: "switched off" once when it turns off, "switched on" only when a push ends
      * it (LIVE). Anything else away from off (the simulator's hook cleared) only clears the mark, with no line.
      */
-    static Logged logged(boolean loggedOff, Result r) {
+    static Logged logged(boolean loggedOff, Result r) { return logged(loggedOff, r, false); }
+
+    /**
+     * As above, from a push itself ({@code pushedNow}): a push that ends a logged off state is a switch-on whatever the
+     * verdict says at that moment (with the status stale it is "not ready", not LIVE).
+     */
+    static Logged logged(boolean loggedOff, Result r, boolean pushedNow) {
         if (r.off()) return loggedOff ? Logged.NONE : Logged.SWITCHED_OFF;
         if (!loggedOff) return Logged.NONE;
-        return r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
+        return pushedNow || r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
     }
 
     /** Which scooters are judged: the UT5 MAX layer, or one that has pushed on an earlier connection. */

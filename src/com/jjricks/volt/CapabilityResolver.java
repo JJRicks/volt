@@ -82,6 +82,11 @@ public final class CapabilityResolver {
          * Refused by the ride alone (blockedByRide, but not for a scooter switched off): a settings row greys out and says
          * "Stop to change". A switched-off scooter's control stays tappable (blockedByRide) but says its own reason.
          */
+        /**
+         * Whether a settings row stays tappable: available, a ride's refusal ("Stop to change"), or a switched-off
+         * scooter's (the tap says "Turn the scooter on first"). Never written to while refused; the tap only explains.
+         */
+        public boolean rowTappable(){return available()||parkedOnly()||switchedOff;}
         public boolean parkedOnly(){return blockedByRide()&&!switchedOff;}
         /**
          * The words a settings row shows for its refusal (MainActivity.controlNote): the reason's own, except for a ride's
