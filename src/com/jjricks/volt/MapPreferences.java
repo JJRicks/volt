@@ -25,6 +25,9 @@ public final class MapPreferences {
     /** The basemap switch's name, "Basemap": the ride maps' switch, and the Just back card's round one (JustBackView). */
     static String basemapName() { return T.mapsBasemap(); }
 
+    /** Map settings' switch for the Just back card's basemap, "Map on Home's last ride"; also its search name (MoreScreen.searchTitle). */
+    static String justBackName() { return T.mapsJustBackSwitch(); }
+
     /** Clean Home's Just back card's own basemap (JustBackBasemap.KEY), off unless turned on there. */
     static boolean justBackEnabled(SharedPreferences settings) { return settings.getBoolean(JustBackBasemap.KEY, false); }
 
@@ -267,7 +270,7 @@ public final class MapPreferences {
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
             setTag("map-settings-just-back");
-            String name = T.mapsJustBackSwitch();
+            String name = justBackName();
             toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(name);
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
             toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(name);
