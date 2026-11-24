@@ -427,6 +427,8 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
         await(() -> detailsWindow() != null, 8000, "The first ride's details did not open from the comparison");
         unfold();
         expect(waitFor(() -> comparisonWindow() != null, 8000), "unfolded: the comparison is still open");
+        // Wide too: the ride's details page in front of the comparison, as View first opens it, not the ride in a pane behind it.
+        expect(waitFor(() -> detailsWindow() != null && inFront(detailsWindow(), comparisonWindow()), 8000), "unfolded: the ride's details in front of the comparison (round 2)");
         fold();
         expect(waitFor(() -> detailsWindow() != null && comparisonWindow() != null, 8000), "folded: the ride's details over the comparison");
         expect(onMain(() -> inFront(detailsWindow(), comparisonWindow())), "folded: the ride's details in front of the comparison (round 2)");
