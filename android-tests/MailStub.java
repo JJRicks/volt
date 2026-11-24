@@ -6,8 +6,9 @@ import android.os.Handler;
 import android.os.Looper;
 
 /**
- * ChargingWordingValidation's stand-in email app (-e mode invite): an opaque screen that takes an email (mailto, or a shared file), as a real
- * email app's compose screen would, and closes itself a moment later. Disabled in the manifest; the validation enables
+ * ChargingWordingValidation's stand-in email app (-e mode invite): one more app that takes an email (mailto, or a shared
+ * file), so Android always asks which app takes Volt's email, also where the emulator's one email app would otherwise
+ * open directly. If it is ever opened it closes itself a moment later. Disabled in the manifest; the validation enables
  * it for its one step with pm and disables it again, so no other validation ever sees it.
  */
 public final class MailStub extends Activity {

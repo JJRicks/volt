@@ -45,8 +45,9 @@ import com.jjricks.volt.TelemetryHistory;
  *   <li>-e mode invite: Email to Volt's hand-over (#537 review, F03). With this package's stand-in email app (MailStub,
  *   enabled with pm for this step only) beside the emulator's own, Android asks which app takes the recordings' email.
  *   Backing out of that chooser leaves the invite unanswered (before: "sent", and the Battery page's invite gone for
- *   good); with the stand-in's screen opened over it, as a picked app's would be, Volt stops behind it and the answer
- *   is "sent".</li>
+ *   good); with another app's screen (Settings) opened over it, as a picked email app's would be, Volt stops behind it
+ *   and the answer is "sent". The stand-in is there so a chooser always shows, also on an Android whose one email app
+ *   would otherwise open directly.</li>
  * </ul>
  */
 public final class ChargingWordingValidation extends ValidationInstrumentation {
@@ -177,31 +178,33 @@ public final class ChargingWordingValidation extends ValidationInstrumentation {
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") != null, "The invite banner is gone after a cancelled email"));
         shot("invite-after-cancel");
         checks.add("Email to Volt, the chooser closed with Back: no answer stored, the Battery page's invite still shows");
-        // 2. An app takes the email: the stand-in's screen opens over the chooser and Volt, as a picked email app's does
-        // (Volt can't tell who opened it; the chooser's own list differs by Android version, so it isn't tapped). Volt
-        // stops behind it, and the answer is "sent".
+        // 2. An app takes the email: another app's full screen opens over the chooser and Volt, as a picked email app's
+        // does. Android's Settings stands in for it: Volt can't tell which app it is, and the chooser's own list differs
+        // by Android version, so it isn't tapped. Volt stops behind it, and the answer is "sent".
         send();
         await(() -> !activity.resumed(), "Nothing opened over Volt for the email");
         SystemClock.sleep(1200);
         require(!stop[0] && !settings().contains(KEY), "The chooser alone answered the invite");
-        shell("am start -W -n " + STUB);
-        await(() -> "sent".equals(settings().getString(KEY, "")), "An email app's screen covered Volt, but the invite has no answer");
-        require(stop[0], "Volt never stopped behind the stand-in email app");
+        String started = shell("am start -W -a android.settings.SETTINGS");
+        await(() -> stop[0], "Another app's screen never covered Volt (Volt didn't stop): " + started.trim());
+        await(() -> "sent".equals(settings().getString(KEY, "")), "Another app's screen covered Volt, but the invite has no answer");
+        SystemClock.sleep(1000);
+        shot("invite-taken");
         main(() -> activity.getApplication().unregisterActivityLifecycleCallbacks(watch));
-        // The stand-in closes itself; a chooser still open under it is closed with Back.
-        for (int i = 0; i < 4; i++) {
-            SystemClock.sleep(2500);
+        // Back out of Settings and the chooser still open under it.
+        for (int i = 0; i < 5; i++) {
+            SystemClock.sleep(1500);
             boolean[] back = {false}; main(() -> back[0] = activity.resumed());
             if (back[0]) break;
             getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
         }
-        await(() -> activity.resumed(), "Volt did not come back after the stand-in email app closed itself");
+        await(() -> activity.resumed(), "Volt did not come back after Settings and the chooser closed");
         settle();
         shell("pm disable " + STUB); stubEnabled = false;
         battery();
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") == null, "The invite banner still shows after the email was taken"));
         shot("invite-after-send");
-        checks.add("Email to Volt, an email app's screen over the chooser (Volt stopped behind it): \"sent\" stored, the invite gone");
+        checks.add("Email to Volt, another app's screen over the chooser, as a picked email app's (Volt stopped behind it): \"sent\" stored, the invite gone");
     }
 
     /** The recordings' email, as Charge history & recordings' Email to Volt hands it over once the export is ready. */
