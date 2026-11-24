@@ -125,8 +125,9 @@ public final class ScooterOffWordsTest {
         check(!RidingFocus.showsOff(RidingFocus.Link.CONNECTED, false) && !RidingFocus.showsOff(RidingFocus.Link.RECONNECTING, true), "Otherwise as before");
         String riding = src("RidingScreen");
         check(riding.contains("boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOffShown());")
-                && riding.contains("ui.statusRungs(status, ScooterOffWords.state(), \"\");") && riding.contains("statusPill.setContentDescription(ScooterOffWords.state());"),
-                "RidingScreen.showStatus uses it, words (the orange dot alone where they don't fit: round 2 F11) and spoken state");
+                && riding.contains("ui.statusRungs(status, ScooterOffWords.state(), T.commonOff());") && riding.contains("statusPill.setContentDescription(ScooterOffWords.state());"),
+                "RidingScreen.showStatus uses it, words (abbreviated to Off where they don't fit: round 2 F11) and spoken state");
+        same("Off", T.commonOff(), "the abbreviated rung");
     }
 
     /**
@@ -160,7 +161,10 @@ public final class ScooterOffWordsTest {
         check(main.contains("connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOffShown();"), "the details remember what they showed");
         int raw = 0;
         for (String screen : new String[]{"MainActivity", "DashboardScreen", "RidingScreen"}) raw += src(screen).split("ble\\.scooterOff\\(\\)", -1).length - 1;
-        check(raw == 0, "Every screen's words read scooterOffShown, never the raw verdict: " + raw);
+        // One known exception: the details' check-mark glyph line is main's (a batch can't edit a line with text), so off
+        // and charging it shows the Bluetooth glyph beside Connected. Its words follow scooterOffShown like the rest.
+        check(raw == 1 && main.contains("View dot=design.icon(ready&&!(ble.scooterOff()&&ScooterOffWords.state()!=null)?\"check\":\"bluetooth\",16,tone);"),
+                "Every screen's words read scooterOffShown, never the raw verdict: " + raw);
     }
 
     /** Council round 2 F14 on #628: the ongoing connection notification says Scooter off while Home does. */

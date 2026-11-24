@@ -1739,7 +1739,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout body=column();body.setPadding(design.dp(24),design.dp(4),design.dp(24),design.dp(4));
         TextView stateValue=connectionRow(body,T.mainConnectionState(),word);
         // Switched off (its words shown above): no check mark, as for a scooter that isn't connected.
-        View dot=design.icon(ready&&!(ble.scooterOffShown()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
+        View dot=design.icon(ready&&!(ble.scooterOff()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
         stateValue.setTextColor(ready?design.text:design.muted);
         ((LinearLayout)stateValue.getParent()).addView(dot,((LinearLayout)stateValue.getParent()).indexOfChild(stateValue),connectionIcon());
         // Switched off but answering: what to do (ScooterPowerState).

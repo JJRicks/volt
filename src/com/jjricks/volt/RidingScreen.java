@@ -1052,8 +1052,8 @@ final class RidingScreen implements AppScreen {
         dot.setBackground(oval(color));
         status.setTextColor(link == RidingFocus.Link.CONNECTED && !off ? ui.text : ui.orange);
         if (off) {
-            // The orange dot alone where the words don't fit (the narrow-label ladder: never a cut word).
-            ui.statusRungs(status, ScooterOffWords.state(), "");
+            // Abbreviated to Off where the words don't fit (the narrow-label ladder: never a cut word).
+            ui.statusRungs(status, ScooterOffWords.state(), T.commonOff());
             statusPill.setContentDescription(ScooterOffWords.state());
         } else if (link == RidingFocus.Link.CONNECTED) {
             String mode = mode(ble);
