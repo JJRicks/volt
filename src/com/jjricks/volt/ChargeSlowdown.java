@@ -1,35 +1,43 @@
 package com.jjricks.volt;
 
 /**
- * "Charging slowed" on the UT5 MAX fast charger: the charge's current is well below the level the battery's BMS
- * gives a healthy charge, and the battery temperature names why (owner, Nov 19 2026: power is the signal, the
- * temperature only names the cause).
+ * "Charging slowed" on the UT5 MAX: the charge's current is well below the level the battery's BMS gives a healthy
+ * charge, and the battery temperature names why (owner, Nov 19 2026: power is the signal, the temperature only names
+ * the cause).
  *
  * The BMS sets fixed current levels. A healthy fast charge holds about 10.05 A below a displayed 80% and 8.0 A
  * from 80% (that step is not temperature: every charge still below the charger's voltage limit takes it). A cold
  * battery gets 5.5 A below 15 C and 8.5 A from 15 C, with full current from 20 C; a hot one steps down to 8, 6, 4
- * and 3 A from about 38 to 41 C on. A fixed nominal power would miss the cold 8.5 A stage (450 W against 490), so
- * the live current is compared with the expected current instead.
+ * and 3 A from about 38 to 41 C on, and right after a ride (34 to 36 C) it can hold about 1 to 2 A for minutes.
+ * A fixed nominal power would miss the cold 8.5 A stage (450 W against 490), so the live current is compared with
+ * the expected current instead.
  *
  * The rule, on fresh paired readings of one charge:
  * <ul>
  * <li>only the UT5 MAX (product {@link Ut5MaxFastChargeReference#PRODUCT_ID}) with its calibrated pack (rated
- *     capacity within 10% of 15.3 Ah, FastChargeTaper.calibratedPack) on the fast charger, detected or chosen; the
- *     standard charger's 1.9 to 2.3 A sits below every BMS limit;</li>
+ *     capacity within 10% of 15.3 Ah, FastChargeTaper.calibratedPack);</li>
+ * <li>on any charger, a current below {@link #ANY_SHOW_AMPS} is slowed: the standard charger's own 1.9 to 2.3 A sits
+ *     well above it, so it needs no charger known (owner, Nov 24 2026: 1 to 2 A on the fast charger with no charger
+ *     chosen or detected showed nothing); between that and the fast charger's levels only the fast charger, detected
+ *     or chosen, is slowed (below SHOW x the expected current), as the standard charger's current sits there;</li>
  * <li>eligible outside the charger's voltage limit (V + CV_DROP x I below {@link #CV_EDGE_V}, FastChargeTaper's
- *     CV_SET less CV_MARGIN), below the charge limit less {@link #LIMIT_MARGIN} percent, and at least
- *     {@link #START_MS} after charging began or after a gap or pause in readings of {@link #GAP_MS} or more;</li>
- * <li>slowed once the current stays below SHOW x the expected current for {@link #HOLD_MS} without a break;
- *     cleared once it stays at CLEAR x or more for HOLD_MS, or at once when the charge leaves eligibility;</li>
+ *     CV_SET less CV_MARGIN; without the fast charger known, also outside the standard charger's, {@link
+ *     #STOCK_CV_EDGE_V}), below the charge limit less {@link #LIMIT_MARGIN} percent, and at least {@link #START_MS}
+ *     after charging began or after a gap in readings of {@link #GAP_MS} or more. A not-charging state shorter than
+ *     that (the BMS blips it while it holds the current low) keeps the charge and its clock;</li>
+ * <li>slowed once the current stays below the show level for {@link #HOLD_MS} without a break; cleared once it
+ *     stays at the clear level (CLEAR x the expected current, or {@link #ANY_CLEAR_AMPS} by the any-charger rule) or
+ *     more for {@link #CLEAR_MS}, or at once when the charge leaves eligibility or another charger is chosen or
+ *     detected;</li>
  * <li>the cause is cold at {@link #COLD_NAME_C} or below, hot at {@link #HOT_NAME_C} or above, otherwise (or with
  *     no fresh temperature) plain. It is set when the state shows and kept while it shows, except that a plain
  *     one takes cold or hot once a temperature names it.</li>
  * </ul>
  *
  * ChargingEstimate.forScooter takes {@link #state} as its slowdown argument, so the time shown and the charging
- * status share this one state. Nothing is persisted or loaded: the constants are bundled, each reading costs a
- * few comparisons, and a process restart starts watching the charge again. Instances hold one profile's charge.
- * See docs/validation/fast-charge-slowdown.md.
+ * status share this one state; the estimate uses it on the fast charger only. Nothing is persisted or loaded: the
+ * constants are bundled, each reading costs a few comparisons, and a process restart starts watching the charge
+ * again. Instances hold one profile's charge. See docs/validation/fast-charge-slowdown.md.
  */
 public final class ChargeSlowdown {
     /** Why charging is slowed. */
@@ -72,11 +80,32 @@ public final class ChargeSlowdown {
     /** FastChargeTaper.CV_SET less 0.15 V: at and above this the charger's voltage limit is near and current falls by design. */
     static final double CV_MARGIN = .15, CV_EDGE_V = FastChargeTaper.CV_SET - CV_MARGIN;
     static final double LIMIT_MARGIN = 2;
-    static final long HOLD_MS = 60_000L, START_MS = 60_000L, GAP_MS = 30_000L;
+    /**
+     * Shown after START_MS of charging and HOLD_MS below the show level (2.0.6: 20 s each, from 60 s each): readings come
+     * every 2 s with Home open and every 15 s out of sight, so 20 s is several readings, and a single low reading or a
+     * plug-in ramp (1 to 9.5 A over 30 s) never holds it. Cleared after CLEAR_MS at the clear level, as cautious as
+     * before, so a current moving between two of the BMS's levels does not flicker it.
+     */
+    static final long HOLD_MS = 20_000L, START_MS = 20_000L, CLEAR_MS = 60_000L, GAP_MS = 30_000L;
+    /**
+     * The any-charger rule (A): slowed below ANY_SHOW_AMPS, cleared at ANY_CLEAR_AMPS or more. The standard charger's
+     * bulk current is 1.9 to 2.3 A (its recordings: 1.94 to 2.30 A), and below 1.9 A only in its finish at its voltage
+     * limit (STOCK_CV_EDGE_V); 1.6 A sits 0.3 A (about 15%) under its lowest level, far beyond the 0.02 to 0.03 A
+     * reading steps, and the 0.1 A between show and clear is the same hysteresis as SHOW and CLEAR around 2 A.
+     */
+    static final double ANY_SHOW_AMPS = 1.6, ANY_CLEAR_AMPS = 1.7;
+    /**
+     * The standard charger's voltage limit less CV_MARGIN: its finish line is Ut5MaxStockChargeReference.FINISH_CV_SET
+     * less FINISH_CV_DROP an amp, so its current falls below ANY_SHOW_AMPS there with the pack under the fast charger's edge.
+     */
+    static final double STOCK_CV_EDGE_V = Ut5MaxStockChargeReference.FINISH_CV_SET - CV_MARGIN, STOCK_CV_DROP = Ut5MaxStockChargeReference.FINISH_CV_DROP;
     /** A silence this long ends the watched charge, as FastChargeTaper's. */
     static final long MAX_SILENCE_MS = FastChargeTaper.MAX_SILENCE_MS;
-    /** Cause naming edges (C): 70 F and 100 F. */
-    static final double COLD_NAME_C = 21, HOT_NAME_C = 38;
+    /**
+     * Cause naming edges (C): 70 F and 95 F. Hot from 35 C (2.0.6, from 38 C): right after a ride the owner's BMS held
+     * the current at 1 to 2 A with the battery at 34 to 36 C.
+     */
+    static final double COLD_NAME_C = 21, HOT_NAME_C = 35;
     /** The BMS's cold levels: COLDEST_AMPS below COLD_LOW_C, COOL_AMPS below COLD_FULL_C, full current from it. */
     static final double COLD_LOW_C = 15, COLD_FULL_C = 20, COLDEST_AMPS = 5.5, COOL_AMPS = 8.5;
     /**
@@ -99,6 +128,11 @@ public final class ChargeSlowdown {
 
     private String profile;
     private boolean on, coldSeen;
+    /** A not-charging state was seen since the last charging reading: the charge goes on if charging is back within GAP_MS. */
+    private boolean paused;
+    /** The charger detected or chosen last in this charge (null: none known yet), and whether the fast rule applied last. */
+    private ChargeSessionStore.Charger knownCharger;
+    private boolean fastRule;
     private Cause cause;
     private Double temperature;
     private long start, since = -1, last;
@@ -138,40 +172,50 @@ public final class ChargeSlowdown {
     }
 
     /**
-     * One reading. charging is the fresh charging state (null changes nothing). ratedAh is the pack's rated capacity
-     * or null (unknown: not watched). soc, volts and amps are a fresh paired reading or null; temperatureC a fresh battery temperature or null; limit the scooter's charge limit
-     * (percent) or null when unknown, which counts as 100. sampleMs is the paired reading's time on the monotonic
-     * clock; the same reading seen again changes nothing.
+     * One reading. charging is the fresh charging state (null changes nothing; false pauses the charge, which a charging
+     * reading within GAP_MS of the last one resumes). charger is the charger in effect (detected or chosen) or null.
+     * ratedAh is the pack's rated capacity or null (unknown: not watched). soc, volts and amps are a fresh paired reading
+     * or null; temperatureC a fresh battery temperature or null; limit the scooter's charge limit (percent) or null when
+     * unknown, which counts as 100. sampleMs is the paired reading's time on the monotonic clock; the same reading seen
+     * again changes nothing.
      */
     public void observe(String profile, int productId, Double ratedAh, ChargeSessionStore.Charger charger, Boolean charging,
             Double soc, Double volts, Double amps, Double temperatureC, Double limit, long sampleMs) {
         if (profile == null || profile.isEmpty() || charging == null) return;
         if (!profile.equals(this.profile)) { reset(); this.profile = profile; }
-        if (!charging) { clearCharge(); return; }
+        if (!charging) { paused = true; return; }
         if (soc == null || volts == null || amps == null || !finite(soc) || !finite(volts) || !finite(amps) || sampleMs <= 0) return;
         if (sampleMs == last) return;
-        if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS)) clearCharge();
-        if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)
-                || charger != ChargeSessionStore.Charger.HIGH_SPEED) {
-            // Not watched: a later fast-charger reading starts its own START_MS.
-            on = false; since = -1; last = 0; temperature = null; warmFirst = -1;
+        // A pause of GAP_MS or more (from the last charging reading) begins a new charge, as does a long silence.
+        if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS || paused && sampleMs - last >= GAP_MS)) clearCharge();
+        paused = false;
+        if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)) {
+            // Not watched: a later reading of a watched pack starts its own START_MS.
+            on = false; since = -1; last = 0; temperature = null; warmFirst = -1; knownCharger = null;
             return;
         }
         if (last == 0 || sampleMs - last >= GAP_MS) { start = sampleMs; since = -1; }
+        // Another charger chosen or detected than the one known in this charge: cleared at once, a new start window
+        // (the cold stretch is kept). A charger not known for a moment changes the rule only.
+        if (charger != null && knownCharger != null && charger != knownCharger) { on = false; since = -1; start = sampleMs; warmFirst = -1; }
+        if (charger != null) knownCharger = charger;
+        boolean fast = charger == ChargeSessionStore.Charger.HIGH_SPEED;
+        if (fast != fastRule) { fastRule = fast; since = -1; }
         last = sampleMs;
         temperature = temperatureC != null && finite(temperatureC) ? temperatureC : null;
         if (temperature != null) warming(temperature, sampleMs);
         double current = Math.abs(amps), expected = expectedAmps(soc);
         double cutoff = limit != null && finite(limit) && limit > 0 && limit <= 100 ? limit : 100;
-        boolean eligible = volts + FastChargeTaper.CV_DROP * current < CV_EDGE_V && soc < cutoff - LIMIT_MARGIN && sampleMs - start >= START_MS;
+        boolean eligible = volts + FastChargeTaper.CV_DROP * current < CV_EDGE_V && soc < cutoff - LIMIT_MARGIN && sampleMs - start >= START_MS
+                && (fast || volts + STOCK_CV_DROP * current < STOCK_CV_EDGE_V);
         if (!eligible) { on = false; since = -1; }
         else {
-            double ratio = current / expected;
-            boolean want = on ? ratio < CLEAR : ratio < SHOW;
+            boolean want = fast ? (on ? current / expected < CLEAR : current / expected < SHOW)
+                    : (on ? current < ANY_CLEAR_AMPS : current < ANY_SHOW_AMPS);
             if (want == on) since = -1;
             else {
                 if (since < 0) since = sampleMs;
-                if (sampleMs - since >= HOLD_MS) {
+                if (sampleMs - since >= (want ? HOLD_MS : CLEAR_MS)) {
                     on = want; since = -1;
                     if (on) cause = cause(temperature);
                 }
@@ -182,11 +226,11 @@ public final class ChargeSlowdown {
     }
 
     /**
-     * The state for this profile's charge at nowMs (the monotonic clock): NONE for another profile or without a
-     * watched fast charge, and not slowed once the last reading is GAP_MS old.
+     * The state for this profile's charge at nowMs (the monotonic clock): NONE for another profile, without a
+     * watched charge or while charging is paused, and not slowed once the last reading is GAP_MS old.
      */
     public State state(String profile, long nowMs) {
-        if (profile == null || !profile.equals(this.profile) || last <= 0) return State.NONE;
+        if (profile == null || !profile.equals(this.profile) || last <= 0 || paused) return State.NONE;
         boolean fresh = nowMs >= last && nowMs - last < GAP_MS;
         if (!fresh) return coldSeen ? new State(false, null, null, true) : State.NONE;
         return new State(on, cause, temperature, coldSeen, warmRate());
@@ -212,7 +256,8 @@ public final class ChargeSlowdown {
     }
 
     private void clearCharge() {
-        on = coldSeen = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
+        on = coldSeen = paused = fastRule = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
+        knownCharger = null;
     }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }

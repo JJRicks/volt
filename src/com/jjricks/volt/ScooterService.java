@@ -607,7 +607,8 @@ public final class ScooterService extends Service {
     }
     /**
      * Whether "Charging slowed" (ChargeSlowdown) holds for the active scooter's charge, so a throttled charge never reads
-     * as a different charger. It watches the UT5 MAX on the high-speed charger; elsewhere it reports none.
+     * as a different charger. It watches the UT5 MAX (any charger far below the standard charger's current, the high-speed
+     * charger below its own levels); elsewhere it reports none.
      */
     private boolean chargeSlowedForHint(){return chargeSlowdown().slowed;}
     private int qualifiedRecordings(ChargeSessionStore.Charger charger){
@@ -1160,9 +1161,9 @@ public final class ScooterService extends Service {
     private static volatile ChargeSlowdown.State testChargeSlowdown;
 
     /**
-     * Whether the active scooter's UT5 MAX fast charge is slowed now, why, and its battery temperature (ChargeSlowdown):
-     * the state the charging status shows and the time left already uses. NONE while simulating, without a watched fast
-     * charge, or once its readings are stale.
+     * Whether the active scooter's UT5 MAX charge is slowed now, why, and its battery temperature (ChargeSlowdown): the
+     * state the charging status shows and the fast charger's time left uses. NONE while simulating, without a watched
+     * charge, while charging is paused, or once its readings are stale.
      */
     public ChargeSlowdown.State chargeSlowdown(){
         ChargeSlowdown.State forced=testChargeSlowdown;

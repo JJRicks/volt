@@ -2,7 +2,8 @@
 
 Estimator `ut5-fast-thermal-v10`, following [high-speed voltage/current estimates](fast-charge-taper.md).
 It changes UT5 MAX **fast-charger** estimates only. Standard-charger, unknown-charger and other-model
-estimates are unchanged in every field.
+estimates are unchanged in every field. Since 2.0.6 the "Charging slowed" status itself also shows on any
+charger when the current is far below the standard charger's ([Slowed sooner](#slowed-sooner-206)).
 
 The owner, Nov 19 2026: "add battery temp into the algorithm as well … what the current temp is, how
 quickly it rises when charging, how quickly we expect it to start throttling, how quickly it will
@@ -30,24 +31,75 @@ A fixed nominal power cannot tell these apart: the cold 8.5 A stage reaches 450 
 Fed once per fresh paired reading in `ScooterService.updateChargerDetection()`, beside the charge-age
 tracker and the taper watcher:
 
-- **Scope:** the UT5 MAX on the fast charger, detected or chosen, with the pack these current levels were
-  measured on (rated capacity within 10% of 15.3 Ah, as the voltage model requires; unknown or other packs
-  get no state and no layer). The standard charger (1.9–2.3 A) sits below every BMS limit.
+- **Scope:** the UT5 MAX with the pack these current levels were measured on (rated capacity within 10%
+  of 15.3 Ah, as the voltage model requires; unknown or other packs get no state and no layer).
+- **Which current is slowed** (2.0.6, see [Slowed sooner](#slowed-sooner-206)):
+  - **any charger**, known or not: below **1.6 A**. The standard charger's own current is 1.9–2.3 A
+    (1.94–2.30 A in the committed recordings) and only falls below that in its finish at its voltage limit,
+    so a current this low is the battery holding the charge back whichever charger is plugged in;
+  - **the fast charger, detected or chosen:** below 0.90 × the expected current (10.05 A below 80%,
+    8.0 A from 80%). Between 1.6 A and the fast charger's levels nothing shows without the fast charger
+    known, since the standard charger's current sits there.
 - **Eligible:** outside the charger's voltage limit (V + 0.107 × I below 54.38 V, FastChargeTaper's
-  CV_SET less 0.15 V); below the charge limit less 2% (an unknown limit counts as 100%); and at least
-  60 s after charging starts or after a gap or pause in readings of 30 s or more.
-- **Shows** once the current stays below 0.90 × the expected current (10.05 A below 80%, 8.0 A from 80%)
-  for 60 s without a break. **Clears** once it stays at 0.95 × or more for 60 s, or at once when the
-  charge leaves eligibility.
-- **Cause:** cold at 21 °C (70 °F) or below, hot at 38 °C (100 °F) or above, otherwise (or with no fresh
+  CV_SET less 0.15 V; without the fast charger known, also V + 0.247 × I below 54.36 V, the standard
+  charger's finish line less 0.15 V); below the charge limit less 2% (an unknown limit counts as 100%);
+  and at least 20 s after charging starts or after a gap in readings of 30 s or more. A not-charging
+  state shorter than 30 s (from the last charging reading) keeps the charge, its clock and what is shown;
+  30 s or more begins a new charge, as before.
+- **Shows** once the current stays below the level above for 20 s without a break. **Clears** once it
+  stays at 0.95 × the expected current (any charger: 1.7 A) or more for 60 s, or at once when the charge
+  leaves eligibility or another charger is chosen or detected. A charger that is unknown for a moment
+  changes which level applies, nothing else.
+- **Cause:** cold at 21 °C (70 °F) or below, hot at 35 °C (95 °F) or above, otherwise (or with no fresh
   temperature) a plain "Charging slowed". The cause is set when it shows and kept while shown; a plain
   one takes cold or hot once a temperature names it.
 - **State:** `ChargeSlowdown.State` (slowed, cause, battery temperature, and whether this charge was
-  slowed cold), read through `ScooterService.chargeSlowdown()`. The charging status will show it; the
-  estimate already uses the same state. Simulation never drives it.
+  slowed cold), read through `ScooterService.chargeSlowdown()`. The charging pill shows it, and the
+  fast-charger estimate uses the same state. Simulation never drives it.
 
-On the maintainer's local recordings it shows only during real throttling (one cold charge, two hot
-ones); healthy stretches stay at 0.997 × or more of the expected current.
+On the maintainer's local recordings (with 2.0.5's 60 s timing) it showed only during real throttling
+(one cold charge, two hot ones); healthy stretches stay at 0.997 × or more of the expected current.
+
+## Slowed sooner (2.0.6)
+
+The owner, Nov 24 2026, after a charge right after a ride: "the 'charge speed degraded' text should pop up
+way faster, I was staring at the 62 W plugged into the high speed charger imagining myself as a new user
+going huhhh?" The fast charger was plugged in with no charger chosen and none detected yet. For about
+7 minutes the BMS held the charge at about 1.04 A (50 W), then 1.98 A (96 W), then 1.28 A (63 W), with the
+battery at 34–36 °C and the charging state dropping out for 5 and 8 s in between, before the full 10 A.
+Nothing showed: the rule needed the fast charger known, waited 60 s plus 60 s (restarted by each drop-out),
+and named heat from 38 °C.
+
+What changed:
+
+- **Any charger below 1.6 A** (above). The 1.04 A and 1.28 A stretches are slowed with no charger known.
+  The 1.98 A one is not: with no charger known that is the standard charger's own current.
+- **20 s, not 60 s,** for the start window and for the hold before it shows (40 s after plug-in in all).
+  Readings come every 2 s with Home open (every 15 s out of sight, where it shows at the first reading
+  from 60 s), so 20 s is many readings; a single low reading, or a plug-in ramp from 1 to 9.5 A over 30 s,
+  never holds it. Clearing still takes 60 s at the clear level, so a current moving between two of the
+  BMS's levels doesn't flicker it.
+- **A charging-state drop-out under 30 s** no longer restarts the charge.
+- **Hot from 35 °C (95 °F),** from 38 °C. The BMS's own hot steps start at 38–41 °C on a long charge, but
+  right after a ride it held the current low at 34–36 °C. Cold naming is unchanged.
+
+Replaying the owner's timeline (its charging-state changes, held at 2 s readings; kept private): the pill
+reads **Charging slowed · battery hot (97°)** from 40 s after plug-in, stays through the first drop-out,
+and clears 60 s into the 1.98 A stretch; the last 1.28 A stretch lasted under 20 s. With High-speed chosen
+it stays until 60 s after the full current.
+
+**The fast charger's soft start.** A healthy fast charge starts at about 1.3 A for a minute or so (the
+owner's own charges show 1.28 A for at least 55 s at 25 °C). That is now a plain **Charging slowed** from
+40 s, clearing 60 s after the full current arrives: the rider sees 63 W from a 500 W charger, which is what
+the owner found confusing. `ChargeSlowdownTest` pins this.
+
+**The time left with no charger known.** The estimate uses the slowed state on the fast charger only
+(`ChargingEstimate.withSlowdown`), so with no charger known nothing claims a fast-charger estimate. The
+plug-in hold (`ChargeEstimateHold`, [Estimating first](charge-estimating-first.md)) shows **Estimating time
+left** until the charger is known and, on the fast charger, its full current has started, for at most
+3 minutes; a charge-state drop-out starts that hold again. After the cap, a charge still unknown and
+slowed shows the plain current-rate time (the live current lasting to 100%), and Charge done by plans
+with it, as before: long, and on the safe side.
 
 ## The estimate while slowed
 
@@ -125,8 +177,13 @@ is touched). The cold bulk time is worked out per stage, not stepped.
   voltage limit, cold start, the owner's 430 W at 67 °F example, hot start, a mid-band drop, the
   temperature edges, flicker, dropouts and ramps, a limit approach, the standard charger, the 80% step),
   the observer's edges, the per-stage bulk time against a stepped simulation, and the voltage planning.
+- Since 2.0.6 it also holds a charge shaped like the owner's after-ride one (no charger known, 1.04, 1.98
+  and 1.28 A with two charging-state drop-outs, 34–36 °C, then 10 A; synthesized), the any-charger rule at
+  and around 1.6 A on each charger, the standard charger's finish at a 95% gauge, the fast charger's soft
+  start, drop-outs under and over 30 s, and readings every 15 s.
 - The same test replays `data/fast-charge-taper-v7` (no temperatures): only its one cold charge shows
   slowed (named plain, with no temperature to name it); every other time shown is unchanged, and every
-  standard-charger row is unchanged in every field.
+  standard-charger row is unchanged in every field. Fed again with no charger known, no sample of any
+  session shows slowed.
 - On the maintainer's local replay set (kept private), the worst Charge done by margin across both
   scooters went from about +5 to about +17 minutes, and no standard-charger row changed.
