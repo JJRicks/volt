@@ -241,38 +241,44 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
     /** The owner's second report: a charge recording's chart expanded, then unfolded. */
     private void chargeRecording() throws Exception {
         open(HubPages.BATTERY_HISTORY);
-        main(() -> { View row = root().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No Charge recordings row"); row.performClick(); });
-        await(() -> byTag("charge-history-session:" + chargeA) != null, 10000, "The recordings list did not load");
-        main(() -> require(byTag("charge-history-session:" + chargeA).performClick(), "The recording took no tap"));
-        await(() -> byTag("charge-history-detail") != null, 10000, "The recording did not open");
+        openRecording();
         shot("charge-detail-phone");
         unfold();
         expect(page().equals(HubPages.BATTERY_HISTORY), "unfolded: still Charge history (got " + page() + ")");
         expect(waitFor(() -> byTag("charge-history-detail") != null, 8000), "unfolded: the recording is still open");
         shot("charge-detail-fold");
-        if (onMain(() -> byTag("charge-history-expand") == null)) { fold(); throw new IllegalStateException("No recording to expand after the unfold"); }
+        fold();
+        expect(waitFor(() -> byTag("charge-history-detail") != null, 8000), "folded: the recording is still open");
+        if (onMain(() -> byTag("charge-history-detail") == null)) openRecording(); // report mode: carry on from the recording
         main(() -> require(byTag("charge-history-expand").performClick(), "Expand took no tap"));
         await(() -> byTag("charge-history-fullscreen") != null, 8000, "The expanded charge chart did not open");
         main(() -> require(byTag("charge-history-fullscreen-zoom-in").performClick(), "Zoom in took no tap"));
         settle();
         double span = onMain(() -> span((RideChartView) byTag("charge-history-fullscreen-chart")));
-        shot("charge-chart-fold");
-        fold();
-        expect(page().equals(HubPages.BATTERY_HISTORY), "folded with the chart expanded: still Charge history");
-        expect(waitFor(() -> byTag("charge-history-fullscreen") != null, 8000), "folded: the expanded charge chart is still open");
-        if (onMain(() -> byTag("charge-history-fullscreen-chart") != null)) {
-            double after = onMain(() -> span((RideChartView) byTag("charge-history-fullscreen-chart")));
-            expect(Math.abs(after - span) <= span * 0.02 + 1, "folded: the expanded charge chart kept its zoom (" + span + " → " + after + ")");
-        }
         shot("charge-chart-phone");
         unfold();
-        expect(waitFor(() -> byTag("charge-history-fullscreen") != null, 8000), "unfolded again: the expanded charge chart is still open");
+        expect(page().equals(HubPages.BATTERY_HISTORY), "unfolded with the chart expanded: still Charge history");
+        expect(waitFor(() -> byTag("charge-history-fullscreen") != null, 8000), "unfolded: the expanded charge chart is still open");
+        if (onMain(() -> byTag("charge-history-fullscreen-chart") != null)) {
+            double after = onMain(() -> span((RideChartView) byTag("charge-history-fullscreen-chart")));
+            expect(Math.abs(after - span) <= span * 0.02 + 1, "unfolded: the expanded charge chart kept its zoom (" + span + " → " + after + ")");
+        }
+        shot("charge-chart-fold");
         fold();
+        expect(waitFor(() -> byTag("charge-history-fullscreen") != null, 8000), "folded again: the expanded charge chart is still open");
         back();
         expect(waitFor(() -> byTag("charge-history-fullscreen") == null && byTag("charge-history-detail") != null, 5000), "Back closes the expanded chart onto the recording");
         main(() -> { View close = byDescription(windowWith("charge-history-detail"), T.statsChargeHistoryClose()); if (close != null) close.performClick(); });
         expect(waitFor(() -> byTag("charge-history-detail") == null, 5000) && page().equals(HubPages.BATTERY_HISTORY), "Closing the recordings: Charge history's page");
-        checks.add(label + " charge recording: kept unfolded; expanded chart kept with its span folded and unfolded; Back steps out");
+        checks.add(label + " charge recording: kept unfolded and folded; its expanded chart kept with its span; Back steps out");
+    }
+    /** Charge history & recordings, then the newer synthetic recording. */
+    private void openRecording() {
+        closeWindows();
+        main(() -> { View row = root().findViewWithTag("charge-history-action"); require(row != null && row.isEnabled(), "No Charge recordings row"); row.performClick(); });
+        await(() -> byTag("charge-history-session:" + chargeA) != null, 10000, "The recordings list did not load");
+        main(() -> require(byTag("charge-history-session:" + chargeA).performClick(), "The recording took no tap"));
+        await(() -> byTag("charge-history-detail") != null, 10000, "The recording did not open");
     }
 
     /** Battery & charging with its Live charging sheet open, unfolded: the page and the sheet. */
