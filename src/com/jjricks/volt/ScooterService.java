@@ -2705,6 +2705,8 @@ public final class ScooterService extends Service {
     private void autoStopRide(RideAutoStopPolicy policy,String reason){
         if(destroyed||policy==null||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId())||!RideAutoStopPolicy.mayEnd(autoStopLink()))return;
         String id=policy.rideId;
+        // A countdown the switch-off started (ScooterPowerState) is saved as a switch-off: its own words, its last movement as its end.
+        if(policy.switchedOffCountdown())reason=RideStore.switchedOffStopReason(reason);
         if(stopRide(reason)){
             if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
             showAutoStopNotice(id,reason);

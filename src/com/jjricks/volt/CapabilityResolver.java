@@ -24,9 +24,10 @@ public final class CapabilityResolver {
         NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST }
     /**
      * The reason a change is refused while the scooter is switched off but answering (ScooterPowerState): every change
-     * but the charging settings. No motion report until the scooter-off reason and its words arrive with their catalog
-     * strings (ScooterOffWords): a switched-off scooter sends none, so that reason is true, and it keeps the control
-     * tappable so the tap says why (blockedByRide).
+     * but the charging settings. No motion report, which a switched-off scooter never sends, so the reason is true and
+     * keeps the control tappable so the tap says why (blockedByRide). Its words are the decision's own: a decision
+     * marked switchedOff says "Turn the scooter on first" (ScooterOffWords.refusal), not "No motion report yet", so no
+     * new Reason (and no change to the reasons' pinned English) is needed.
      */
     static final Reason OFF_REASON=Reason.NO_MOTION_REPORT;
     /** Status older than this is stale (BleController.ready() uses the same bound). */
@@ -120,9 +121,9 @@ public final class CapabilityResolver {
          * logged (BleController.notice's event log and journal) or stored (ChargeScheduleController's status) takes
          * reasonMessage() instead and keeps its english() (plan R2).
          */
-        public String reasonText(){return text(reason);}
+        public String reasonText(){return switchedOff?ScooterOffWords.refusal():text(reason);}
         /** reasonText() deferred: "" for no reason, else a Msg whose english() is what a log or a stored status keeps. */
-        public CharSequence reasonMessage(){return message(reason);}
+        public CharSequence reasonMessage(){return switchedOff?ScooterOffWords.refusalMessage():message(reason);}
         /** variant.read(status) or null. */
         public Integer current(){return variant==null?null:variant.read(status);}
         @Override public String toString(){return feature+":"+support+"/"+reason+(variant==null?"":"/"+variant.id);}
@@ -377,6 +378,7 @@ public final class CapabilityResolver {
      * words (ScooterOffWords.waitingForSpeed); until then, and on other models, the reason's own "No motion report yet".
      */
     static CharSequence noMotionNotice(Decision d,boolean ut5){
+        if(d.switchedOff)return d.reasonMessage();
         CharSequence waiting=ut5&&d.reason==Reason.NO_MOTION_REPORT?ScooterOffWords.waitingForSpeed():null;
         return waiting!=null?waiting:d.reasonMessage();
     }

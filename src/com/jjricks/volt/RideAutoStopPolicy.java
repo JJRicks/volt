@@ -122,6 +122,8 @@ public final class RideAutoStopPolicy {
     private boolean bound, moved, fresh = true;
     /** The link is up but the scooter is switched off (scooterOff): its countdown runs while rule 3 keeps counting. */
     private boolean off;
+    /** The countdown running (or just due) was started by a switch-off (scooterOff), not by a drop: kept through later drops. */
+    private boolean offCountdown;
     private long lastNow, lastMotion, lastFrame, runStart, runLast, lossMono;
     private int runCount;
     /** Last fresh motion push on this connection: its speed (-1 unknown) and push time. */
@@ -174,7 +176,7 @@ public final class RideAutoStopPolicy {
 
     /** Explicit stop, user disconnect, profile change, setting off or uncertain state: forget all evidence. */
     public void reset() {
-        bound = moved = fresh = off = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
+        bound = moved = fresh = off = offCountdown = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
         clearRun(); clearSpeed(); clearQuiet(); clearStill(); clearHeld();
     }
 
@@ -195,7 +197,7 @@ public final class RideAutoStopPolicy {
             long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
         if (!clock(now)) return;
         // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off.
-        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false;
+        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false; offCountdown = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
             // A serial not read yet right after a reconnect may still be this scooter: keep rule 3's held count.
@@ -289,6 +291,7 @@ public final class RideAutoStopPolicy {
             off = true;
             if (pushMono > 0 && pushMono <= now && pushMono < lastFrame) lastFrame = pushMono;
             arm(now, Loss.RECOVERABLE);
+            offCountdown = true;
             clearRun(); clearSpeed();
         }
         if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
@@ -296,6 +299,7 @@ public final class RideAutoStopPolicy {
 
     /** The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. */
     private void arm(long now, Loss loss) {
+        offCountdown = false;
         long frame = lastFrame > 0 ? lastFrame : now;
         boolean parked = loss == Loss.RECOVERABLE && runCount >= STATIONARY_SAMPLES && runLast - runStart >= STATIONARY_SPAN_MS
                 && lastFrame >= runLast && lastFrame - runLast <= MOTION_FRESH_MS
@@ -359,6 +363,13 @@ public final class RideAutoStopPolicy {
         }
         return dueNoMotion(now) ? Stop.NO_MOTION : Stop.NONE;
     }
+
+    /**
+     * Whether the countdown that is running, or that just came due, was started by the scooter being switched off while
+     * still answering ({@link #scooterOff}), through any drops and push-less reconnects since. The ride's end is then
+     * saved as a switch-off (RideStore.switchedOffStopReason): its own words, and its last movement as its shown end.
+     */
+    public boolean switchedOffCountdown() { return offCountdown; }
 
     /** True once when the parked grace has run out; the caller then ends this ride through its normal stop. */
     public boolean due(long now) {

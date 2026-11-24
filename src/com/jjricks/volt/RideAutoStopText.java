@@ -16,6 +16,8 @@ final class RideAutoStopText {
     static String notice(String reason, RideStore.Summary ride, CharSequence shownEnd) {
         boolean still = ride != null ? ride.noMotionStop : RideStore.STOP_AUTO_NO_MOTION.equals(reason);
         if (still) return noMotion(ride, shownEnd);
+        boolean off = ride != null ? ride.stopSwitchedOff : RideStore.isSwitchedOffStop(reason);
+        if (off) return switchedOff(ride, shownEnd);
         boolean quiet = ride != null ? RideStore.STOP_AUTO_QUIET.equals(ride.stopReason) : RideStore.isQuietStop(reason);
         if (!quiet) return ride == null || ride.label.isEmpty() ? T.serviceRideBluetoothLost() : T.serviceRideBluetoothLostLabel(ride.label);
         boolean phone = ride != null && ride.stopPhoneBluetoothOff;
@@ -31,9 +33,16 @@ final class RideAutoStopText {
         return ride.label.isEmpty() ? T.serviceRideNoMotionAt(shownEnd) : T.serviceRideNoMotionLabelAt(ride.label, shownEnd);
     }
 
+    /** The scooter was switched off while still answering (ScooterPowerState); the shown end is its last movement. */
+    private static String switchedOff(RideStore.Summary ride, CharSequence shownEnd) {
+        if (ride == null || shownEnd == null || shownEnd.length() == 0) return T.serviceRideSwitchedOff();
+        return ride.label.isEmpty() ? T.serviceRideSwitchedOffAt(shownEnd) : T.serviceRideSwitchedOffLabelAt(ride.label, shownEnd);
+    }
+
     /** The Saved automatically pill's screen-reader text for an automatic stop. */
     static String description(RideStore.Summary ride) {
         if (ride != null && ride.noMotionStop) return T.ridesSavedAutomaticallyNoMotionDescription();
+        if (ride != null && ride.stopSwitchedOff) return T.ridesSavedAutomaticallySwitchedOffDescription();
         if (ride == null || !RideStore.STOP_AUTO_QUIET.equals(ride.stopReason)) return T.ridesSavedAutomaticallyDescription();
         return ride.stopPhoneBluetoothOff ? T.ridesSavedAutomaticallyPhoneBluetoothDescription() : T.ridesSavedAutomaticallyQuietDescription();
     }

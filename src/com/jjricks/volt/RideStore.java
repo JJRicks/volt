@@ -143,6 +143,8 @@ public final class RideStore {
          * rules); a screen showing any automatic end checks both. The analysis JSON names it by its token.
          */
         public final boolean noMotionStop;
+        /** A went-quiet stop whose scooter was switched off while still answering (switchedOffStopReason): ends at its last movement. */
+        public final boolean stopSwitchedOff;
         /**
          * What a rider sees as the end. For an automatic stop it is the last real reading (any fresh
          * scooter value), so the silent link, gap and wait after it never count; otherwise, and when
@@ -174,9 +176,11 @@ public final class RideStore {
             stopLastReadingMonotonicMs = last < -1 ? -1 : last;
             stopDisconnectCode = disconnectCode(params);
             stopPhoneBluetoothOff = "off".equals(params.get("phone_bt"));
+            stopSwitchedOff = quiet && stopDisconnectCode == SWITCHED_OFF_CODE;
             boolean trim = (automaticStop || noMotionStop) && a.readingElapsed >= 0 && a.readingElapsed <= a.elapsed;
             // A no-motion stop ends at its last motion, so the ten idle minutes never count; with no motion at all, as other automatic stops.
-            boolean still = noMotionStop && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
+            // So does a switched-off scooter's: its answered polls kept the readings going after the switch-off.
+            boolean still = (noMotionStop || stopSwitchedOff) && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
             shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
             shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
             shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;
@@ -574,6 +578,18 @@ public final class RideStore {
         return result;
     }
 
+    /**
+     * The disconnect code a switched-off end saves in place of a native one: the scooter was switched off while still
+     * answering, so no Bluetooth drop caused it (any drop came after). Android's codes are never negative below -1.
+     */
+    static final int SWITCHED_OFF_CODE = -2;
+    /**
+     * The stop reason for an automatic end whose countdown a switch-off started (RideAutoStopPolicy.switchedOffCountdown):
+     * a went-quiet stop with {@link #SWITCHED_OFF_CODE}, whichever rule came due (the parked rule's too).
+     */
+    public static String switchedOffStopReason(String reason) { return quietStopReason(SWITCHED_OFF_CODE, false); }
+    /** Whether a stop reason or saved details is a switched-off end (switchedOffStopReason). */
+    static boolean isSwitchedOffStop(String details) { return isQuietStop(details) && disconnectCode(stopParameters(details)) == SWITCHED_OFF_CODE; }
     /** The stop reason for a went-quiet end; {@link #stop} adds the last reading itself. */
     public static String quietStopReason(int disconnectCode, boolean phoneBluetoothOff) {
         return STOP_AUTO_QUIET + ";code=" + disconnectCode + (phoneBluetoothOff ? ";phone_bt=off" : "");
