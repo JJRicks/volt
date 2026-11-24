@@ -209,8 +209,8 @@ public final class ChargeEstimateHoldTest {
         check(shown.remainingMinutesToLimit == null && shown.remainingMinutesToFull == null
                 && shown.planningMinutesToLimit == null && shown.planningMinutesToFull == null, "No time and nothing for Charge done by to plan with");
         check(!shown.learnedToFull && !shown.referenceToFull && shown.learnedSessions == 0 && shown.referenceCharger == null, "Claims no source");
-        check(shown.labelMsg.english().equals("Estimating time left") && shown.status.equals(ChargingEstimate.ESTIMATING_STATUS), "The state and its tooltip");
-        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && ChargingEstimate.statusBesideLimit(shown, 58d).equals(ChargingEstimate.ESTIMATING_STATUS),
+        check(shown.labelMsg.render().equals("Estimating time left") && shown.status.equals("Estimating time left"), "The state and its tooltip: the live card's words");
+        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && ChargingEstimate.statusBesideLimit(shown, 58d).equals(shown.status),
                 "The 100% reading beside a limit is held too");
         check(ChargingEstimate.minutesToAlert(ChargingEstimate.estimating(rate), shown) == null, "So is the charge alert's countdown");
         ChargeSessionStore.Estimate recorded = ChargingEstimate.recordingSnapshot(rate);
