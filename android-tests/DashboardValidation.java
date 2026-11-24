@@ -1711,7 +1711,12 @@ public final class DashboardValidation extends ValidationInstrumentation {
             require(corner.getWidth() >= resizeTouch && corner.getHeight() >= resizeTouch, "Resize hit area is smaller than 48 dp");
             require(cornerBounds.right >= tile.getWidth() - tolerance && cornerBounds.bottom >= tile.getHeight() - tolerance,
                     "Resize target is not in the widget's bottom-right corner");
-            require(gripBounds.left == 0 && gripBounds.top == 0,
+            // One row with room before it for the title: the four sit together at the end (DashboardLayout.editorAtEnd,
+            // README #613); otherwise Move starts the row in the top-left corner.
+            boolean atEnd = !twoRows && DashboardLayout.editorAtEnd(tile.getWidth(), inlineTouch, 4, activity.ui().dp(96));
+            if (atEnd) require(gripBounds.top == 0 && gripBounds.left == tile.getWidth() - 4 * inlineTouch,
+                    "Move grip does not start the editor's row at the widget's end");
+            else require(gripBounds.left == 0 && gripBounds.top == 0,
                     "Move grip is not in the widget's top-left corner");
             require(optionsBounds.left == gripBounds.right && optionsBounds.top == gripBounds.top
                             && duplicateBounds.left == (twoRows ? 0 : optionsBounds.right)
