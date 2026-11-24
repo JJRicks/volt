@@ -68,7 +68,7 @@ public final class ChargeTimeTileValidation extends ValidationInstrumentation {
     private ScooterService service;
     private Bundle args;
     private boolean admitted;
-    private String a, b, ut5, label = "";
+    private String a, b, ut5, gt3, label = "";
     /** Clean Home's charging view (home=clean) rather than Widgets' takeover. */
     private boolean clean;
     private int assertions;
@@ -92,10 +92,16 @@ public final class ChargeTimeTileValidation extends ValidationInstrumentation {
                     ScooterProfiles.Profile pb = profiles.create("Synthetic GT3 Max B", "000000000002", 0); pb.serial = "Q2345ZZ9ES7777778";
                     pb.advertisedPid = "24182"; pb.advertisedPidWall = System.currentTimeMillis(); profiles.update(pb); b = pb.id;
                     ScooterProfiles.Profile pu = profiles.create("Synthetic UT5 MAX", "000000000000", 0); pu.serial = "X2538-SYNTHETIC"; profiles.update(pu); ut5 = pu.id;
+                    // The wording mode's GT3 Max with a serial that agrees with its model ID (A and B's disagree: an unknown model).
+                    if (mode.equals("wording")) {
+                        ScooterProfiles.Profile pg = profiles.create("Synthetic GT3 Max", "000000000003", 0); pg.serial = "Q2418ZZ9ES7777777";
+                        pg.advertisedPid = "24182"; pg.advertisedPidWall = System.currentTimeMillis(); profiles.update(pg); gt3 = pg.id;
+                    }
                     profiles.select(a); OnboardingScreen.markDone(getTargetContext());
                 });
                 launch();
                 if (mode.equals("layout")) verifyLayoutMatrix();
+                else if (mode.equals("wording")) verifyWording();
                 else {
                     verifyOneReading();
                     verifyAlertReadings();
@@ -486,8 +492,11 @@ public final class ChargeTimeTileValidation extends ValidationInstrumentation {
         }
         main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
         hero(50, null, 2);
-        main(() -> require(!two() && uncapped[0].equals(String.valueOf(caption(FULL).getContentDescription())),
-                "One reading with no known cutoff no longer reads as before: " + caption(FULL).getContentDescription()));
+        // README #613: a model with no charge limit at all (Clean's simulated GT3 Max) names its one reading the plain time
+        // to full; an unknown model (Widgets' fixture GT3 Max, whose serial disagrees with its ID) keeps "if uncapped".
+        String one = noChargeLimit() ? string("dashboard_charge_time_full") : uncapped[0];
+        main(() -> require(!two() && one.equals(String.valueOf(caption(FULL).getContentDescription())),
+                "One reading with no known cutoff is not named " + one + ": " + caption(FULL).getContentDescription()));
         main(() -> require(service.setChargeAlerts(alert70), "Could not restore the alert"));
         hero(50, null, 2);
         checks.add("Two readings: the second is the plain time to 100% (label, every rung and speech), beside an alert and a limit; one reading unchanged");
@@ -508,6 +517,82 @@ public final class ChargeTimeTileValidation extends ValidationInstrumentation {
         Context c = getTargetContext(); int id = c.getResources().getIdentifier(name, "string", c.getPackageName());
         require(id != 0, "No string " + name);
         return format.length == 0 ? c.getString(id) : c.getString(id, format);
+    }
+
+    /**
+     * The selected scooter's model has no charge limit at all (ScooterService.noChargeLimit, README #613); false in an
+     * app built before it, which still names every unknown cutoff "if uncapped".
+     */
+    private boolean noChargeLimit() {
+        boolean[] none = new boolean[1];
+        main(() -> {
+            try { none[0] = (Boolean) ScooterService.class.getMethod("noChargeLimit").invoke(service); }
+            catch (NoSuchMethodException older) { none[0] = false; }
+            catch (ReflectiveOperationException e) { throw new IllegalStateException("noChargeLimit", e); }
+        });
+        return none[0];
+    }
+
+    /**
+     * README #613's wording and its renders (-e locales "en,de", -e text_scale, both themes; -e size_label names them).
+     * Widgets: a GT3 Max (no charge limit at all) names its one reading the plain time to full and, beside an alert,
+     * its second reading the plain time to 100%; a UT5 MAX whose limit isn't read yet keeps "if uncapped", and with its
+     * 80% limit read names that. Clean (-e home clean) has the simulator's GT3 Max only, so it runs the GT3 Max half.
+     * Every rung of each name is checked, so a narrow tile can't fall back to an "if uncapped" short form.
+     */
+    private void verifyWording() throws Exception {
+        String size = args.getString("size_label", "size"), text = args.getString("text_scale", "1.3");
+        for (String locale : args.getString("locales", "en,de").split(",")) for (String theme : new String[] {"dark", "light"}) {
+            label = size + "-" + locale + "-" + theme + "-" + text;
+            MainActivity old = activity; main(old::finish); SystemClock.sleep(800); settle();
+            seed(theme, text); setLocale("en".equals(locale) ? "" : locale); launch();
+            if (!clean) choose(gt3);
+            require(noChargeLimit(), label + ": the GT3 Max is not a model without a charge limit");
+            String[] uncapped = new String[3], full = new String[3];
+            main(() -> {
+                uncapped[0] = string("dashboard_charge_time_uncapped"); uncapped[1] = string("dashboard_charge_time_uncapped_short"); uncapped[2] = string("dashboard_charge_time_uncapped_compact");
+                full[0] = string("dashboard_charge_time_full"); full[1] = string("dashboard_charge_time_full_short"); full[2] = string("dashboard_charge_time_full_compact");
+            });
+            main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+            hero(50, null, 2);
+            assertOneName(label + ": GT3 Max, one reading", full, uncapped);
+            shot(label + "-gt3-one");
+            main(() -> require(service.setChargeAlerts(alert70), "Could not save the alert"));
+            hero(50, null, 2);
+            assertHundred(label + ": GT3 Max beside an alert", uncapped);
+            if (readingNow() != FULL) { tap(); awaitRest(); }
+            shot(label + "-gt3-alert-100");
+            main(() -> require(service.setChargeAlerts(alert70.charge(false, 70)), "Could not turn the alert off"));
+            if (!clean) {
+                choose(ut5);
+                require(!noChargeLimit(), label + ": the UT5 MAX counts as a model without a charge limit");
+                hero(50, null, 2);
+                assertOneName(label + ": UT5 MAX, limit not read", uncapped, full);
+                shot(label + "-ut5-unread");
+                hero(50, 80d, 2);
+                main(() -> require(two() && String.valueOf(caption(LIMIT).getContentDescription()).contains("80"),
+                        label + ": UT5 MAX at an 80% limit: " + caption(LIMIT).getContentDescription()));
+                if (readingNow() != LIMIT) { tap(); awaitRest(); }
+                shot(label + "-ut5-limit-80");
+            }
+            checks.add(label + ": GT3 Max \"" + full[0] + "\" (one reading) and the plain 100% beside an alert"
+                    + (clean ? "" : "; UT5 MAX \"" + uncapped[0] + "\" until its limit is read, then its 80%"));
+        }
+        MainActivity old = activity; main(old::finish); SystemClock.sleep(800);
+        setLocale("");
+    }
+    /** One reading, named want (full, short and compact rungs) and drawn with one of them, never with any of avoid. */
+    private void assertOneName(String what, String[] want, String[] avoid) {
+        main(() -> {
+            require(!two(), what + ": not one reading");
+            String name = String.valueOf(caption(FULL).getContentDescription()), shown = String.valueOf(caption(FULL).getText());
+            require(name.equals(want[0]), what + ": named '" + name + "', not '" + want[0] + "'");
+            require(shown.isEmpty() || java.util.Arrays.asList(want).contains(shown), what + ": drawn as '" + shown + "'");
+            for (String rung : new String[] {(String) field(caption(FULL), "normalLabel"), (String) field(caption(FULL), "shortLabel")})
+                require(java.util.Arrays.asList(want).contains(rung), what + ": a rung reads '" + rung + "'");
+            for (String u : avoid) require(!name.equals(u) && !shown.equals(u), what + ": still says " + u);
+            require(String.valueOf(value(FULL).getContentDescription()).startsWith(want[0] + ","), what + ": spoken as " + value(FULL).getContentDescription());
+        });
     }
 
     private void verifyInterruptions() throws Exception {

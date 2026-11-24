@@ -1,0 +1,5 @@
+# Battery & charging's range line keeps each number with its unit (#452: "about 38 / km left" at 344 dp, 1.4x).
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/Formatted.java
+src/com/jjricks/volt/UnitCode.java
+tests/l10n/UnitsJoinedTest.java

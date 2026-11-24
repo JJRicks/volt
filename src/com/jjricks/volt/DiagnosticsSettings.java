@@ -27,7 +27,7 @@ final class DiagnosticsSettings {
             // Look and units
             "home_style", "home_style_chosen", "home_moment_charging", "home_moment_ride", "units", "temperature_unit",
             "time_format", "theme", "text_scale", "stats_density", "dashboard_columns", "app_language",
-            "keep_screen_awake", "haptics_enabled", "map_basemap_enabled", "just_back_basemap",
+            "keep_screen_awake", "haptics_enabled", "map_basemap_enabled", "just_back_basemap", "map_style",
             // Riding mode
             "riding_night_vision", "riding_night_schedule", "riding_brightness", "riding_rotation",
             // Reports and updates

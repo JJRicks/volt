@@ -210,7 +210,60 @@ public final class LiveRangeEstimatorTest {
         RangeReadout.Value fresh = r.update(snap(0, 38.0, 60, false), "mi", true);
         v = r.update(snap(2000, 20.0, 60, false, true, false, true), "mi", true);
         check(v.stale && v.primary.equals(fresh.primary), "Stale: the last value, frozen");
+        readoutSettling();
         readoutStalePresentation();
+    }
+
+    /**
+     * Riding mode shows a dash while the energy model settles (owner, 2.0.5): the readout says so, and the first
+     * number after it starts from the reading itself, not from a filter that spent the dash on the learned prior.
+     */
+    private static void readoutSettling() {
+        check(new RangeReadout().update(snap(0, 38.0, 60, true), "mi", true).settling, "Settling: flagged for the dash");
+        check(!new RangeReadout().update(snap(0, 38.0, 60, false), "mi", true).settling, "Settled: no dash");
+        check(!new RangeReadout().update(snap(0, 30.0, 60, true, false, false, false), "mi", true).settling, "Distance model: never a dash for settling");
+        check(new RangeReadout().update(snap(0, 6.0, 5, true), "mi", true).settling, "Low and settling: still flagged");
+        RangeReadout r = new RangeReadout();
+        r.update(snap(0, 38.0, 60, true), "km", true);
+        check(r.update(snap(20000, 20.0, 60, true, true, false, true), "km", true).settling, "Stale while settling: still flagged");
+        // 40 km from the prior for a while, then the ride's pace brings it to 20 km just as settling ends.
+        r = new RangeReadout();
+        for (long t = 0; t <= 30000; t += 2000) r.update(snap(t, 40.0 - (t / 30000.0) * 18, 60, true), "km", true);
+        RangeReadout.Value first = r.update(snap(32000, 20.0, 60, false), "km", true);
+        check(first.state == RangeReadout.State.LIVE && !first.settling, "Hand-over: live");
+        near(20.0, first.primary, 1e-9, "Hand-over: the reading itself, not the filtered prior's figure");
+
+        // At 5 % the state is LOW on both sides of the dash, so no state change re-seeds the shown number: the hand-over must.
+        r = new RangeReadout();
+        for (long t = 0; t <= 30000; t += 2000) r.update(snap(t, 40.0 - (t / 30000.0) * 18, 5, true), "km", true);
+        first = r.update(snap(32000, 20.0, 5, false), "km", true);
+        check(first.state == RangeReadout.State.LOW && !first.settling, "Low hand-over: a number");
+        near(20.0, first.primary, 1e-9, "Low hand-over: the reading itself, not the hidden settling value");
+
+        // A ride reset (over resetAfterMs without readings) while the readout stays LIVE: the new ride settles again behind
+        // the dash, and its first number is its own reading, not the old ride's 10 km walking up under the movement limits.
+        r = new RangeReadout();
+        for (long t = 0; t <= 60000; t += 2000) r.update(snap(t, 10.0, 60, false), "km", true);
+        long back = 60000 + 660000;
+        for (long t = back; t <= back + 30000; t += 2000) {
+            RangeReadout.Value v = r.update(snap(t, 20.0, 60, true), "km", true);
+            check(v.settling, "After a reset: settling again, a dash");
+        }
+        first = r.update(snap(back + 32000, 20.0, 60, false), "km", true);
+        check(first.state == RangeReadout.State.LIVE && !first.settling, "After a reset: live again");
+        near(20.0, first.primary, 1e-9, "After a reset: the new ride's reading at the hand-over, not the old ride's number");
+
+        // Stale after a reset: a fresh battery reading but no power is stale and settling. The old ride's frozen number is
+        // not this ride's pace: still flagged settling, so riding mode shows the dash.
+        r = new RangeReadout();
+        RangeReadout.Value live = r.update(snap(0, 10.0, 60, false), "km", true);
+        check(!live.settling, "Live before the reset");
+        RangeReadout.Value frozen = r.update(snap(16000, 12.0, 60, false, true, false, true), "km", true);
+        check(frozen.stale && !frozen.settling && frozen.primary.equals(live.primary), "Ordinary stale mid-ride: the last value, frozen, no dash");
+        RangeReadout.Value reset = r.update(snap(700000, 20.0, 60, true, true, false, true), "km", true);
+        check(reset.stale && reset.settling, "Stale after a reset, settling: flagged for the dash, not the old ride's pace");
+        RangeReadout.Value unitsSwitch = r.update(snap(702000, 20.0, 60, true, true, false, true), "mi", true);
+        check(unitsSwitch.settling, "Stale and settling across a units switch: still the dash");
     }
 
     /** While stale the estimate stays frozen, but units and tenths follow the rider's current choice. */

@@ -192,8 +192,8 @@ final class RidingFocus {
     }
 
     /**
-     * The range spot for its chosen content (Range at this pace is the default, owner Q25 A). Until
-     * Volt has a live energy model for this scooter, Range at this pace falls back to Volt's distance
+     * The range spot for its chosen content (Range at this pace is the default, owner Q25 A). When Volt
+     * has no live energy model for this scooter, Range at this pace falls back to Volt's distance
      * estimate when there is one, then to the scooter's own estimate, labelled as the scooter's.
      *
      * @param live the live-range readout, or null before it has run
@@ -201,7 +201,7 @@ final class RidingFocus {
      * @param scooterStale true when that reading is older than its interval allows
      */
     static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale, String units) {
-        return range(content, live, scooterKm, scooterStale, null, null, false, units);
+        return range(content, live, scooterKm, scooterStale, null, null, false, false, units);
     }
 
     /**
@@ -213,12 +213,30 @@ final class RidingFocus {
      */
     static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale,
             Double learnedKm, Double batteryPercent, boolean batteryStale, String units) {
+        return range(content, live, scooterKm, scooterStale, learnedKm, batteryPercent, batteryStale, false, units);
+    }
+
+    /**
+     * As above. Range at this pace shows a dash until this ride's pace is known (owner, 2.0.5): not the
+     * learned prior's figure, which opened riding mode up to ~2.5 times too high near a standstill, and not
+     * the scooter's own range. The pace is known once the estimator has stopped settling (30 s ridden at
+     * pace, with this ride over half the energy-per-km memory); from then on the number stays until the
+     * ride resets (charging, ten minutes without readings), so it never flickers back to a dash.
+     *
+     * @param paceModel Range at this pace runs, or is about to run, on Volt's live energy model
+     *                  (RidingSession.paceModel): the scooter's range is no stand-in for it, even before
+     *                  the first battery reading or while the learned prior is on its way
+     */
+    static Range range(String content, RangeReadout.Value live, Double scooterKm, boolean scooterStale,
+            Double learnedKm, Double batteryPercent, boolean batteryStale, boolean paceModel, String units) {
         if (RidingLayout.RANGE_SCOOTER.equals(content)) return scooter(scooterKm, scooterStale, units);
         if (RidingLayout.RANGE_VOLT.equals(content)) return volt(learnedKm, batteryPercent, batteryStale, units);
         if (live != null) {
             switch (live.state) {
                 case ALMOST_EMPTY: return new Range(RangeKind.ALMOST_EMPTY, null, 0, false, true, live.stale);
                 case LIVE: case SETTLING: case LOW:
+                    // Settling, the number is the learned prior's, not this ride's pace: a dash, never a stand-in.
+                    if (live.state == RangeReadout.State.SETTLING || live.settling) return none();
                     if (live.primary != null)
                         return new Range(RangeKind.AT_PACE, live.primary, live.decimals, live.approx, live.amber, live.held || live.stale);
                     break;
@@ -228,8 +246,10 @@ final class RidingFocus {
                 default: break;
             }
         }
-        return scooter(scooterKm, scooterStale, units);
+        return paceModel ? none() : scooter(scooterKm, scooterStale, units);
     }
+
+    private static Range none() { return new Range(RangeKind.NONE, null, 0, false, false, false); }
 
     /**
      * Volt's range: the learned model's remaining range from past rides at this battery reading, as an

@@ -27,13 +27,17 @@ public final class RidingFocusTest {
             session();
             scripts();
             priorDelivery();
+            paceStart();
+            paceWaitsForPrior();
+            paceAlreadyMoving();
+            paceSimulator();
             english();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
         System.out.println("RidingFocusTest: " + checks + " checks passed (arrangement, large text, link, segments, band ticks, "
-                + "clock and tenths, RIDE label, range fallbacks, simulated session, scripts, prior delivery, English)");
+                + "clock and tenths, RIDE label, range fallbacks, simulated session, scripts, prior delivery, range at pace start-up, English)");
     }
 
     private static void arrangement() {
@@ -308,6 +312,163 @@ public final class RidingFocusTest {
         int assign = body.indexOf("riding=session;"), request = body.indexOf("session.requestPrior(");
         check(assign >= 0 && request > assign, "riding is assigned before the prior is requested");
         check(!main.contains("riding=newRidingSession()"), "no caller assigns the session after its request");
+    }
+
+    // ---- Range at this pace at start-up (2.0.5 item 2) ----
+    // The learned prior is a whole-ride average: regen, coasting and idle draw are in it, so it can sit well under
+    // the energy per km of riding at pace. Before this ride had taught anything, the spot showed energy left ÷ that
+    // prior: opened near a standstill, about 2.5 times the number it settled on once riding (owner, 2.0.5).
+
+    /** The prior Volt learned from past rides, and the pace this ride actually costs: 2.5 times it. */
+    private static final double PRIOR_WH_PER_KM = 18, PACE_WH_PER_KM = 45, CRUISE_KMH = 25;
+
+    /** One telemetry tick: speed, power, battery and the scooter's own range, all measured now. */
+    private static void tick(Telemetry telemetry, long t, double kmh, double watts, double battery, double scooterKm) {
+        telemetry.putSimulationSample("speed_kmh", kmh + " km/h", kmh, t);
+        telemetry.putSimulationSample("power_w", watts + " W", watts, t);
+        telemetry.putSimulationSample("battery_percent", battery + " %", battery, t);
+        telemetry.putSimulationSample("remaining_range_km", scooterKm + " km", scooterKm, t);
+    }
+
+    /** Stopped (a little idle draw) or cruising at this ride's pace, once a second, as the screen's refresh does. */
+    private static RidingFocus.Range[] ride(RidingSession session, Telemetry telemetry, long from, long to, boolean moving) {
+        RidingFocus.Range[] shown = new RidingFocus.Range[(int) ((to - from) / 1000) + 1];
+        for (long t = from; t <= to; t += 1000) {
+            double kmh = moving ? CRUISE_KMH : 0, watts = moving ? PACE_WH_PER_KM * CRUISE_KMH : 6;
+            tick(telemetry, t, kmh, watts, 72, 60);
+            session.feed(telemetry.metrics(), t, false, "km", true);
+            shown[(int) ((t - from) / 1000)] = spot(session);
+        }
+        return shown;
+    }
+
+    private static RidingFocus.Range spot(RidingSession session) {
+        return RidingFocus.range(RidingLayout.RANGE_AT_PACE, session.range(), 60.0, false, null, 72.0, false, session.paceModel(), "km");
+    }
+
+    private static boolean dash(RidingFocus.Range r) { return r.kind == RidingFocus.RangeKind.NONE && r.value == null; }
+
+    /**
+     * The owner's report: opened while (nearly) stopped, Range at this pace showed energy left ÷ the learned prior,
+     * 720 Wh ÷ 18 Wh/km = 40 km, then about 16 km once riding had taught the real pace. Now it's a dash until the pace
+     * is known, then this ride's number, which never goes back to a dash: not through a long stop either.
+     */
+    private static void paceStart() {
+        Telemetry telemetry = new Telemetry();
+        RidingSession session = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        session.setPrior(LiveRangeEstimator.Prior.synthetic(PRIOR_WH_PER_KM, 1000, null));
+        check(session.paceModel(), "an energy prior: Range at this pace runs on the live model");
+        RidingFocus.Range[] stopped = ride(session, telemetry, 1000, 60_000, false);
+        for (RidingFocus.Range r : stopped)
+            check(dash(r), "opened stopped: a dash until the pace is known, not the prior's figure (" + r.kind + " " + r.value
+                    + " km, about 2.5 times the pace's 16 km) or the scooter's 60 km");
+
+        RidingFocus.Range[] riding = ride(session, telemetry, 61_000, 300_000, true);
+        int handOver = -1;
+        for (int i = 0; i < riding.length; i++) if (!dash(riding[i])) { handOver = i; break; }
+        // Settling ends after 30 s at pace with this ride over half the memory; the first second only joins the stop.
+        check(handOver >= 30 && handOver <= 35, "the number arrives once 30 s at pace have settled it: " + handOver + " s");
+        RidingFocus.Range first = riding[handOver], settled = riding[riding.length - 1];
+        double paceKm = 720 / PACE_WH_PER_KM;
+        check(first.kind == RidingFocus.RangeKind.AT_PACE && first.decimals == 1 && !first.approx, "the hand-over shows this ride's pace, in tenths");
+        check(Math.abs(settled.value - paceKm) < 1, "settled on the pace's range: " + settled.value + " km, not " + 720 / PRIOR_WH_PER_KM);
+        check(first.value <= settled.value * 1.2 && first.value >= settled.value * .95,
+                "no wild jump at the hand-over: " + first.value + " km, then " + settled.value);
+        double previous = first.value;
+        for (int i = handOver; i < riding.length; i++) {
+            check(riding[i].kind == RidingFocus.RangeKind.AT_PACE, "never back to a dash once known, at " + i + " s: " + riding[i].kind);
+            check(Math.abs(riding[i].value - previous) <= .3, "calm after the hand-over: " + previous + " -> " + riding[i].value + " at " + i + " s");
+            previous = riding[i].value;
+        }
+
+        // A long stop mid-ride (ten minutes at a standstill, the scooter still reporting): the number holds, dimmed.
+        RidingFocus.Range[] stop = ride(session, telemetry, 301_000, 900_000, false);
+        for (RidingFocus.Range r : stop)
+            check(r.kind == RidingFocus.RangeKind.AT_PACE && r.value <= settled.value * 1.05, "a long stop holds the known pace: " + r.kind + " " + r.value);
+        check(stop[stop.length - 1].dim, "held while stopped: dimmed");
+        RidingFocus.Range[] again = ride(session, telemetry, 901_000, 960_000, true);
+        for (RidingFocus.Range r : again) check(r.kind == RidingFocus.RangeKind.AT_PACE, "riding on after the stop: still a number, never a dash");
+
+        // Charging starts a new ride: the number goes, and a fresh ride learns its pace again.
+        tick(telemetry, 961_000, 0, -300, 72, 60);
+        session.feed(telemetry.metrics(), 961_000, true, "km", true);
+        check(dash(spot(session)), "charging: a dash, not the scooter's range");
+
+        // Reopening riding mode starts a new session, which learns the pace again: a dash, never the old prior's figure.
+        RidingSession reopened = new RidingSession("p1", new RidingValues.PowerScale(), 961_000);
+        reopened.setPrior(LiveRangeEstimator.Prior.synthetic(PRIOR_WH_PER_KM, 1000, null));
+        RidingFocus.Range[] reopen = ride(reopened, telemetry, 962_000, 980_000, true);
+        for (RidingFocus.Range r : reopen) check(dash(r), "reopened: a dash again while the pace is learned: " + r.kind + " " + r.value);
+
+    }
+
+    /**
+     * Before the learned prior's answer lands, and before the first battery reading, the spot used to show the
+     * scooter's own range, then swap it for Volt's figure: now a dash. A scooter with no energy model (no learned
+     * result, or one that doesn't report current) keeps the fallbacks: the pace can never be known there.
+     */
+    private static void paceWaitsForPrior() {
+        java.util.List<java.util.function.Consumer<LiveRangeEstimator.Prior>> pending = new java.util.ArrayList<>();
+        Telemetry telemetry = new Telemetry();
+        RidingSession session = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        check(dash(spot(session)), "before the first feed: a dash");
+        session.requestPrior(pending::add, () -> "p1");
+        check(session.paceModel(), "an answer still to come counts as the live model");
+        RidingFocus.Range[] waiting = ride(session, telemetry, 1000, 5000, false);
+        for (RidingFocus.Range r : waiting) check(dash(r), "while the prior is on its way: a dash, not the scooter's 60 km: " + r.kind + " " + r.value);
+        pending.get(0).accept(LiveRangeEstimator.Prior.synthetic(PRIOR_WH_PER_KM, 1000, null));
+        for (RidingFocus.Range r : ride(session, telemetry, 6000, 20_000, false)) check(dash(r), "the prior landed, stopped: still a dash");
+
+        // No battery reading yet: a dash too.
+        RidingSession noBattery = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        noBattery.setPrior(LiveRangeEstimator.Prior.synthetic(PRIOR_WH_PER_KM, 1000, null));
+        Telemetry speedOnly = new Telemetry();
+        speedOnly.putSimulationSample("speed_kmh", "0 km/h", 0.0, 1000);
+        speedOnly.putSimulationSample("remaining_range_km", "60 km", 60.0, 1000);
+        noBattery.feed(speedOnly.metrics(), 1000, false, "km", true);
+        check(dash(spot(noBattery)), "no battery reading yet: a dash, not the scooter's range");
+
+        // No learned result: the scooter's own range, labelled as the scooter's, as before.
+        RidingSession none = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        none.requestPrior(answer -> answer.accept(null), () -> "p1");
+        check(!none.paceModel(), "no learned result: no live model");
+        RidingFocus.Range[] fallback = ride(none, new Telemetry(), 1000, 60_000, true);
+        for (RidingFocus.Range r : fallback) check(r.kind == RidingFocus.RangeKind.SCOOTER && r.value == 60, "no live model: the scooter's range: " + r.kind);
+    }
+
+    /** Opened while already riding at pace: a dash for the settling half minute, then this ride's number. */
+    private static void paceAlreadyMoving() {
+        Telemetry telemetry = new Telemetry();
+        RidingSession session = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+        session.setPrior(LiveRangeEstimator.Prior.synthetic(PRIOR_WH_PER_KM, 1000, null));
+        RidingFocus.Range[] riding = ride(session, telemetry, 1000, 180_000, true);
+        int handOver = -1;
+        for (int i = 0; i < riding.length; i++) if (!dash(riding[i])) { handOver = i; break; }
+        check(handOver >= 30 && handOver <= 35, "moving at open: the number after 30 s at pace: " + handOver + " s");
+        check(riding[handOver].value <= riding[riding.length - 1].value * 1.2, "no wild jump at the hand-over: " + riding[handOver].value);
+        for (int i = handOver; i < riding.length; i++) check(riding[i].kind == RidingFocus.RangeKind.AT_PACE, "then a number for good");
+    }
+
+    /** The simulator's riding loop (pull away, cruise, brake, stand) with its synthetic prior: a dash first, then a number that stays. */
+    private static void paceSimulator() {
+        for (String script : new String[]{"", ScooterSimulation.RIDING}) {
+            ScooterSimulation sim = new ScooterSimulation();
+            if (script.isEmpty()) sim.setScene(ScooterSimulation.Scene.RIDING); else sim.setScript(script);
+            Telemetry telemetry = new Telemetry();
+            RidingSession session = new RidingSession("p1", new RidingValues.PowerScale(), 0);
+            session.setPrior(LiveRangeEstimator.Prior.synthetic(18, 1000, null));
+            int firstNumber = -1;
+            for (long t = 1000; t <= 240_000; t += 1000) {
+                sim.tick(telemetry, t);
+                session.feed(telemetry.metrics(), t, false, "km", true);
+                RidingFocus.Range r = RidingFocus.range(RidingLayout.RANGE_AT_PACE, session.range(), 36.0, false, null, null, false, session.paceModel(), "km");
+                if (firstNumber < 0) {
+                    check(dash(r) || r.kind == RidingFocus.RangeKind.AT_PACE, "simulator " + script + ": a dash or this ride's pace, never a stand-in: " + r.kind);
+                    if (r.kind == RidingFocus.RangeKind.AT_PACE) firstNumber = (int) (t / 1000);
+                } else check(r.kind == RidingFocus.RangeKind.AT_PACE, "simulator " + script + ": never back to a dash, at " + t / 1000 + " s");
+            }
+            check(firstNumber >= 30 && firstNumber <= 120, "simulator " + script + ": the number after settling: " + firstNumber + " s");
+        }
     }
 
     private static String read(String path) {

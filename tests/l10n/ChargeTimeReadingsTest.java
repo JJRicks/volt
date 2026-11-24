@@ -37,6 +37,12 @@ public final class ChargeTimeReadingsTest {
                 "a 100% cutoff stays 100%, an unknown one stays unknown");
         check(oneReadingTarget(80d, SCOOTER_LIMIT) == 80d && oneReadingTarget(80d, ALERT_LEVEL) == 80d,
                 "two readings keep the estimate's target for the limit face");
+        // README #613: a model with no charge limit at all (the GT3 Max) names its unknown cutoff 100%, the plain time to
+        // full, never "To 100% if uncapped"; a model with a limit not read yet keeps the unknown cutoff.
+        check(namedTarget(null, true) == 100d, "no charge limit: the unknown cutoff is 100%");
+        check(namedTarget(null, false) == null, "a limit not read yet stays unknown (\"if uncapped\")");
+        check(namedTarget(80d, true) == 80d && namedTarget(80d, false) == 80d && namedTarget(100d, false) == 100d, "a known cutoff keeps its own name");
+        check(namedTarget(oneReadingTarget(null, NO_LIMIT), true) == 100d, "the one reading on a no-limit model is named 100%");
     }
 
     private static void choice() {
