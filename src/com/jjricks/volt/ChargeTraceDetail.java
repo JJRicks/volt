@@ -3,14 +3,15 @@ package com.jjricks.volt;
 /**
  * The charge chart's estimate detail under a cursor reading ("Personal curve · Estimator … · 4 learned charges"), kept
  * inside the width its row shows (ChargeHistoryDialog). It steps down the narrow-label ladder rather than running off the
- * edge or breaking a word: the whole line with the estimator's full version when it fits on one line; else the version's
- * first part, wrapped at spaces; else no version, wrapped at spaces. The full detail stays the line's spoken text.
+ * edge or breaking a word: the whole line with the estimator's full version when it fits on one line; else the same,
+ * wrapped, when the version fits a line of its own; else the version's first part; else no version. The full detail
+ * stays the line's spoken text.
  * Pure: no Android, so tests/ChargeTraceDetailTest checks it.
  */
 final class ChargeTraceDetail {
     private ChargeTraceDetail() { }
 
-    enum Rung { FULL, SHORT_VERSION, NO_VERSION }
+    enum Rung { FULL, WRAPPED, SHORT_VERSION, NO_VERSION }
 
     /** A word joiner: no line break after a hyphen inside the short version. */
     private static final String JOIN = "\u2060";
@@ -28,12 +29,14 @@ final class ChargeTraceDetail {
     }
 
     /**
-     * fullLine: the whole detail's width on one line with the full version; shortVersion: the short version's own width
-     * (it never wraps inside), NaN with none; room: the width the line may take.
+     * fullLine: the whole detail's width on one line with the full version; version: the full version's own width;
+     * shortVersion: the short version's own width (it never wraps inside); NaN for either with none; room: the width
+     * the line may take.
      */
-    static Rung pick(float fullLine, float shortVersion, float room) {
+    static Rung pick(float fullLine, float version, float shortVersion, float room) {
         if (!(room > 0)) return Rung.NO_VERSION;
         if (fullLine <= room) return Rung.FULL;
+        if (Float.isFinite(version) && version <= room) return Rung.WRAPPED;
         if (Float.isFinite(shortVersion) && shortVersion <= room) return Rung.SHORT_VERSION;
         return Rung.NO_VERSION;
     }
