@@ -33,6 +33,7 @@ public final class BackupArchiveTest {
             legacyOwner(root);
             sameAccountOwner(root);
             hostile(root, source, complete);
+            storeRefusedId(root);
             System.out.println("BackupArchiveTest: " + checks + " checks passed (complete reset roundtrip, 7 single and 127 subset restores, legacy v1/.voltrides/layout/owner, hostile archives)");
         } finally { AppDataArchive.deleteTree(root); }
     }
@@ -430,6 +431,35 @@ public final class BackupArchiveTest {
         rejects(() -> phone.stage((valid + String.join("", Collections.nCopies(BackupArchive.MAX_LAYOUT, " "))).getBytes(StandardCharsets.UTF_8)), "oversized JSON refused before parsing");
         check(phone.preferences().equals(protectedPrefs) && phone.fileHashes().equals(protectedFiles) && !BackupTransaction.needsRecovery(phone),
                 "invalid owner files leave current data and staging untouched");
+    }
+
+    /**
+     * #621 review: a scooter ID the charge store can't record under (outside [A-Za-z0-9_-]{1,128}; older Volt accepted
+     * any ID up to 128 characters, and write() and staging still do). A backup holding one restores with its owner key,
+     * on a new phone and merged onto one with data, and Charge history then loads, empty, instead of crashing.
+     */
+    private static void storeRefusedId(File root) throws Exception {
+        for (String id : new String[]{"my scooter", "dot.id", "slash/id", "\u00fc"}) {
+            String key = "0123456789AB";
+            BackupTestStore source = new BackupTestStore(new File(root, "odd-id-source-" + Math.abs(id.hashCode())));
+            Map<String, Map<String, Object>> p = BackupTestStore.empty();
+            p.get("profiles").put("items", "[{\"id\":" + BackupJson.quote(id) + ",\"name\":\"Odd\",\"identity\":\"" + key
+                    + "\",\"role\":0,\"mac\":\"02:00:00:00:00:0E\",\"serial\":\"SERIAL-ODD\",\"lastConnected\":5}]");
+            p.get("profiles").put("active", id); p.get("profiles").put("legacy_migrated", true);
+            p.get("onboarding").put("onboarding_done", true);
+            source.write(p);
+            byte[] backup = source.export(BackupTestStore.all());
+            BackupTestStore fresh = new BackupTestStore(new File(root, "odd-id-fresh-" + Math.abs(id.hashCode())));
+            fresh.restore(backup, BackupTestStore.all(), true, null);
+            BackupProfiles.Profile restored = BackupProfiles.find(BackupProfiles.parse(fresh.preferences().get("profiles").get("items")), id);
+            check(restored != null && key.equals(restored.identity), "a backup with scooter ID '" + id + "' restores with its owner key");
+            BackupTestStore merged = phone(new File(root, "odd-id-merge-" + Math.abs(id.hashCode())));
+            merged.restore(backup, BackupTestStore.all(), false, id);  // added as its own scooter
+            BackupProfiles.Profile kept = BackupProfiles.find(BackupProfiles.parse(merged.preferences().get("profiles").get("items")), id);
+            check(kept != null && key.equals(kept.identity), "merged onto a phone with data, '" + id + "' keeps its owner key");
+            ChargeSessionStore charges = new ChargeSessionStore(new File(fresh.files(), "charge-recordings"));
+            check(charges.history(id, 5).isEmpty(), "Charge history for '" + id + "' loads (no recordings) instead of throwing");
+        }
     }
 
     private static void hostile(File root, BackupTestStore source, byte[] complete) throws Exception {

@@ -157,9 +157,12 @@ final class FindNearby {
      * serial request (0x74) with a reply this reads as unreadable. The address was not saved, so nothing changed:
      * BleController says so once (ble_failed_find_unchecked) and then goes back to the saved address as after any
      * failed attempt. Refusals with a verdict of their own (another serial, the owner check, another profile's
-     * scooter) keep their message. Unreadable: an error status, or no bytes after the status byte.
+     * scooter) keep their message. Unreadable: an error status, or fewer bytes after the status byte than a whole serial
+     * (one letter and 16 letters or digits, {@link #SERIAL_REPLY}): a cut-off reply proves no other scooter (#487 review).
      */
-    static boolean serialUnreadable(int error, int dataLength) { return error != 0 || dataLength < 2; }
+    static boolean serialUnreadable(int error, int dataLength) { return error != 0 || dataLength < SERIAL_REPLY; }
+    /** A whole 0x74 reply: the status byte and the 17-character serial. */
+    static final int SERIAL_REPLY = 18;
 
     // ------------------------------------------------------------------ the pick
 
@@ -245,6 +248,47 @@ final class FindNearby {
 
     /** A model ID's family: its first four digits ("" for none), as DeviceDescriptor.family() takes it. */
     static String family(String pid) { return pid == null ? "" : pid.substring(0, Math.min(4, pid.length())); }
+
+    /**
+     * The family the find sheet filters on for a saved profile: DeviceDescriptor.family(), unless its saved advertised ID
+     * and its serial disagree (DeviceDescriptor.conflict), when neither is trusted and nothing is hidden ("": unknown),
+     * so a wrong saved ID never hides the scooter being looked for (#487 review). A wrong pick is still refused by the serial.
+     */
+    static String family(DeviceDescriptor saved) { return saved == null || saved.conflict() ? "" : saved.family(); }
+
+    /**
+     * Whether remember() keeps an advertisement's model ID as the profile's evidence, once the owner check passed and the
+     * serial was read. Not when it came from the fallback bytes ({@code marker} -1, which can be letters of the name; see
+     * {@link #modelId}) and disagrees with that serial's model digits (DeviceDescriptor.conflict): that is the name, not
+     * a model ID (#487 review). A manufacturer-data ID is kept as before, a conflict included (the resolver handles it),
+     * and so is a fallback ID that agrees with the serial.
+     */
+    static boolean captureModelId(String pid, int marker, String serial) {
+        if (pid == null || pid.isEmpty()) return false;
+        return marker >= 0 || !DeviceDescriptor.of(serial, pid, 1, null, false, DeviceDescriptor.Transport.STANDARD, 0).conflict();
+    }
+
+    /**
+     * The model ID a connection goes by (BleController.transportDescriptor): this scan's advertised ID while
+     * {@link #captureModelId} would keep it, else the saved one. A refused fallback ID never stands in for the model, so a
+     * UT5 MAX advertising its name's letters stays a UT5 MAX and its short status frames stay refused (#621 review).
+     */
+    static String liveModelId(String pendingPid, int marker, String serial, String savedPid) {
+        return captureModelId(pendingPid, marker, serial) ? pendingPid : savedPid == null ? "" : savedPid;
+    }
+
+    // ------------------------------------------------------------------ Home's find after a wait
+
+    /**
+     * Whether Home's find that had to wait (the service, permission, Bluetooth on) still opens its sheet: the profile it
+     * was tapped for is still the active one and could still be found, and nothing a disconnect would hurt has started
+     * meanwhile (a connection that came up, simulation, a recording, a change in flight). Not the Home stay's timeout
+     * count: leaving Volt for Android's Bluetooth dialog ends that stay, and the rider already chose the find (#621 review).
+     */
+    static boolean homeFindStillWanted(String tappedFor, String activeId, String savedMac, String savedSerial, boolean connected,
+                                       boolean simulating, boolean recording, boolean pending) {
+        return tappedFor != null && tappedFor.equals(activeId) && eligible(savedMac, savedSerial) && !connected && !simulating && !recording && !pending;
+    }
 
     /**
      * Whether a heard scooter can be the profile's: the profile's model family ({@code family}, "" when unknown) and the

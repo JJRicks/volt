@@ -243,6 +243,10 @@ STEPS += [
     inst('scooter-off-344', T + 'ScooterOffValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('scooter-off-fold', T + 'ScooterOffValidation', '-e', 'size_label', 'fold', size='790x820'),
     inst('charging-pill-344-large', T + 'ChargingPillValidation', '-e', 'size_label', '344', '-e', 'text', '1.8', '-e', 'styles', 'clean', '-e', 'unit', 'c', size=PHONE[0]),
+    # "Estimating time left" first (ChargeEstimateHold, owner Nov 23 2026): the held and shown time on the tile, the live card
+    # and Charge done by, Widgets and Clean, dark and light, on a phone and the unfolded Fold.
+    inst('charge-estimating-first-412', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charge-estimating-first-fold', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
     # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's
     # sizes and the Fold's folded and unfolded screens. With a network the "on" pictures show tiles.
@@ -410,6 +414,8 @@ STEPS += [inst('charge-trace-detail', T + 'RideChartsValidation', '-e', 'part', 
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]
+# The pending spinner on the lock switch and a controls row, on a slowed simulator (owner, Nov 23, 2.0.5 item 6).
+STEPS += [inst('control-pending', T + 'ControlPendingValidation', size='344x882')]
 STEPS += [inst('riding-battery-gauge', T + 'RidingBatteryGaugeValidation')]
 STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden_api=True),
           inst('riding-disconnected-narrow', T + 'RidingDisconnectedValidation', '-e', 'label', 'narrow', size='344x882', hidden_api=True)]

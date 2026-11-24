@@ -1064,6 +1064,8 @@ public final class ModelRegistry {
      * product or transport, or no advertised model ID (a serial alone selects only the UT5 MAX, as in {@link #ut5Max}). 2781 and 2782 get none either: the official app gives them the ST5 tip with
      * its standard pictures, which disagree.
      */
+    /** Whether the handlebar has a brake lever ahead of each grip (the NT3), so the guide's spoken text names the left one. */
+    public static boolean twoBrakeLevers(Handlebar h){return h==Handlebar.NT3;}
     public static Handlebar unlockHandlebar(DeviceDescriptor d){
         if(d==null)return null;
         Resolution r=resolve(d);

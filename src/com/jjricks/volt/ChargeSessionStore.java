@@ -1007,7 +1007,10 @@ public final class ChargeSessionStore {
      * rest as summaries ({@link HistorySession#light}) from their facts, so a long history costs no parsing or memory.
      */
     public List<HistorySession> history(String targetProfile,int full)throws IOException {
-        if(targetProfile==null||!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))throw new IllegalArgumentException("Select a scooter");
+        if(targetProfile==null)throw new IllegalArgumentException("Select a scooter");
+        // A scooter ID this store can't record under (an older Volt's backups accepted any ID up to 128 characters, and
+        // restores keep it with its key) has no recordings here: an empty history, never an error (#621 review).
+        if(!targetProfile.matches("[A-Za-z0-9_-]{1,128}"))return Collections.emptyList();
         final List<File> source;synchronized(this){source=files();}
         List<HistorySession> result=new ArrayList<>();
         for(int i=source.size()-1;i>=0;i--){

@@ -14,6 +14,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.RideChartsValidation" android:targetPackage="com.jjricks.volt" android:label="Ride and charge graph validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingBatteryGaugeValidation" android:targetPackage="com.jjricks.volt" android:label="Riding battery gauge validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingStoppedMotionValidation" android:targetPackage="com.jjricks.volt" android:label="Riding stopped buttons motion validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.ControlPendingValidation" android:targetPackage="com.jjricks.volt" android:label="Control pending spinner validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RidingDisconnectedValidation" android:targetPackage="com.jjricks.volt" android:label="Riding disconnected controls validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ParkedValidation" android:targetPackage="com.jjricks.volt" android:label="Parked offline validation" />
   <instrumentation android:name="com.jjricks.volt.tests.LaunchValidation" android:targetPackage="com.jjricks.volt" android:label="Fresh emulator launch validation" />
@@ -53,6 +54,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeSizeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view time size beside power validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ScooterOffValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated scooter switched off but answering: Home and refusals (simulator hook)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargingPillValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging pill states validation (simulator)" />
+  <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimatingFirstValidation" android:targetPackage="com.jjricks.volt" android:label="Estimating time left first: the plug-in hold on every charging time (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ModelPhotosValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated model photo set and Home photo validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.EstimateTipValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Home estimate tip validation (simulator)" />
