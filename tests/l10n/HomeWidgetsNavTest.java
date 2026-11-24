@@ -53,7 +53,7 @@ public final class HomeWidgetsNavTest {
         check(giveFocus.contains("if (!closing && back != null && back.isAttachedToWindow()"),
                 "a closing sheet never hands key focus back to the page view before it has gone");
         check(giveFocus.contains("} else if (inMe && closing) {"), "while it closes the overlay stands in for the page view");
-        check(sheet.contains("statusIcons((float) (dim * showing), box.top < statusBarBottom);")
+        check(sheet.contains("statusIcons((float) (dim * showing), SheetSpring.coversStatusIcons(box.top, statusBarBottom));")
                 && sheet.contains("SheetSpring.whiteIcons(ui.bg, alpha, underBar)") && sheet.contains("statusBarBottom = top;"),
                 "the status icons know when the sheet's surface is under the status bar");
 

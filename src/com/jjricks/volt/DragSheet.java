@@ -184,7 +184,7 @@ final class DragSheet {
     /** The sheet's travel (px; 0 until it is laid out) and where it is now (px below open). */
     private int travel;
     private float offset;
-    /** The status bar's bottom edge in the overlay (px; its top inset): the sheet's surface above it is under the bar (statusIcons). */
+    /** The status bar's bottom edge in the overlay (px; its top inset): the sheet's surface reaching its middle covers its icons (statusIcons). */
     private int statusBarBottom;
     /** Pulled: how much of the sheet the finger shows (px; base is where it was when the pull caught it). */
     private float pulled, pullBase;
@@ -654,7 +654,7 @@ final class DragSheet {
             panel.setClipBounds(clip);
         }
         scrim.setAlpha((float) (dim * showing));
-        statusIcons((float) (dim * showing), box.top < statusBarBottom);
+        statusIcons((float) (dim * showing), SheetSpring.coversStatusIcons(box.top, statusBarBottom));
     }
 
     /**

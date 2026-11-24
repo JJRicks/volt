@@ -202,6 +202,8 @@ public final class WidgetsEditValidation extends ValidationInstrumentation {
         String[] longer = {"12.5 km 15.0 km/h 18 min", "3.1 km 9.8 km/h 6 min", "22.0 km 17.4 km/h 41 min", "7.7 km 12.2 km/h 15 min"};
         int[] result = new int[5];
         Bitmap[] grown = {null};
+        File dir = new File(getTargetContext().getExternalFilesDir(null), DIR); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory missing");
+        File file = new File(dir, "tiles-" + label + "-grown.png");
         main(() -> {
             int budget = (Integer) field(tiles, "budget"), mode = (Integer) field(tiles, "mode");
             require(budget > 0, label + ": the Reading tiles have no height budget to fit");
@@ -221,6 +223,8 @@ public final class WidgetsEditValidation extends ValidationInstrumentation {
             android.graphics.Canvas canvas = new android.graphics.Canvas(grown[0]);
             canvas.drawColor(activity.ui().bg);
             tiles.draw(canvas);
+            // Its census from the same views, at the same moment, as drawn (the picture is a render of this one view).
+            TextCensus.writeView(this, file, tiles);
             tiles.requestLayout();
         });
         int budget = result[0], before = result[1], height = result[2], after = result[3];
@@ -228,8 +232,6 @@ public final class WidgetsEditValidation extends ValidationInstrumentation {
                 + " px card, still at label mode " + after + " (was " + before + "; 3 is values only)");
         require(after >= before, label + ": a grown value gave the tiles more labels (mode " + before + " to " + after + ")");
         require(result[4] == after, label + ": measured again in the same space, the mode changed again (" + after + " to " + result[4] + ")");
-        File dir = new File(getTargetContext().getExternalFilesDir(null), DIR); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory missing");
-        File file = new File(dir, "tiles-" + label + "-grown.png");
         try (FileOutputStream out = new FileOutputStream(file)) { grown[0].compress(Bitmap.CompressFormat.PNG, 100, out); } finally { grown[0].recycle(); }
         screenshots.add(file.getAbsolutePath());
         settle();
