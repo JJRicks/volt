@@ -13,7 +13,7 @@ public final class TestJournalTest {
     private static int assertions;
     private static final long WALL=1700000000000L,DAY=24L*3600*1000;
     public static void main(String[] args) throws Exception {
-        roundTrip(); atomic(); corrupt(); unreadable(); bounds(); prune(); forbidden(); fileStorage(); versionOne(); kinds(); retention();
+        roundTrip(); atomic(); corrupt(); unreadable(); bounds(); prune(); forbidden(); fileStorage(); versionOne(); kinds(); retention(); triedBefore();
         System.out.println("TestJournal tests passed: "+assertions+" assertions");
     }
 
@@ -204,6 +204,49 @@ public final class TestJournalTest {
         check(j.clearTries("owner-1")==1&&j.find(id(1))==null&&j.find(id(3))!=null&&j.find(id(5))!=null&&j.clearTries("owner-1")==0,"Clear keeps unfinished tries and tests");
         check(!m.text.contains(id(1)),"Cleared from disk");
     }
+
+    /**
+     * #542 review: a try the journal prunes (30 days after a report, or for room) left its row reading Not tried yet.
+     * Its profile and control are remembered ("tried" lines), so the row says Tried before; Clear forgets them too.
+     */
+    private static void triedBefore() throws IOException {
+        GuidedTestTest.Memory m=new GuidedTestTest.Memory();TestJournal j=new TestJournal(m);
+        j.commit(tryEntry(id(1),TestJournal.EXPERIMENTAL,"turn_sound","turn_sound.oem.lab",true,WALL));
+        j.commit(tryEntry(id(2),TestJournal.VERIFY,"range_algorithm","range_algorithm.oem_personal",true,WALL));
+        check(!j.triedBefore("owner-1","turn_sound"),"Kept tries need no memory");
+        j.markReported(Arrays.asList(TestJournal.revision(j.find(id(1))),TestJournal.revision(j.find(id(2)))),WALL+1);
+        j.commit(entry(id(3),false,WALL+31*DAY));
+        check(j.latestTry("owner-1","turn_sound")==null&&j.latestTry("owner-1","range_algorithm")==null,"Both reported tries were pruned after 30 days");
+        check(j.triedBefore("owner-1","turn_sound")&&j.triedBefore("owner-1","range_algorithm"),"Pruned tries are remembered as tried");
+        check(!j.triedBefore("owner-1","traction_control")&&!j.triedBefore("other","turn_sound"),"Nothing else counts as tried");
+        TestJournal back=new TestJournal(m);
+        check(back.triedBefore("owner-1","turn_sound")&&back.dropped()==0&&back.find(id(3))!=null,"Remembered on disk, read back with the entries");
+        check(m.text.contains("tried\tprofile=owner-1\tfeature=turn_sound\tcrc=")&&!m.text.contains("turn_sound.oem.lab"),"Only the two names stay");
+        // Room-making prunes are remembered too.
+        GuidedTestTest.Memory m2=new GuidedTestTest.Memory();TestJournal full=new TestJournal(m2);
+        full.commit(tryEntry(id(10),TestJournal.EXPERIMENTAL,"traction_control","traction_control.oem.lab",true,WALL));
+        for(int i=1;i<=TestJournal.MAX_ENTRIES;i++)full.commit(tryEntry(id(10+i),TestJournal.EXPERIMENTAL,"turn_sound","turn_sound.oem.lab",true,WALL+i));
+        check(full.latestTry("owner-1","traction_control")==null&&full.triedBefore("owner-1","traction_control"),"A try pruned for room is remembered");
+        // A damaged, out-of-bounds or unknown tried line is dropped; the entries stay.
+        String good=m.text;
+        String damaged=good.replace("feature=turn_sound\tcrc=","feature=turn_sound\tcrc=0");
+        TestJournal bad=new TestJournal(memory(damaged));
+        check(bad.healthy()&&!bad.triedBefore("owner-1","turn_sound")&&bad.triedBefore("owner-1","range_algorithm")&&bad.dropped()==1,"A damaged tried line is dropped alone");
+        String body="tried\tprofile=owner-1\tfeature=not_a_control";
+        TestJournal unknown=new TestJournal(memory(TestJournal.HEADER+"\n"+body+"\tcrc="+crc(body)+"\n"));
+        check(unknown.healthy()&&!unknown.triedBefore("owner-1","not_a_control")&&unknown.dropped()==1,"Only Experimental controls and Help verify keys");
+        // Clear forgets them with the finished tries; other profiles keep theirs.
+        check(j.clearTries("owner-1")==0&&!j.triedBefore("owner-1","turn_sound")&&!new TestJournal(m).triedBefore("owner-1","turn_sound"),"Clear forgets pruned tries");
+        // Bounded: the oldest go first.
+        GuidedTestTest.Memory m3=new GuidedTestTest.Memory();
+        StringBuilder many=new StringBuilder(TestJournal.HEADER).append('\n');
+        for(int i=0;i<TestJournal.MAX_TRIED+5;i++){String b="tried\tprofile=p"+i+"\tfeature=turn_sound";many.append(b).append("\tcrc=").append(crc(b)).append('\n');}
+        m3.text=many.toString();
+        TestJournal capped=new TestJournal(m3);
+        check(capped.triedBefore("p0","turn_sound")&&!capped.triedBefore("p"+(TestJournal.MAX_TRIED+4),"turn_sound")&&capped.dropped()==5,"At most MAX_TRIED are read");
+    }
+    private static GuidedTestTest.Memory memory(String text){GuidedTestTest.Memory m=new GuidedTestTest.Memory();m.text=text;return m;}
+    private static String crc(String text){java.util.zip.CRC32 c=new java.util.zip.CRC32();c.update(text.getBytes(java.nio.charset.StandardCharsets.UTF_8));return String.format(Locale.ROOT,"%08x",c.getValue());}
 
     private static void fileStorage() throws IOException {
         File dir=Files.createTempDirectory("volt-journal").toFile();

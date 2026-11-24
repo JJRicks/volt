@@ -86,6 +86,8 @@ public final class BleController {
         LatchedCondition sendCondition;Runnable conditionClosed;
         /** Runs once when this change's frame is handed to Bluetooth (sent becomes true for good); null for none. */
         Runnable sentHook;
+        /** When the app began this change (elapsed ms): a control's pending spinner counts from it (PendingControl). */
+        long startedMs=now();
         Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
     /** A proximity change whose link dropped before it was confirmed (ProximityFollowUp): checked on the reconnect's first status read. */
     private ProximityFollowUp.Recheck recheck;private long recheckSequence;
@@ -210,6 +212,13 @@ public final class BleController {
     public Double liveNumber(String key){for(Telemetry.Metric m:telemetry.metrics())if(m.key.equals(key))return StatusCadence.live(m.updatedMs,now(),readingFreshMs(TelemetryHistory.freshnessMs(key)))?m.numericValue:null;return null;}
     public boolean connected(){return simulating()?simulation!=null&&state==State.READY:gatt!=null&&authenticated;}public Boolean locked(){Integer n=featureValue("lock");return ready()&&n!=null?(n!=0):null;}
     public String pending(){return mutation==null?null:mutation.key;}
+    /** When the change in flight began (elapsed ms), else 0: a control's pending spinner counts from it (PendingControl). */
+    public long pendingSinceMs(){return mutation==null?0:mutation.startedMs;}
+    /**
+     * The rider asked for the change in flight earlier than it began (a lock tap that waited for the scooter to take
+     * writes): its pending spinner counts from then, from any control and after a rebuild. Never later than it began.
+     */
+    public void pendingSince(String key,long askedMs){if(mutation!=null&&mutation.key.equals(key)&&askedMs>0)mutation.startedMs=Math.min(mutation.startedMs,askedMs);}
     /** The value the write in flight asks for: a charge start's wire seconds, else its target; null with none. Report diagnostics only. */
     public Long pendingValue(){return mutation==null?null:mutation.time!=null?mutation.time:Long.valueOf(mutation.target);}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */
@@ -468,6 +477,13 @@ public final class BleController {
     }
     /** The latest try of this control on the active scooter (journalled, so it survives restarts), or null. */
     public TestJournal.Entry latestTry(String key){ScooterProfiles.Profile p=profile();return p==null?null:testJournal.latestTry(p.id,key);}
+    /** Whether this control was tried on the active scooter before its last try was pruned (TestJournal.triedBefore). */
+    /** Home's find that waited (MainActivity.resumePendingScan) still opens, for the profile it was tapped for: FindNearby.homeFindStillWanted. */
+    public boolean homeFindStillWanted(String tappedFor){
+        ScooterProfiles.Profile p=profiles.active();
+        return p!=null&&FindNearby.homeFindStillWanted(tappedFor,p.id,p.mac,p.serial,connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);
+    }
+    public boolean triedBefore(String key){ScooterProfiles.Profile p=profile();return p!=null&&testJournal.triedBefore(p.id,key);}
     /** The simulator's Set back values, per control, for this session only. */
     private final LinkedHashMap<String,Integer> experimentBaselines=new LinkedHashMap<>();
     /** Value-specific decision (lock direction): unlock follows the recovery contract. */
@@ -644,7 +660,7 @@ public final class BleController {
         pendingFindMac="";
         return step;
     }
-    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;telemetry.tally.clear();notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
+    public void disconnect(){intentionalDisconnectSequence++;recoverableConnectionLoss=false;recordDiagnostic(ConnectionEventLog.Reason.EXPLICIT_DISCONNECT,-1);if(simulating()){state=State.DISCONNECTED;telemetry.tally.clear();clearMutation();notice(M.bleSimulationDisconnected());return;}endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);wanted=false;identifying=false;handler.removeCallbacksAndMessages(null);close(State.DISCONNECTED);telemetry.clear();sessionFirmware=null;profile=null;notice(M.bleStatusDisconnected());}
     /** True only inside suspend()'s close: this link is ending because Volt paused it, not because the scooter went away. */
     private boolean ownPause;public boolean ownPause(){return ownPause;}
     /** Stop every pending connection operation; saved profiles and diagnostic history survive. */
@@ -668,7 +684,12 @@ public final class BleController {
         scanCallback=new ScanCallback(){@Override public void onScanResult(int t,ScanResult r){handler.post(()->{
             if(!scanning||session!=generation||token!=scanSequence||!workAllowed()||r.getScanRecord()==null)return;String mac=r.getDevice().getAddress(),name=r.getScanRecord().getDeviceName();List<ParcelUuid> services=r.getScanRecord().getServiceUuids();
             if(!only.isEmpty()&&!only.equals(mac))return;
-            boolean known=profiles.hardwareMatch(null,mac,null)!=null;if(!known&&(services==null||!services.contains(new ParcelUuid(SERVICE)))&&(name==null||!name.toLowerCase(Locale.ROOT).contains("navee")))return;
+            boolean known=profiles.hardwareMatch(null,mac,null)!=null;if(!known&&(services==null||!services.contains(new ParcelUuid(SERVICE)))&&(name==null||!name.toLowerCase(Locale.ROOT).contains("navee"))){
+                // A scooter already listed keeps its latest signal from packets without its name or service ID; nothing
+                // else is read from them, its model ID least of all (#487 review).
+                if(discoveries.containsKey(mac)){Integer before=discoveryRssi.put(mac,r.getRssi());if(before==null||FindNearby.signalRank(before)!=FindNearby.signalRank(r.getRssi()))changed();}
+                return;
+            }
             // Raw AD walk only (see AdvertisedIdentity): the model ID, never the MAC bytes after it.
             AdvertisedIdentity.Result id=AdvertisedIdentity.parse(r.getScanRecord().getBytes());if(id!=null)advertised.put(mac,id);else advertised.remove(mac);
             if(!only.isEmpty()){if(id!=null){stopScan();connectDiscovered(r);}return;} // Identify waits for a packet with the model ID; the timeout reconnects
@@ -933,8 +954,11 @@ public final class BleController {
         if(statusMs<=0&&pendingStatusFrame==null)return true;
         boolean changed=!address.equals(profile.mac)||!serial.equals(profile.serial);profile.mac=address;profile.serial=serial;
         // Authenticated, serial verified on this MAC: the advertised model ID becomes evidence (a conflict is kept too; the resolver handles it).
-        boolean captured=pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)&&serial.equals(profile.serial);
+        // Not the fallback bytes when they disagree with the serial (FindNearby.captureModelId): those are the name.
+        boolean captured=pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)&&serial.equals(profile.serial)&&FindNearby.captureModelId(pendingAdvertised.pid,pendingAdvertised.marker,serial);
         if(captured){profile.advertisedPid=pendingAdvertised.pid;profile.advertisedPidWall=System.currentTimeMillis();pendingAdvertised=null;pendingAdvertisedMac="";changed=true;event("Model ID captured");}
+        // Refused (the name's letters, not a model ID): it goes, so nothing on this link reads the model from it.
+        else if(pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)){pendingAdvertised=null;pendingAdvertisedMac="";}
         // Volt's old default "My UT5 MAX" on another identified model was never the owner's choice.
         DeviceDescriptor named=profile.savedDescriptor();
         if(!profile.nameDefault&&ScooterProfiles.LEGACY_NAME.equals(profile.name)&&named.pidSource()!=DeviceDescriptor.PidSource.NONE
@@ -1034,6 +1058,7 @@ public final class BleController {
         if(simulating()){
             if(simulation==null||!ready()){notice(M.bleConnectSimulatedFirst());return completed(completion,false);}
             CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());return completed(completion,false);}
+            if(SimulatedConfirmation.delayMs()!=0)return slowSimulated(request,d.variant,value,completion);
             try{Integer before=featureValue(key);simulation.set(key,value,d.variant);if(origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();
                 logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,featureValue(key),0);quiet();return completed(completion,true);}
             catch(IllegalArgumentException invalid){notice(refusal(invalid));return completed(completion,false);}
@@ -1050,6 +1075,26 @@ public final class BleController {
             else bytes=d.variant.encode(value);
             return begin(request,d.variant,value,bytes,null,completion);
         }catch(IllegalArgumentException e){notice(refusal(e));return completed(completion,false);}}
+    /**
+     * Emulator validations only (SimulatedConfirmation): the simulator's change waits as a pending write, as a real
+     * scooter's unconfirmed one does, then applies; or, set never to confirm, ends unconfirmed after the real confirmation
+     * window with the old value kept. A disconnect or the simulator turning off in between drops it (clearMutation).
+     */
+    private boolean slowSimulated(MutationGate.Request request,FeatureVariant variant,int value,Consumer<Boolean> completion){
+        String key=request.feature;long delay=SimulatedConfirmation.delayMs();
+        Mutation pending=new Mutation(key,0,value,++mutationSequence);pending.request=request;pending.variant=variant;pending.completion=completion;pending.sent=true;pending.sentMs=now();
+        mutation=pending;changed();
+        handler.postDelayed(()->{
+            if(mutation!=pending||simulation==null||state!=State.READY)return;
+            if(delay==SimulatedConfirmation.NEVER){logMutation(pending,CommandLog.Outcome.TIMEOUT,-1,null);result(key,RESULT_NOT_CONFIRMED);clearMutation();changed();return;}
+            // As the simulator's immediate change does, once the wait is over.
+            try{Integer before=featureValue(key);simulation.set(key,value,variant);if(request.origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();
+                logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,featureValue(key),delay);
+                Consumer<Boolean> done=pending.completion;pending.completion=null;clearMutation();quiet();completed(done,true);}
+            catch(IllegalArgumentException invalid){clearMutation();notice(refusal(invalid));}
+        },delay==SimulatedConfirmation.NEVER?SimulatedConfirmation.TIMEOUT_MS:delay);
+        return true;
+    }
     public void setChargeStart(long seconds,int offset){setChargeStart(seconds,offset,null);}
     public void setChargeStart(long seconds,int offset,Consumer<Boolean> completion){setChargeStart(seconds,offset,completion,null);}
     /**
@@ -1483,7 +1528,8 @@ public final class BleController {
     private DeviceDescriptor transportDescriptor(){
         ScooterProfiles.Profile p=profile();
         String s=!serial.isEmpty()?serial:p==null?"":p.serial;
-        String pid=pendingAdvertised!=null&&gatt!=null&&gatt.getDevice().getAddress().equals(pendingAdvertisedMac)?pendingAdvertised.pid:p==null?"":p.advertisedPid;
+        String saved=p==null?"":p.advertisedPid;
+        String pid=pendingAdvertised!=null&&gatt!=null&&gatt.getDevice().getAddress().equals(pendingAdvertisedMac)?FindNearby.liveModelId(pendingAdvertised.pid,pendingAdvertised.marker,s,saved):saved;
         return DeviceDescriptor.of(s,pid,1,null,false,DeviceDescriptor.Transport.STANDARD,p==null?0:p.role);
     }
     private void startRecheck(ProximityFollowUp.Recheck r){

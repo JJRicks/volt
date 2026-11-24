@@ -255,7 +255,7 @@ public final class RideChartData {
         }
         return Collections.unmodifiableList(result);
     }
-    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy (off unless chosen). */
+    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy and distance (off unless chosen). */
     public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
         return forRide(scooter, phone, miles, fullDetail, inferRegen, null);
     }
@@ -264,6 +264,7 @@ public final class RideChartData {
                                        RideStore.Summary ride) {
         List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
         lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
+        lines.add(distance(scooter, phone, miles, fullDetail, ride, T.READINGS_CHART_DISTANCE, T.READINGS_CHART_GPS_DISTANCE));
         return Collections.unmodifiableList(lines);
     }
     /**
@@ -291,13 +292,17 @@ public final class RideChartData {
     public static final String DISTANCE_KEY = "distance";
     /** Its label (Series.label) when the phone's GPS track draws it; DISTANCE_KEY when the scooter's odometer does. */
     static final String GPS_DISTANCE_LABEL = "gps_distance";
-    /** Its own colour, a tan no other ride line uses, and its pattern slot (9: a solid line, as Power's). */
-    public static final int DISTANCE_COLOR = 0xffc49a6c, DISTANCE_INDEX = 9;
+    /**
+     * Its own colour, a light tan no other ride line uses, and its pattern slot (11: dotted, index % 3 == 2). It never
+     * looks like Power (solid orange, a default line), and among the dotted lines (GPS speed, Elevation, GPS accuracy)
+     * its grey level stands at least 30 apart (RideDistanceSourceTest). Only the pattern and colour use the index.
+     */
+    public static final int DISTANCE_COLOR = 0xffe3c08f, DISTANCE_INDEX = 11;
 
     /**
      * Distance since the ride started, in km (or mi with miles), on the scooter's timeline. The scooter's odometer draws
-     * it when the ride has two or more odometer readings and the odometer never went backwards, the rule the ride's
-     * Distance tile follows (RideStore.Summary.distanceKm). Otherwise the phone's GPS track draws it, counted as the
+     * it when the odometer moved during the ride (two or more distinct readings: one report snapshotted on several points
+     * is one) and never went backwards, as the ride's Distance tile reads it (RideStore.Summary.distanceKm). Otherwise the phone's GPS track draws it, counted as the
      * ride's GPS distance is (PhoneRideStore.Point.distanceSoFarMeters), and its legend says GPS. One source per line,
      * never mixed. A point without an odometer reading is left out rather than drawn as zero, and a recorded gap stays a
      * gap. A ride with neither has no values ("no data"). scooterLabelId and gpsLabelId are the two legend names' catalog
@@ -309,7 +314,8 @@ public final class RideChartData {
     }
     /**
      * As above, with the ride's own summary (null when there's none): its first odometer reading is the line's zero
-     * (the preview's thinned points can drop it), and an odometer it saw go backwards anywhere hands the line to GPS.
+     * (the preview's thinned points can drop it), and it picks the source: the odometer when it moved during the ride
+     * and never went backwards, else GPS, whatever the points passed in show.
      */
     static Series distance(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail,
                            RideStore.Summary ride, int scooterLabelId, int gpsLabelId) {
@@ -324,10 +330,17 @@ public final class RideChartData {
             if (first == null) first = p.odometerKm;
             // The ride summary's own tolerance for a backwards odometer.
             if (previous != null && p.odometerKm + 0.000001 < previous) backwards = true;
-            previous = p.odometerKm; readings++;
+            // Distinct values, not points: the ride snapshots the last report each second and keeps a reading up to
+            // 3 s, so one report shows on several points. An odometer that never moved isn't a distance to draw.
+            if (previous == null || Math.abs(p.odometerKm - previous) > 0.000001) readings++;
+            previous = p.odometerKm;
             values.add(new Value(p.elapsedMs, Math.max(0, p.odometerKm - first) * perKm, p.segment));
         }
-        boolean gps = readings < 2 || backwards;
+        // The ride's summary decides when it has odometer readings, so a thinned preview (which can miss the readings
+        // that moved) picks the same source as the full graph: the odometer moved and never went backwards.
+        boolean summed = ride != null && ride.startOdometerKm != null && ride.endOdometerKm != null;
+        boolean gps = summed ? ride.odometerReset || ride.endOdometerKm <= ride.startOdometerKm + 0.000001 || values.isEmpty()
+                : readings < 2 || backwards;
         if (gps) {
             values = new ArrayList<>();
             // A track with no distance (no moving step between two fixes) has none to draw: no data, not a flat zero.

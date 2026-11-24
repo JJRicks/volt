@@ -41,6 +41,8 @@ final class LockTapQueue {
     boolean waiting() { return target != null; }
     boolean stoppedOnly() { return stoppedOnly; }
     Boolean target() { return target; }
+    /** When the waiting tap was made (elapsed ms), 0 with none: the lock's pending spinner counts from it (PendingControl). */
+    long requestedAt() { return target == null ? 0 : requestedAt; }
     /** Why the last request was put back, once; null when nothing to say. */
     String takeFailure() { CharSequence text = failure; failure = null; return ConnectionText.english(text); }
     void sent() { sent = true; }

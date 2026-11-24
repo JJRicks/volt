@@ -113,7 +113,8 @@ public final class UnlockGuideValidation extends ValidationInstrumentation {
         SystemClock.sleep(600); settle();
         main(() -> {
             View panel = dialog[0].getWindow().getDecorView();
-            View drawing = find(panel, v -> v.getContentDescription() != null && v.getContentDescription().toString().startsWith(T.morePinDiagram()));
+            View drawing = find(panel, v -> v.getContentDescription() != null && (v.getContentDescription().toString().startsWith(T.morePinDiagram())
+                    || REDRAWN.equals(v.getClass().getName())));
             for (String step : new String[]{T.morePinGuideSignal(), T.morePinGuideDigit(), T.morePinGuidePower()})
                 require(find(panel, v -> v instanceof TextView && step.contentEquals(((TextView) v).getText())) != null, "The guide has no step '" + step + "'");
             if (handlebar == null) {
@@ -165,9 +166,16 @@ public final class UnlockGuideValidation extends ValidationInstrumentation {
                 require(android.graphics.Color.alpha(pixel) == 255 && !near(pixel, accent), "The neutral part at " + point[0] + "," + point[1] + " is #" + Integer.toHexString(pixel));
             }
         } finally { picture.recycle(); }
-        require(String.valueOf(drawing.getContentDescription()).equals(T.morePinDiagram()), "The drawing says '" + drawing.getContentDescription() + "'");
+        // The NT3 has a lever ahead of each grip: its drawing names the left one (#541 review); every other handlebar one lever.
+        String spoken = "NT3".equals(handlebar) ? leftLeverText() : T.morePinDiagram();
+        require(String.valueOf(drawing.getContentDescription()).equals(spoken), "The drawing says '" + drawing.getContentDescription() + "', not '" + spoken + "'");
         checks.add(label + ": the " + handlebar + " drawing keeps its proportions at " + String.format(Locale.ROOT, "%.2f", unit)
                 + " dp per unit, and its turn signal, brake lever and power button are in the accent");
+    }
+    /** The NT3 drawing's words; an app from before them (no catalog key yet) says the one-lever words (its census still runs). */
+    private static String leftLeverText() {
+        try { return String.valueOf(T.class.getMethod("morePinDiagramLeftLever").invoke(null)); }
+        catch (ReflectiveOperationException older) { return T.morePinDiagram(); }
     }
     private static boolean near(int a, int b) {
         return Math.abs(android.graphics.Color.red(a) - android.graphics.Color.red(b)) <= 6 && Math.abs(android.graphics.Color.green(a) - android.graphics.Color.green(b)) <= 6
