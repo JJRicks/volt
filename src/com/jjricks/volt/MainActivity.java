@@ -4341,6 +4341,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private LinearLayout swatchRow;private boolean wideSwatches;
         /** Moving while this setting needs the scooter parked: the row greys out and a tap says why. */
         private boolean parkedBlocked;
+        /** Refused because the scooter is switched off: greyed but tappable, and the tap says why (offWords). */
+        private String offWords;
         ControlRow(ScooterCommands.Feature feature){
             this.feature=feature;inline=inlineChoice(feature);
             String detail=rowDetail(feature);
@@ -4356,7 +4358,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 toggle.setContentDescription(shortLabel(feature));
                 toggle.setOnClickListener(v->{if(scooterService!=null){if(feature.key.equals("timed_charging")){toggle.setChecked(scooterService.chargeSchedule().manualEnabled);toggleManualCharge(false);return;}int target=toggle.isChecked()?1:0;Integer old=scooterService.ble.featureValue(feature.key);toggle.setChecked(old!=null&&old==1);confirmChange(feature,target,()->{scooterService.ble.set(feature.key,target);redraw();});}});
                 LinearLayout.LayoutParams tp=new LinearLayout.LayoutParams(-2,-2);tp.leftMargin=design.dp(10);row.line.addView(toggle,tp);
-                row.line.setFocusable(true);row.line.setBackground(rowRipple());row.line.setOnClickListener(v->{if(feature.key.equals("timed_charging"))toggleManualCharge();else if(parkedBlocked)toast(quickRefusal(ChargeBarDrag.Gate.PARKED));else if(toggle.isEnabled())toggle.performClick();});
+                row.line.setFocusable(true);row.line.setBackground(rowRipple());row.line.setOnClickListener(v->{if(feature.key.equals("timed_charging"))toggleManualCharge();else if(parkedBlocked)toast(quickRefusal(ChargeBarDrag.Gate.PARKED));else if(offWords!=null)toast(offWords);else if(toggle.isEnabled())toggle.performClick();});
             }else if(inline){
                 toggle=null;value.setVisibility(View.GONE);
                 if(feature.key.endsWith("_pattern")){
@@ -4380,7 +4382,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     }
                     row.line.addView(swatches);
                 }
-            }else{toggle=null;row.chevron(()->{if(feature.key.equals("charge_start"))showChargingTime();else if(parkedBlocked)toast(T.mainRowStopToChange());else editFeature(feature);});}
+            }else{toggle=null;row.chevron(()->{if(feature.key.equals("charge_start"))showChargingTime();else if(parkedBlocked)toast(T.mainRowStopToChange());else if(offWords!=null)toast(offWords);else editFeature(feature);});}
         }
         /**
          * Search also matches what the row shows in the current language. In English the haystack is what it always was;
@@ -4392,16 +4394,18 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(feature.key.equals("range_algorithm")){
                 boolean editable=scooterService!=null&&scooterService.profiles.active()!=null;
                 String source=editable&&scooterService.usesLearnedRange()?T.mainRowRangeLearned():T.mainRowRangeScooter();
-                parkedBlocked=false;name.setTextColor(editable?design.text:design.muted);action.setEnabled(editable);
+                parkedBlocked=false;offWords=null;name.setTextColor(editable?design.text:design.muted);action.setEnabled(editable);
                 row.line.setAlpha(1f);value.setText(source);value.setTextColor(design.muted);row.setSub(null);
                 spinner.setVisibility(View.GONE);result.setVisibility(View.GONE);
                 action.setContentDescription(T.mainRowRangeDescription(source));return;
             }
             BleController ble=scooterService==null?null:scooterService.ble;Integer liveActual=ble==null?null:ble.featureValue(feature.key);Integer actual=liveActual!=null?liveActual:scooterService==null?null:scooterService.displayFeatures().get(feature.key);
             // The same decision admits the write; riding keeps a parked-only row tappable to say "Stop to change". A scooter
-            // switched off is not a ride: its row says the off reason instead (Decision.parkedOnly, rowRefusal).
+            // switched off is not a ride: its row says the off reason instead (Decision.parkedOnly, rowRefusal), and stays
+            // tappable so the tap says it too (Decision.rowTappable).
             CapabilityResolver.Decision decision=ble==null?null:ble.decision(feature.key);boolean parked=decision!=null&&decision.parkedOnly();
-            boolean decided=decision!=null&&(decision.available()||parked);
+            boolean decided=decision!=null&&decision.rowTappable();
+            boolean off=decided&&!decision.available()&&!parked;
             boolean available=decided&&liveActual!=null&&scooterService.featureFresh(feature.key);
             String shown;
             if(feature.type==ScooterCommands.Type.TIME){Double seconds=ble==null?null:ble.telemetry.number("scheduled_charge_time_raw");if(seconds==null&&scooterService!=null){TelemetryHistory.Reading cached=scooterService.displayReadings().get("scheduled_charge_time_raw");if(cached!=null)seconds=cached.number;}available=decided&&seconds!=null&&scooterService.readingFresh("scheduled_charge_time_raw");shown=seconds==null?T.commonNotReported():seconds<=0?T.mainRowNotScheduled():DisplayTime.clock(MainActivity.this,preferences,(long)(seconds*1000)-TimeZone.getDefault().getOffset(System.currentTimeMillis()));}
@@ -4410,9 +4414,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Parked-only settings grey out while the scooter moves; the row stays tappable to say "Stop to change".
             parkedBlocked=available&&choices&&parked;
             CharSequence noteMessage=rowNote(ble,decision,parked);String note=noteMessage==null?null:noteMessage.toString();
-            boolean usable=available&&choices&&!parkedBlocked;
+            offWords=available&&choices&&off?note:null;
+            boolean usable=available&&choices&&!parkedBlocked&&offWords==null;
             name.setTextColor(usable?design.text:design.muted);action.setEnabled(available&&choices);
-            row.line.setAlpha(parkedBlocked?.45f:1f);
+            row.line.setAlpha(parkedBlocked||offWords!=null?.45f:1f);
             if(toggle==null&&!inline){
                 // A long value moves under the label so the row never wraps beside the chevron.
                 // Another model's caption joins a long time value under the label too, so neither is squeezed (never on the UT5 MAX).
@@ -4450,7 +4455,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // As in refresh(): another model's caption takes a long time value under the label with it (never on the UT5 MAX).
             boolean wide=toggle==null&&note!=null&&decision!=null&&decision.layer!=ModelRegistry.Layer.UT5_MAX&&textOver(shown,10,5.12,value);
             name.setTextColor(blocked==null?design.text:design.muted);value.setText(wide?"":shown);row.setSub(wide?joinNote(shown,note):note);
-            action.setEnabled(true);row.line.setAlpha(blocked==null?1f:.5f);parkedBlocked=false;
+            action.setEnabled(true);row.line.setAlpha(blocked==null?1f:.5f);parkedBlocked=false;offWords=null;
             spinner.setVisibility(pending?View.VISIBLE:View.GONE);result.setVisibility(View.GONE);
             action.setContentDescription(note==null||note.equals(blocked)?(blocked==null?T.mainLabelValue(shortLabel(feature),shown):T.mainLabelValueDetail(shortLabel(feature),shown,blocked))
                     :blocked==null?T.mainLabelValueDetail(shortLabel(feature),shown,note):T.mainLabelValueDetails(shortLabel(feature),shown,blocked,note));

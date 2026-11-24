@@ -29,6 +29,7 @@ public final class ScooterPowerStateTest {
         switchOnLoggedOnlyByAPush();
         staleChargingReadings();
         awaitingFirstPush();
+        switchOnLoggedFromThePush();
         System.out.println("ScooterPowerStateTest: " + checks + " assertions passed");
     }
 
@@ -229,5 +230,16 @@ public final class ScooterPowerStateTest {
         check(!s.awaitingPush(judge(s, READY + 1000), false), "A scooter that is never judged: never awaiting (today's behaviour)");
         check(!s.awaitingPush(s.verdict(READY + 1000, false, true, true, true, true), true), "Charging: never awaiting");
         check(!s.awaitingPush(s.verdict(READY + 1000, true, true, true, true, false), true), "The simulator: never awaiting");
+    }
+    /** #623 round 2: a push during a stale-status gap is a switch-on, logged from the push itself. */
+    private static void switchOnLoggedFromThePush() {
+        ScooterPowerState s = started();
+        check(judge(s, READY + 20_000).off(), "Off");
+        s.frame(0x92, READY + 25_000);
+        ScooterPowerState.Result stale = s.verdict(READY + 25_000, false, false, true, false, false);
+        check(stale.why == ScooterPowerState.Why.NOT_READY, "The push came while the status was stale: not ready");
+        check(ScooterPowerState.logged(true, stale, true) == ScooterPowerState.Logged.SWITCHED_ON, "Logged as a switch-on, from the push");
+        check(ScooterPowerState.logged(true, stale, false) == ScooterPowerState.Logged.CLEARED, "Without a push it is only cleared");
+        check(ScooterPowerState.logged(false, stale, true) == ScooterPowerState.Logged.NONE, "Never logged off: nothing to say");
     }
 }

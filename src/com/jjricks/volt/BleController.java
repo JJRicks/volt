@@ -353,11 +353,13 @@ public final class BleController {
         ScooterProfiles.Profile p=profile;
         if(p!=null&&offHold.release(p.id))event("Scooter pushing again: reconnects resume");
         if(p!=null&&!p.pushesSeen){p.pushesSeen=true;profiles.update(p);}
-        observePower();
+        observePower(true);
     }
     /** Logs the switched-off verdict once, and a switch-on only when a push ends it (ScooterPowerState.logged); every poll and push looks. */
-    private void observePower(){
-        ScooterPowerState.Logged logged=ScooterPowerState.logged(offLogged,powerVerdict());
+    private void observePower(){observePower(false);}
+    /** pushedNow: from a push, which ends a logged off state as a switch-on whatever the verdict (ScooterPowerState.logged). */
+    private void observePower(boolean pushedNow){
+        ScooterPowerState.Logged logged=ScooterPowerState.logged(offLogged,powerVerdict(),pushedNow);
         if(logged==ScooterPowerState.Logged.NONE)return;
         offLogged=logged==ScooterPowerState.Logged.SWITCHED_OFF;
         if(logged==ScooterPowerState.Logged.SWITCHED_OFF)event("Scooter seems switched off: it answers, but no live data for 10 s");

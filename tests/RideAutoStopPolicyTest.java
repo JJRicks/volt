@@ -40,6 +40,8 @@ public final class RideAutoStopPolicyTest {
         switchedOffRideEndsWhileLinked();
         statusGapKeepsOffCountdown();
         pushlessReconnectKeepsCountdown();
+        offReconnectTimelines();
+        settingOnWhileOffArms();
         System.out.println("RideAutoStopPolicyTest: " + checks + " assertions passed");
     }
 
@@ -606,5 +608,62 @@ public final class RideAutoStopPolicyTest {
         tick(p, last + 3000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE));
         tick(p, last + 240_000, reconnected(last + 240_000, false, false));
         check(!p.armed(), "Never judged: today's behaviour");
+    }
+    /**
+     * #623 round 2: the reconnect timelines #627 owns. Off verdict on a link that stays up, then a drop, then reconnects
+     * within the countdown while the scooter is still off (no push), as many times as the link comes and goes: the ride
+     * ends on the ORIGINAL deadline, timed from the last push.
+     */
+    private static void offReconnectTimelines() {
+        for (int cycles = 1; cycles <= 3; cycles++) {
+            RideAutoStopPolicy p = policy();
+            long last = rideThenPark(p, T, 4);
+            long at = last + 2000;
+            for (; at < last + 10_000; at += 2000) tick(p, at, up(at, last, 0, 0, false, last));
+            tick(p, last + 10_500, up(last + 10_500, last, 0, 0, true, last));
+            check(p.quiet() == RideAutoStopPolicy.Quiet.SLOW && p.quietSince() == last, "Off verdict: one minute from the last push");
+            at = last + 12_000;
+            for (int c = 0; c < cycles; c++) {
+                // The link drops for 6 s, then reconnects: awaiting its first push for 10 s at most, then off again.
+                for (long end = at + 6000; at < end; at += 1000)
+                    check(tick(p, at, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.NONE, "Dropped, cycle " + c);
+                for (long end = at + 4000; at < end; at += 1000)
+                    check(tick(p, at, reconnected(at, false, true)) == RideAutoStopPolicy.Stop.NONE, "Reconnected, awaiting, cycle " + c);
+                for (long end = at + 4000; at < end; at += 1000)
+                    check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.NONE, "Reconnected, off again, cycle " + c);
+                check(p.quietArmed() && p.quietSince() == last, "Still the original countdown after cycle " + c);
+            }
+            for (; at < last + RideAutoStopPolicy.QUIET_SLOW_MS; at += 1000)
+                check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.NONE, "Not before the original deadline at " + (at - last));
+            check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.QUIET, "Ends on the original deadline after " + cycles + " cycle(s)");
+        }
+        // The deadline falls while the link is down between cycles: it ends then.
+        RideAutoStopPolicy p = policy();
+        long last = rideThenPark(p, T, 4);
+        for (long poll = last + 2000; poll < last + 10_000; poll += 2000) tick(p, poll, up(poll, last, 0, 0, false, last));
+        tick(p, last + 10_500, up(last + 10_500, last, 0, 0, true, last));
+        long at = last + 50_000;
+        tick(p, at, reconnected(at, false, true));
+        for (at += 1000; at < last + RideAutoStopPolicy.QUIET_SLOW_MS; at += 1000)
+            check(tick(p, at, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.NONE, "Down, before the deadline");
+        check(tick(p, at, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.QUIET, "Down at the deadline: ends");
+    }
+
+    /**
+     * #623 round 2: End rides automatically switched on mid-ride while the scooter is already off and answering. The
+     * setting's reset left the policy unbound, so the off observation armed nothing. It binds on the off observation now
+     * and starts the countdown; an armed countdown (a reconnect) is never rebound.
+     */
+    private static void settingOnWhileOffArms() {
+        RideAutoStopPolicy p = policy();
+        long last = rideThenPark(p, T, 4);
+        p.reset(); // setting off
+        long at = last + 30_000;
+        tick(p, at, up(at, last, 0, 0, true, last)); // setting on again: the scooter is off
+        check(p.armed(), "The off observation arms a countdown after the setting comes back on");
+        check(p.quietArmed() && p.quietSince() == last, "Timed from the last push");
+        RideAutoStopPolicy.Stop stop = RideAutoStopPolicy.Stop.NONE;
+        for (at += 1000; stop == RideAutoStopPolicy.Stop.NONE && at <= last + RideAutoStopPolicy.QUIET_LONG_MS; at += 1000) stop = tick(p, at, up(at, last, 0, 0, true, last));
+        check(stop == RideAutoStopPolicy.Stop.QUIET, "And ends the ride");
     }
 }

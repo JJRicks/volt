@@ -36,6 +36,7 @@ public final class RideAutoStopWireTest {
             parkedRuleStillWins();
             switchedOffWhileAnsweringEndsWithTheLinkUp();
             pushlessReconnectKeepsTheCountdown();
+            offThenReconnectCycles();
             settingOffCancels();
             text();
             serviceWiring();
@@ -321,6 +322,27 @@ public final class RideAutoStopWireTest {
                     "a reconnect without a push keeps the countdown: ends five minutes after the last frame, the link up: " + (s.stoppedAt - last));
             else check(s.stoppedAt < 0 && !s.policy.armed(), "never judged: the reconnect cancels it, as today");
         }
+    }
+
+    /**
+     * #623 round 2: off verdict with the link up, then the link drops and comes back twice while the scooter stays off
+     * (polls answered, no pushes): the ride ends on the original deadline, a minute after the last push.
+     */
+    private static void offThenReconnectCycles() throws IOException {
+        Service s = new Service("Off, link flapping", 10000); s.armed = true;
+        s.ride(30, 1, 100000);
+        long last = s.lastPush;
+        long[][] down = {{last + 15000, last + 20000}, {last + 36000, last + 41000}};
+        while (s.now < last + 62000) {
+            boolean gone = false;
+            for (long[] d : down) gone |= s.now >= d[0] && s.now < d[1];
+            if (gone && s.connected) s.connected = false;
+            else if (!gone && !s.connected && s.stoppedAt < 0) { s.connected = true; s.transport++; }
+            if (s.connected && s.now % 2000 == 0) s.poll();
+            s.tick();
+            if (s.now == last + 59000) check(s.stoppedAt < 0 && s.policy.quietSince() == last, "still counting from the last push through two reconnects");
+        }
+        check(s.stoppedAt == last + 60000, "ends on the original deadline, a minute after the last push: " + (s.stoppedAt - last));
     }
 
     private static void settingOffCancels() throws IOException {

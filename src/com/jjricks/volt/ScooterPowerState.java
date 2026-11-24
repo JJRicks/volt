@@ -125,10 +125,16 @@ final class ScooterPowerState {
      * The event-log line for this verdict: "switched off" once when it turns off, "switched on" only when a push ends
      * it (LIVE). Anything else away from off (the simulator's hook cleared) only clears the mark, with no line.
      */
-    static Logged logged(boolean loggedOff, Result r) {
+    static Logged logged(boolean loggedOff, Result r) { return logged(loggedOff, r, false); }
+
+    /**
+     * As above, from a push itself ({@code pushedNow}): a push that ends a logged off state is a switch-on whatever the
+     * verdict says at that moment (with the status stale it is "not ready", not LIVE).
+     */
+    static Logged logged(boolean loggedOff, Result r, boolean pushedNow) {
         if (r.off()) return loggedOff ? Logged.NONE : Logged.SWITCHED_OFF;
         if (!loggedOff) return Logged.NONE;
-        return r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
+        return pushedNow || r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
     }
 
     /** Which scooters are judged: the UT5 MAX layer, or one that has pushed on an earlier connection. */

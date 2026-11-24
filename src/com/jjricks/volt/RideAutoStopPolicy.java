@@ -348,7 +348,13 @@ public final class RideAutoStopPolicy {
     public void observe(long now, Link link) {
         if (link == null) return;
         if (!link.connected) disconnected(now, link.loss);
-        else if (link.switchedOff) scooterOff(now, link.pushMono, link.frameMono);
+        else if (link.switchedOff) {
+            // Nothing running and nothing bound (End rides automatically switched back on mid-ride, or a service restart,
+            // with the scooter already off): bind to this ride's scooter on this link first, so the switch-off arms its
+            // countdown from the last push. A countdown already running (a reconnect after a drop) is never rebound.
+            if (!bound && !armed()) connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
+            scooterOff(now, link.pushMono, link.frameMono);
+        }
         else if (link.awaitingPush) awaitingPush(now);
         else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
     }
