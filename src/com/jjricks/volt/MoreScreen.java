@@ -2242,8 +2242,9 @@ public final class MoreScreen implements AppScreen {
         if (last != null && !last.resolved) { pill.show(ui.danger, true, T.moreLabStatusUnfinished(), T.moreLabStatusUnfinishedShort()); return; }
         // Untried is the default state, so where "Not tried yet" doesn't fit (pt-PT beside Try at 344 dp) the row shows no
         // words rather than a cut-off phrase; the pill's description, which the row speaks, keeps the full words.
-        // A try pruned from the journal (30 days after a report, or for room) leaves Tried before, never Not tried yet.
-        if (last == null && !ble.simulating() && ble.triedBefore(key)) { quietUntried(pill, T.moreLabStatusTriedBefore()); return; }
+        // A pruned try (a finished try stays until a report includes it, then goes once it is 30 days past its last update,
+        // or for room) leaves Tried before, never Not tried yet; where that doesn't fit, Tried, before no words.
+        if (last == null && !ble.simulating() && ble.triedBefore(key)) { pill.quiet(ui.muted, LabStatusRungs.triedBefore()); return; }
         if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried(), ""); return; }
         switch (CompatibilityReport.tryResult(last)) {
             case "worked_here": pill.show(ui.ok, true, T.moreLabStatusWorked(), T.moreLabStatusWorkedShort()); return;
@@ -2257,7 +2258,8 @@ public final class MoreScreen implements AppScreen {
     }
     /**
      * An untried row's status: muted words, and none where they don't fit (pt-PT beside Try at 344 dp); the pill's
-     * description keeps them. For Tried before as well as Not tried yet (TestJournal.triedBefore).
+     * description keeps them. Unused since Tried before got its own short rung (LabStatusRungs); a language batch can't
+     * remove a line that holds text, so an ordinary follow-up removes it.
      */
     private void quietUntried(LadderPill pill, String words) { pill.quiet(ui.muted, words, ""); }
     /** The running (not finished) try of this control, or null. */

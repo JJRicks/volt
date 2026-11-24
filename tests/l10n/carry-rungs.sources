@@ -1,0 +1,8 @@
+# 2.0.5 review leftovers (#619, #622, #630): the Experimental controls row's Tried rung, the charging time tile's
+# Estimating rung, and translated names for the rows in a page's own search words. tests/run.sh compiles every path
+# listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root. ChargingEstimate and
+# its neighbours compile with tests/run.sh's core lists; FitLadder, HubSearch and HubText with their own .sources.
+src/com/jjricks/volt/LabStatusRungs.java
+tests/l10n/LabStatusRungsTest.java
+tests/l10n/ChargeTimeStateRungsTest.java
+tests/l10n/HubSearchOwnRowsTest.java

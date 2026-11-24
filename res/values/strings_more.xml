@@ -598,8 +598,10 @@
     <string name="more_lab_status_unfinished_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Unfinished</string>
     <!-- Try sheet status before any try. -->
     <string name="more_lab_status_not_tried" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Not tried yet</string>
-    <!-- Status of a control tried on this scooter before, whose try Volt no longer keeps (finished tries go 30 days after a report includes them, or when too many are kept). Its result is no longer known, so say only that it was tried. -->
-    <string name="more_lab_status_tried_before" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Tried before</string>
+    <!-- Status of a control tried on this scooter before, whose try Volt no longer keeps (a finished try stays until a report includes it, then goes once it is 30 days past its last update, or when too many are kept). Its result is no longer known, so say only that it was tried. Full wording; a shorter rung follows when the row has no room. -->
+    <string name="more_lab_status_tried_before" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Tried before</string>
+    <!-- Shorter more_lab_status_tried_before, beside the Try button where the full words don't fit. One short word if you can: where this doesn't fit either, the row shows no words and looks untried. -->
+    <string name="more_lab_status_tried_before_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Tried</string>
     <!-- Row status: offered by the official app here, untested by Volt. Full wording; shorter rungs follow when the pill has no room. -->
     <string name="more_lab_status_unverified" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Unverified on your model</string>
     <!-- Shorter more_lab_status_unverified. -->

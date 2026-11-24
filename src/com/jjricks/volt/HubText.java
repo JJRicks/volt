@@ -631,8 +631,12 @@ public final class HubText {
         if (page == null) return new Msg[0];
         switch (page) {
             case HubPages.RIDE_RIDES: return new Msg[] {M.ridesCompareTwo()};
-            case HubPages.RIDE_RIDING: return new Msg[] {M.ridingDisplayRotation()};
-            case HubPages.BATTERY_HISTORY: return new Msg[] {M.moreChargeAutoRecord(), M.moreDevExport()};
+            // Then, as on every page below, the rows shown only in some states, whose English is in the page's own words
+            // (HubSearchTables.pageOwnWords; HubSearchOwnRowsTest finds each such row and requires its name here).
+            case HubPages.RIDE_RIDING: return new Msg[] {M.ridingDisplayRotation(), M.ridingDisplayReset(), M.ridingNightFrom(), M.ridingNightStarts(),
+                    M.ridingNightEnds()};
+            case HubPages.BATTERY_HISTORY: return new Msg[] {M.moreChargeAutoRecord(), M.moreDevExport(), M.moreDevRecord(), M.moreDevStopRecord(),
+                    M.moreDevRecordings(), M.moreDevClearCharges(), M.chargeLiveUpdateRow()};
             case HubPages.SECURITY: return new Msg[] {M.morePinFallback(), M.morePinSetRow(), M.moreProximityPair(), M.morePinGuideRow()};
             case HubPages.SERVICE: return new Msg[] {M.hubPageServiceDiagnostics()};
             case HubPages.SERVICE_EXPERIMENTAL: return new Msg[] {M.moreLabUntested(), M.moreLabEvidence(), M.moreLabClearTries()};
@@ -642,9 +646,10 @@ public final class HubText {
             case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide()};
             case HubPages.SETTINGS_SCOOTERS: return new Msg[] {M.morePrefsAutoConnect(), M.morePrefsBackground(), M.morePrefsRefresh()};
             case HubPages.SETTINGS_ABOUT: return new Msg[] {M.moreAboutNearby(), M.moreAboutLocation(), M.moreAboutNotifications(),
-                    M.moreAboutOnlineMap(), M.moreAboutActivity(), M.moreAboutLicenses()};
+                    M.moreAboutOnlineMap(), M.moreAboutActivity(), M.moreAboutLicenses(), M.moreAboutConnect(), M.moreNoticesView()};
             // Then Scene, a row shown only while simulating, whose English is in the page's own words (#533 review, F05).
-            case HubPages.SETTINGS_DEVELOPER: return new Msg[] {M.moreDevCompat(), M.moreDevSimulate(), M.moreDevSimulatedModel(), M.moreDevSimulationScene()};
+            case HubPages.SETTINGS_DEVELOPER: return new Msg[] {M.moreDevCompat(), M.moreDevSimulate(), M.moreDevSimulatedModel(), M.moreDevSimulationScene(),
+                    M.moreDevSimulationDriveMode(), M.moreDevSlot3()};
             default: return new Msg[0];
         }
     }
