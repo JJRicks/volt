@@ -395,6 +395,12 @@ STEPS += [inst('gps-accuracy-riding' + ('-' + tag if tag else '') + '-725', T + 
           for tag in GPS_TAGS]
 STEPS += [inst('gps-accuracy-graph' + ('-' + tag if tag else ''), T + 'GpsAccuracyValidation', '-e', 'part', 'graph',
                *(('-e', 'locale', tag) if tag else ()), report_only=bool(tag)) for tag in ('', 'de', 'pt-PT', 'pt-BR')]
+# The ride graph (2.0.5): with Power, Wheel speed, Battery %, Elevation and Distance chosen, every value axis shows on the
+# unfolded Fold (inline and expanded) and at least three on a phone, and the expanded graph fills its page down to Done;
+# and the charge graph's estimate detail under the cursor stays inside its row at phone width, font scale 1 and 1.3.
+# RideChartsValidation sets its own window (1080x2400 or 2074x2153 at 420 dpi) and puts it back.
+STEPS += [inst(f'ride-charts-{size}', T + 'RideChartsValidation', '-e', 'part', 'ride', '-e', 'size', size) for size in ('phone', 'fold')]
+STEPS += [inst('charge-trace-detail', T + 'RideChartsValidation', '-e', 'part', 'charge', '-e', 'size', 'phone')]
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]
