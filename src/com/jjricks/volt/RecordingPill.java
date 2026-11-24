@@ -48,12 +48,13 @@ final class RecordingPill {
 
     /**
      * The recording pill's text while the scooter is switched off: the time and "Scooter off" alternate every
-     * ALTERNATE_MS (there is no combined line), held on the words with the system's animations off.
+     * ALTERNATE_MS (there is no combined line), held on the words with the system's animations off; the words shorten to
+     * Off where they don't fit, as the status pill's do.
      */
     static String[] offRungs(long recordingMs, long nowMs, boolean motionEnabled) {
         String clock = RidingFocus.clockText(recordingMs);
         if (motionEnabled && timeHalf(nowMs)) return new String[]{T.ridingStatusRecording(clock), clock};
-        return new String[]{ScooterOffWords.state()};
+        return new String[]{ScooterOffWords.state(), T.commonOff()};
     }
 
     /** Spoken while switched off: the time in words, then "Scooter off". */

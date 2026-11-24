@@ -143,9 +143,9 @@ public final class ScooterOffWordsTest {
         check(!RecordingPill.pulses(RecordingPill.Look.RECORDING_PROBLEM, true), "No healthy pulse while off");
         String[] time = RecordingPill.offRungs(rec, 0, true), words = RecordingPill.offRungs(rec, RecordingPill.ALTERNATE_MS, true);
         check(time.length == 2 && time[0].equals(T.ridingStatusRecording("12:48")) && time[1].equals("12:48"), "First half: the time: " + String.join("|", time));
-        check(words.length == 1 && words[0].equals(ScooterOffWords.state()), "Second half: Scooter off");
+        check(words.length == 2 && words[0].equals(ScooterOffWords.state()) && words[1].equals(T.commonOff()), "Second half: Scooter off, then Off where it doesn't fit (council r3 F03)");
         String[] still = RecordingPill.offRungs(rec, 0, false);
-        check(still.length == 1 && still[0].equals(ScooterOffWords.state()), "Animations off: held on the words");
+        check(still.length == 2 && still[0].equals(ScooterOffWords.state()) && still[1].equals(T.commonOff()), "Animations off: held on the words");
         same(T.ridingReadingSpoken(RecordingPill.spoken(rec, RidingFocus.Link.CONNECTED, null), ScooterOffWords.state()), RecordingPill.offSpoken(rec), "spoken: the time, then Scooter off");
         String riding = src("RidingScreen");
         check(riding.contains("RecordingPill.Look look = RecordingPill.look(recordingMs, link, savedAgoMs, savedAutomatic, off);"), "RidingScreen passes the off state");

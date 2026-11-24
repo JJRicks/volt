@@ -230,7 +230,7 @@ public final class ScooterOffRideEndTest {
     private static final class Ride {
         final ScooterPowerState power = new ScooterPowerState();
         final RideAutoStopPolicy policy = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
-        long now = T0, lastFrame, lastMotion, lastPush, ended = -1; int transport = 1, speed; boolean up = true, powered, scooterOn = true;
+        long now = T0, lastFrame, lastMotion, lastPush, ended = -1; int transport = 1, speed; boolean up = true, powered, scooterOn = true, charging;
         RideAutoStopPolicy.Stop stop = RideAutoStopPolicy.Stop.NONE;
         Ride() { power.start(now); powered = true; }
         RideAutoStopPolicy.Link link() {
@@ -238,7 +238,7 @@ public final class ScooterOffRideEndTest {
             if (!up && powered) { power.reset(); powered = false; lastPush = 0; }
             if (!up) return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE);
             boolean fresh = lastFrame > 0 && now - lastFrame <= CapabilityResolver.STATUS_MAX_AGE_MS;
-            ScooterPowerState.Result verdict = power.verdict(now, false, fresh, true, fresh, false);
+            ScooterPowerState.Result verdict = power.verdict(now, false, fresh, true, fresh, charging);
             return RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, lastMotion, speed, speed > 0 ? 1 : 0, verdict.off(), power.awaitingPush(verdict, true), lastPush);
         }
         /** One second: a push (scooter on) or an answered poll every 2 s (off), then the service's observe and due. */
@@ -249,7 +249,9 @@ public final class ScooterOffRideEndTest {
             RideAutoStopPolicy.Link l = link();
             policy.observe(now, l);
             RideAutoStopPolicy.Stop due = policy.due(now, l);
-            if (due == RideAutoStopPolicy.Stop.PARKED || due == RideAutoStopPolicy.Stop.QUIET) { ended = now; stop = due; }
+            // ScooterService.autoStopRide ends it only while RideAutoStopPolicy.mayEnd(autoStopLink()) allows.
+            if ((due == RideAutoStopPolicy.Stop.PARKED || due == RideAutoStopPolicy.Stop.QUIET) && RideAutoStopPolicy.mayEnd(l)) { ended = now; stop = due; }
+            else if (due == RideAutoStopPolicy.Stop.NO_MOTION) { ended = now; stop = due; }
             now += 1000;
         }
         void until(long t) { while (now < t) tick(); }
@@ -302,5 +304,30 @@ public final class ScooterOffRideEndTest {
         c.up = false; c.until(last + 400_000);
         check(c.ended > 0 && c.ended <= last + 300_000 + 1000, "C: keeps the original deadline: " + (c.ended - last));
         check(c.switchedOff() && c.hold(), "C: saved as switched off, and held");
+        // D (council r3 F05 on #628): switched off mid-ride, plugged in, the link drops, and Volt reconnects while it
+        // charges: not judged (charging), no push. The reconnect keeps the running countdown, its deadline and its kind,
+        // so the ride ends switched off on the switch-off's minute and automatic charge recording can start.
+        Ride d = new Ride();
+        d.speed = 150; d.until(T0 + 60_000); d.speed = 0; d.until(T0 + 70_000);
+        last = d.lastPush;
+        d.scooterOn = false; d.until(last + 15_000);
+        check(d.switchedOff() && d.policy.armed(), "D: off verdict on the live link: a switch-off countdown");
+        d.charging = true; d.until(last + 20_000);
+        d.up = false; d.until(last + 25_000);
+        d.up = true; d.transport = 2; d.until(last + 32_000);
+        RideAutoStopPolicy.Link charging = d.link();
+        check(!charging.switchedOff && !charging.awaitingPush && d.policy.armed() && d.switchedOff(),
+                "D: reconnected while charging (not judged, no push): the countdown and its mark stand");
+        d.until(last + 700_000);
+        check(d.stop != RideAutoStopPolicy.Stop.NO_MOTION && d.ended > 0 && d.ended <= last + 60_000 + 1000,
+                "D: ends on the switch-off's deadline, with the link up and charging, not at rule 3's ten minutes: " + d.stop + " " + (d.ended - last));
+        check(d.switchedOff(), "D: saved as switched off");
+        check(ChargeAutoRecordPolicy.shouldStart(true, true, true, false, false, false, false, false), "D: the ride is over, so automatic charge recording starts");
+        // A pushless reconnect to a scooter never seen off (a never-judged model) still cancels, as before.
+        RideAutoStopPolicy p = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        push(p, T0, 250, 1);
+        p.disconnected(T0 + 1000, RideAutoStopPolicy.Loss.RECOVERABLE);
+        p.observe(T0 + 20_000, RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 2, T0 + 20_000, T0, 0, 0, false, 0));
+        check(!p.armed(), "No switch-off mark: a pushless reconnect cancels as it always did");
     }
 }

@@ -385,14 +385,12 @@ public final class RideAutoStopPolicy {
         // verdict on a live link (scooterOff above) marks the scooter seen off. It is not a push either, so the running
         // countdown and its switch-off mark (offCountdown) both stand.
         else if (link.awaitingPush) awaitingPush(now);
-        else {
-            // A reconnect is not a push (a scooter not judged right now, such as one reporting charging): until the scooter
-            // pushes on this link (pushMono), a switch-off countdown's mark stays, so a drop before the next off verdict
-            // still counts down as a switch-off.
-            boolean stillOff = offCountdown && link.pushMono <= 0;
-            connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
-            if (stillOff) offCountdown = true;
-        }
+        // A reconnect is not a push, judged or not (a scooter reporting charging isn't judged): once the scooter was seen
+        // switched off, a link with no push on it yet keeps the running countdown whole, its deadline, its kind and its
+        // switch-off mark, as a first-push wait does. Switched off, plugged in, dropped and reconnected, the ride still
+        // ends on the switch-off's deadline (mayEnd). A scooter never seen off is cancelled by any reconnect, as before.
+        else if (offCountdown && link.pushMono <= 0) awaitingPush(now);
+        else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
     }
 
     /**
@@ -413,8 +411,16 @@ public final class RideAutoStopPolicy {
      */
     public boolean seenOffWhileLinked() { return seenOff; }
 
-    /** Whether rules 1 and 2 may end the ride with this link: gone, or up to a scooter switched off; never one that is on. */
-    public static boolean mayEnd(Link link) { return link == null || !link.connected || link.switchedOff; }
+    /**
+     * Whether rules 1 and 2 may end the ride with this link: gone, up to a scooter switched off, or up with nothing showing
+     * it on (no push and no first-push wait, such as a switched-off scooter reconnected while it charges); never one that
+     * is on, and never inside a first-push wait.
+     */
+    public static boolean mayEnd(Link link) {
+        // Up with no push on it and no first-push wait: not judged right now (charging), so nothing shows it on. A
+        // countdown runs there only when it was seen switched off (observe), so the switch-off's deadline still ends it.
+        return link == null || !link.connected || link.switchedOff || link.pushMono <= 0 && !link.awaitingPush;
+    }
 
     /** Which rule ends the ride at a tick. */
     public enum Stop { NONE, PARKED, QUIET, NO_MOTION }
