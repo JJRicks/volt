@@ -45,25 +45,28 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   made while #621 (which #622 was stacked on) had not yet merged, failed
   core-tests: #621's code changes counted against #622's language-batch
   gates. After #621 merged, a new run on the same head passed all 4.
-- The independent review: #612 was reviewed by a Claude reviewer seat
-  only, because the Codex seats were unavailable; the other 21 by a
-  Claude seat and a GPT seat together, each run apart from the authoring
-  session. Earlier passes requested changes on 11 of them (#615 to #619,
-  #621, #623, #625, #627 to #629); each was fixed and reviewed again. No
-  last pass requested changes. For 16 of the 22 the last pass was on the
-  merged head. For the other 6 (#616, #617, #619, #623, #625 and #630) the
-  head moved after the last pass only by merging main into the branch:
-  conflicts were resolved by keeping main's lines (the list of emulator
-  validations in android-tests/build.sh, and for #625 a few lines main had
-  changed around the ride charts), and the pull request's own diff
-  otherwise matches the reviewed one. CI passed on each merged head, and
-  #623's and #625's emulator steps passed again on their merged heads.
-  The 37 P3s upheld on the last passes (on 16 of the 22) are tracked for
-  later releases. Among them, four text fits ship as they are: in Spanish
-  the recording pill's short Off rung doesn't fit beside a warning at
-  344 dp (#628), and Dutch Estimating on the charging tile at 120% text
-  size, a Portuguese Tried rung at 130% and the Swedish switch-off pill
-  in a 300 dp split screen are cut or wrap (#634).
+- The independent review: #612 was reviewed by a Claude reviewer seat only,
+  because the Codex seats were unavailable; the other 21 by a Claude seat
+  and a GPT seat together, each run apart from the authoring session.
+  Earlier passes requested changes on 11 of them (#615 to #619, #621, #623,
+  #625, #627 to #629); each was fixed and reviewed again. No last pass
+  requested changes. For 16 of the 22 the last pass was on the merged head.
+  For the other 6 (#616, #617, #619, #623, #625 and #630) the head moved
+  after the last pass only by a merge. For five of them that was main
+  merged into the branch, with conflicts resolved by keeping main's lines
+  (the list of emulator validations in android-tests/build.sh, and for #625
+  a few lines main had changed around the ride charts). #630, stacked on
+  #629, took in #629's branch with its first-round fixes, without
+  conflicts, 16 minutes before #629 reached main. In all six the pull
+  request's own diff otherwise matches the reviewed one. CI passed on each
+  merged head, and #623's and #625's emulator steps passed again on their
+  merged heads. The 37 P3s upheld on the last passes (on 16 of the 22) are
+  tracked for later releases. Among them, four text fits ship as they are:
+  in Spanish the recording pill's short Off rung doesn't fit beside a
+  warning at 344 dp (#628), Dutch Estimating on the charging tile at 120%
+  text size wraps and the Swedish switch-off pill in a 300 dp split screen
+  is cut, and in Portuguese at 130% the Experimental controls row's Tried
+  status doesn't fit and is left out, so an old try looks untried (#634).
 - run-release-sweep.py lists 344 steps on main at #632's merge, 29 more
   than 2.0.4's 315, none removed: charge-estimating-first-412 and -fold
   (#619); charge-invite-handover, charge-time-tile-wording-412, -fold and
@@ -173,8 +176,10 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   scheduled charging (7 passed, 0 failed, 0 skipped).
   - settings changed, read back and restored 23 controls, among them the
     charge limit (100 to 80 and back), the assists and both light zones.
-    The 5 the plan never writes (speed limit, maximum speed, dual drive,
-    drive speed limit and timed charging) were excluded, with no write.
+    The settings step excluded 5 controls, with no write: speed limit,
+    maximum speed, dual drive and drive speed limit, which the plan never
+    writes, and timed charging, which only Test scheduled charging turns on
+    and back off.
   - Test scheduled charging passed on a real charge.
 - Not yet tried on real hardware: the Scooter off state and its words with a real switched-off
   scooter that still answers (seen once, on one UT5 MAX, and not
