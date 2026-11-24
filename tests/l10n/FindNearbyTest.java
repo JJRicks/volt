@@ -25,6 +25,8 @@ public final class FindNearbyTest {
         signal();
         wiring();
         fixRound();
+        secondRound();
+        councilRound();
         System.out.println("FindNearbyTest: " + assertions + " assertions passed");
     }
 
@@ -273,7 +275,9 @@ public final class FindNearbyTest {
     private static void verdict() {
         check(FindNearby.serialUnreadable(1, 18) && FindNearby.serialUnreadable(0x10, 1), "an error status is unreadable");
         check(FindNearby.serialUnreadable(0, 1) && FindNearby.serialUnreadable(0, 0), "no bytes after the status byte is unreadable");
-        check(!FindNearby.serialUnreadable(0, 2) && !FindNearby.serialUnreadable(0, 18), "a status 0 reply with data is read (and compared)");
+        check(!FindNearby.serialUnreadable(0, 18) && !FindNearby.serialUnreadable(0, 40), "a status 0 reply with a whole serial is read (and compared)");
+        // #487 review, round 2: a reply cut short of a whole serial proves no other scooter: unreadable, not a refusal.
+        for (int length = 2; length < 18; length++) check(FindNearby.serialUnreadable(0, length), "a status 0 reply of " + length + " bytes is unreadable");
     }
 
     /** Fix round, P3: the model filter's unknown ID, and the latest signal's buckets. */
@@ -435,8 +439,9 @@ public final class FindNearbyTest {
         // P1: every wait keeps the find mode, and every resume reopens in it. No resume opens the ordinary scanner.
         check(!main.contains("showScanner(true);") && !main.contains("pendingScan=false;showScanner("), "no resume site reopens the ordinary scanner by itself");
         check(count(main, "if(pendingScan){resumePendingScan();}") == 4, "onServiceConnected, onResume, requestBluetooth and Bluetooth enable resume through resumePendingScan");
-        check(main.contains("private void resumePendingScan(){boolean find=pendingFind;pendingScan=pendingFind=false;showScanner(true,find);}"), "a resume reopens in the asked mode");
-        check(main.contains("private void deferScan(boolean find){pendingScan=true;pendingFind=find;}") && count(main, "pendingScan=true") == 1,
+        check(main.contains("private void resumePendingScan(){boolean find=pendingFind,home=find&&pendingHomeFind;String tapped=pendingHomeFindId;pendingScan=pendingFind=pendingHomeFind=false;pendingHomeFindId=null;")
+                && main.contains("homeFind=home;homeFindId=tapped;try{showScanner(true,find);}finally{homeFind=false;homeFindId=null;}}"), "a resume reopens in the asked mode");
+        check(main.contains("private void deferScan(boolean find){pendingScan=true;pendingFind=find;pendingHomeFind=find&&homeFind;pendingHomeFindId=pendingHomeFind?homeFindId:null;}") && count(main, "pendingScan=true") == 1,
                 "pendingScan is set only with its mode");
         String show = body(main, "private void showScanner(boolean start,boolean find){", "\n    private void connectSelectedScan(){");
         check(count(show, "deferScan(find);") == 4 && !show.contains("pendingScan"), "the four waits in showScanner (resume, permission, the service, Bluetooth on) keep the mode");
@@ -490,6 +495,103 @@ public final class FindNearbyTest {
         for (String path : new String[]{"src/com/jjricks/volt/MainActivity.java", "src/com/jjricks/volt/MoreScreen.java", "src/com/jjricks/volt/ScooterService.java"})
             check(!read(path).contains("ble.profileSelected();"), path + ": switches go through scooterSwitched");
         check(count(read("src/com/jjricks/volt/MoreScreen.java"), "s.ble.scooterSwitched();") == 2 && main.contains("scooterService.ble.scooterSwitched();"), "Use, Find at a new address and imports");
+    }
+
+    /** The #487 review's second-round P3s: each rule, then where the controller, the screens and setup apply it. */
+    private static void secondRound() {
+        // A fallback model ID (marker -1: two fixed bytes, maybe the name's letters) that disagrees with the serial isn't kept.
+        check(!FindNearby.captureModelId("22081", -1, SERIAL), "fallback bytes that disagree with the serial are not a model ID");
+        check(FindNearby.captureModelId("25381", -1, SERIAL), "fallback bytes that agree with the serial are kept, as before");
+        check(FindNearby.captureModelId("22081", 0, SERIAL) && FindNearby.captureModelId("25381", 0xb0, SERIAL),
+                "manufacturer data is kept as before, a conflict included (the resolver handles it)");
+        check(!FindNearby.captureModelId("", 0, SERIAL) && !FindNearby.captureModelId(null, -1, SERIAL), "nothing to keep");
+        // The find sheet's family: a saved ID that disagrees with the serial hides nothing.
+        DeviceDescriptor agreeing = DeviceDescriptor.of(SERIAL, "25381", 1, null, false, DeviceDescriptor.Transport.STANDARD, 0);
+        DeviceDescriptor conflicting = DeviceDescriptor.of(SERIAL, "22081", 1, null, false, DeviceDescriptor.Transport.STANDARD, 0);
+        DeviceDescriptor serialOnly = DeviceDescriptor.of(SERIAL, "", 0, null, false, DeviceDescriptor.Transport.STANDARD, 0);
+        check(conflicting.conflict() && FindNearby.family(conflicting).isEmpty() && "2538".equals(FindNearby.family(agreeing))
+                && "2538".equals(FindNearby.family(serialOnly)) && FindNearby.family((DeviceDescriptor) null).isEmpty(), "the find family ignores a conflicting saved ID");
+        List<FindNearby.Heard> heard = Arrays.asList(new FindNearby.Heard(OTHER, -50, "25381", false));
+        check(FindNearby.sheet(heard, SAVED, FindNearby.family(conflicting)).shown.size() == 1
+                && FindNearby.sheet(heard, SAVED, conflicting.family()).hidden == 1, "so the scooter looked for is listed, where the saved ID hid it");
+
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        String remember = body(ble, "private boolean remember(){", "\n    /** A verified frame");
+        check(remember.contains("&&FindNearby.captureModelId(pendingAdvertised.pid,pendingAdvertised.marker,serial);"), "remember() keeps only a model ID the rule keeps");
+        // The scan: a listed scooter's packet without its name or service ID updates its signal, and nothing else.
+        String scan = body(ble, "scanCallback=new ScanCallback(){", "@Override public void onScanFailed(");
+        int filter = scan.indexOf("(name==null||!name.toLowerCase(Locale.ROOT).contains(\"navee\"))){");
+        int rssi = scan.indexOf("if(discoveries.containsKey(mac)){Integer before=discoveryRssi.put(mac,r.getRssi());", filter);
+        check(filter > 0 && rssi > filter && scan.indexOf("return;", rssi) < scan.indexOf("AdvertisedIdentity.parse(", filter), "the filtered packet updates the signal and returns before the model ID is read");
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        check(main.contains("FindNearby.Sheet sheet=FindNearby.sheet(heard,profile.mac,FindNearby.family(profile.savedDescriptor()));"), "the sheet filters on the safe family");
+        // Home's find that waited is asked again before the sheet disconnects anything.
+        String find = body(main, "private void findNearby(boolean home){", "\n    }\n");
+        check(find.contains("if(scooterService==null){homeFind=home;homeFindId=null;try{showScanner(true,true);}finally{homeFind=false;}return;}")
+                && find.contains("homeFind=home;homeFindId=home&&profile!=null?profile.id:null;try{showScanner(true,true);}finally{homeFind=false;homeFindId=null;}")
+                && !find.contains("\n        showScanner(true,true);"), "both of Home's calls mark it, with the profile it was tapped for");
+        check(main.contains("if(saved!=null)pendingHomeFind=pendingFind&&saved.getBoolean(\"pending_home_find\",false);")
+                && main.contains("saved.putBoolean(\"pending_home_find\",pendingHomeFind);"), "kept across a recreation");
+        // Setup's own profile changes reset the tally as My scooters' Use does.
+        String setup = read("src/com/jjricks/volt/OnboardingScreen.java");
+        check(setup.contains("private void scooterSwitched() {\n        ScooterService service = host.service();\n        if (service != null) service.ble.scooterSwitched();"), "setup tells the controller");
+        check(body(setup, "profile = store.createMade(id, name, NewOwnerKey.generate());", "hideKeyboard();").contains("scooterSwitched();"), "after a made key");
+        check(body(setup, "profile = store.create(name, parsed.identity, parsed.role", "identityField.setText(\"\");").contains("scooterSwitched();"), "after a typed key");
+        check(setup.contains("if (mayRemoveCreated(made)) { store.remove(made.id); scooterSwitched(); }"), "after leaving a made key");
+        // The tally the rule protects: A, then B, then A again starts A from zero.
+        FindNearby.Timeouts t = new FindNearby.Timeouts();
+        t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false);
+        t.active("made"); t.active("a");
+        check(t.count("a") == 0, "a profile switch through setup starts the tally again");
+    }
+
+    /** #621 council round 1: the fixes' rules, then where BleController and MainActivity apply them. */
+    private static void councilRound() {
+        // [P2] A refused fallback ID never stands in for the model: a UT5 MAX whose fallback bytes read as a golf-cart ID
+        // (24352) stays a UT5 MAX, so statusRead keeps refusing its short 0x70 frames (it accepts them only off the UT5 MAX).
+        String live = FindNearby.liveModelId("24352", -1, SERIAL, "");
+        DeviceDescriptor link = DeviceDescriptor.of(SERIAL, live, 1, null, false, DeviceDescriptor.Transport.STANDARD, 0);
+        DeviceDescriptor refusedId = DeviceDescriptor.of(SERIAL, "24352", 1, null, false, DeviceDescriptor.Transport.STANDARD, 0);
+        check(live.isEmpty() && ModelRegistry.ut5Max(link) && !ModelRegistry.ut5Max(refusedId), "the link stays a UT5 MAX: short status frames stay refused");
+        check("25381".equals(FindNearby.liveModelId("25381", -1, SERIAL, "")) && "22081".equals(FindNearby.liveModelId("22081", 0, SERIAL, ""))
+                && "25381".equals(FindNearby.liveModelId("22081", -1, SERIAL, "25381")) && "22081".equals(FindNearby.liveModelId("22081", -1, "", "")),
+                "an agreeing or manufacturer-data ID still leads; a refused one gives the saved ID; no serial yet, nothing to refuse");
+        String ble = read("src/com/jjricks/volt/BleController.java");
+        String remember = body(ble, "private boolean remember(){", "\n    /** A verified frame");
+        int captured = remember.indexOf("if(captured){profile.advertisedPid=pendingAdvertised.pid;");
+        check(captured > 0 && remember.indexOf("else if(pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)){pendingAdvertised=null;pendingAdvertisedMac=\"\";}") > captured,
+                "a refused ID is cleared in remember()");
+        String transport = body(ble, "private DeviceDescriptor transportDescriptor(){", "\n    }\n");
+        check(transport.contains("FindNearby.liveModelId(pendingAdvertised.pid,pendingAdvertised.marker,s,saved)") && !transport.contains("?pendingAdvertised.pid:"),
+                "the link's model never reads a refused ID");
+        check(ble.contains("private boolean statusRead(Protocol.Frame f){return f.cmd==0x70&&f.error()==0&&f.data.length>=4&&(f.data[3]&255)<=1&&(f.data.length>=14||!ModelRegistry.ut5Max(transportDescriptor()));}"),
+                "statusRead judges short frames by the link's model");
+
+        // [P2] Bluetooth off, Home's find tapped, Android's Bluetooth dialog, enabled, back: the sheet opens.
+        FindNearby.Timeouts t = new FindNearby.Timeouts();
+        t.home(true);
+        for (int i = 0; i < FindNearby.TIMEOUTS; i++) { t.attempt("a"); t.failed("a", SAVED, SAVED, ConnectionEventLog.Reason.CONNECT_TIMEOUT, false); }
+        check(FindNearby.offerHome(SAVED, SERIAL, true, t.stuckOnHome("a"), false, false, false, false), "Home offers the find");
+        t.home(false);  // the dialog pauses Volt: the stay ends
+        t.home(true);   // back on Home
+        check(!FindNearby.offerHome(SAVED, SERIAL, true, t.stuckOnHome("a"), false, false, false, false), "the offer's own rule would drop it now (the old resume)");
+        check(FindNearby.homeFindStillWanted("a", "a", SAVED, SERIAL, false, false, false, false), "the tapped find still opens its sheet");
+        // Item 11's safety point: nothing is disconnected unless the find is still wanted.
+        check(!FindNearby.homeFindStillWanted("a", "a", SAVED, SERIAL, true, false, false, false), "a connection that came up meanwhile isn't ended");
+        check(!FindNearby.homeFindStillWanted("a", "b", SAVED, SERIAL, false, false, false, false) && !FindNearby.homeFindStillWanted(null, "a", SAVED, SERIAL, false, false, false, false),
+                "another scooter selected meanwhile, or no tap recorded");
+        check(!FindNearby.homeFindStillWanted("a", "a", SAVED, SERIAL, false, true, false, false) && !FindNearby.homeFindStillWanted("a", "a", SAVED, SERIAL, false, false, true, false)
+                && !FindNearby.homeFindStillWanted("a", "a", SAVED, SERIAL, false, false, false, true) && !FindNearby.homeFindStillWanted("a", "a", SAVED, "", false, false, false, false),
+                "simulation, a recording, a change in flight, or no saved serial");
+        String main = read("src/com/jjricks/volt/MainActivity.java");
+        String resume = body(main, "private void resumePendingScan(){", "}}");
+        check(resume.contains("if(home&&scooterService!=null&&!(tapped!=null?scooterService.ble.homeFindStillWanted(tapped):homeFindOffered())){redraw();return;}")
+                && resume.indexOf("homeFindStillWanted(tapped)") < resume.indexOf("showScanner(true,find)"), "the resume asks the tapped find's rule before the sheet disconnects anything");
+        check(main.contains("if(request==ENABLE_BLUETOOTH){if(result==RESULT_OK){if(pendingScan){resumePendingScan();}"), "Bluetooth enabled resumes the waiting find");
+        check(main.contains("if(saved!=null)pendingHomeFindId=pendingHomeFind?saved.getString(\"pending_home_find_id\"):null;")
+                && main.contains("saved.putString(\"pending_home_find_id\",pendingHomeFindId);"), "the tapped profile survives a recreation");
+        check(ble.contains("return p!=null&&FindNearby.homeFindStillWanted(tappedFor,p.id,p.mac,p.serial,connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);"),
+                "the controller applies it to the active scooter");
     }
 
     private static String body(String text, String start, String end) {

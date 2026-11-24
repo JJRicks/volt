@@ -54,6 +54,8 @@ final class BackupRegistry {
         // developer_options is retired (Developer options are always visible; no longer read or written). It stays registered so older backups that hold it restore it.
         for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained map_usgs_switch_answered just_back_basemap developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
+        // The online maps' shared dark/light style (MapStyle): a pick travels; absent (never picked) follows the theme.
+        add(app, MapStyle.KEY, String.class, PREFERENCES);
         // USGS saved by the old default rather than chosen (MapDefault.USGS_BY_DEFAULT_KEY) travels with map_tile_url.
         add(app, "map_usgs_by_default", Boolean.class, PREFERENCES);
         // Automatic ride copies (RideAutoExport): the switch (ride_auto_export_json, the old ride JSON switch's key) and
@@ -174,6 +176,8 @@ final class BackupRegistry {
         // A key Volt made (NewOwnerKey): whether it was offered, and the scooter it is tied to, travel with its profile, as
         // its key does. BackupArchive restores it with the profile it describes, never loosening this phone's record.
         prefix(app, NewOwnerKey.PREFIX, String.class, SCOOTERS, true);
+        // A made key's popup setup left to Home (a slow service bind, MadeKeyPrompt.OWED): only this phone's setup owes it.
+        exclude(app, MadeKeyPrompt.OWED, String.class, DEVICE);
         // Each scooter's lifetime odometer record (OdometerCarry): what it last read and what a reset carried over travel
         // with the profile. BackupArchive restores it onto the same profile ID only, keeping the record read more recently.
         prefix(app, OdometerCarry.PREFIX, String.class, SCOOTERS, true);

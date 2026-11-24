@@ -399,6 +399,13 @@ public final class BleController {
     }
     /** The latest try of this control on the active scooter (journalled, so it survives restarts), or null. */
     public TestJournal.Entry latestTry(String key){ScooterProfiles.Profile p=profile();return p==null?null:testJournal.latestTry(p.id,key);}
+    /** Whether this control was tried on the active scooter before its last try was pruned (TestJournal.triedBefore). */
+    /** Home's find that waited (MainActivity.resumePendingScan) still opens, for the profile it was tapped for: FindNearby.homeFindStillWanted. */
+    public boolean homeFindStillWanted(String tappedFor){
+        ScooterProfiles.Profile p=profiles.active();
+        return p!=null&&FindNearby.homeFindStillWanted(tappedFor,p.id,p.mac,p.serial,connected()||answeringAt(p.mac),simulating(),recording,mutation!=null);
+    }
+    public boolean triedBefore(String key){ScooterProfiles.Profile p=profile();return p!=null&&testJournal.triedBefore(p.id,key);}
     /** The simulator's Set back values, per control, for this session only. */
     private final LinkedHashMap<String,Integer> experimentBaselines=new LinkedHashMap<>();
     /** Value-specific decision (lock direction): unlock follows the recovery contract. */
@@ -595,7 +602,12 @@ public final class BleController {
         scanCallback=new ScanCallback(){@Override public void onScanResult(int t,ScanResult r){handler.post(()->{
             if(!scanning||session!=generation||token!=scanSequence||!workAllowed()||r.getScanRecord()==null)return;String mac=r.getDevice().getAddress(),name=r.getScanRecord().getDeviceName();List<ParcelUuid> services=r.getScanRecord().getServiceUuids();
             if(!only.isEmpty()&&!only.equals(mac))return;
-            boolean known=profiles.hardwareMatch(null,mac,null)!=null;if(!known&&(services==null||!services.contains(new ParcelUuid(SERVICE)))&&(name==null||!name.toLowerCase(Locale.ROOT).contains("navee")))return;
+            boolean known=profiles.hardwareMatch(null,mac,null)!=null;if(!known&&(services==null||!services.contains(new ParcelUuid(SERVICE)))&&(name==null||!name.toLowerCase(Locale.ROOT).contains("navee"))){
+                // A scooter already listed keeps its latest signal from packets without its name or service ID; nothing
+                // else is read from them, its model ID least of all (#487 review).
+                if(discoveries.containsKey(mac)){Integer before=discoveryRssi.put(mac,r.getRssi());if(before==null||FindNearby.signalRank(before)!=FindNearby.signalRank(r.getRssi()))changed();}
+                return;
+            }
             // Raw AD walk only (see AdvertisedIdentity): the model ID, never the MAC bytes after it.
             AdvertisedIdentity.Result id=AdvertisedIdentity.parse(r.getScanRecord().getBytes());if(id!=null)advertised.put(mac,id);else advertised.remove(mac);
             if(!only.isEmpty()){if(id!=null){stopScan();connectDiscovered(r);}return;} // Identify waits for a packet with the model ID; the timeout reconnects
@@ -856,8 +868,11 @@ public final class BleController {
         if(statusMs<=0&&pendingStatusFrame==null)return true;
         boolean changed=!address.equals(profile.mac)||!serial.equals(profile.serial);profile.mac=address;profile.serial=serial;
         // Authenticated, serial verified on this MAC: the advertised model ID becomes evidence (a conflict is kept too; the resolver handles it).
-        boolean captured=pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)&&serial.equals(profile.serial);
+        // Not the fallback bytes when they disagree with the serial (FindNearby.captureModelId): those are the name.
+        boolean captured=pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)&&serial.equals(profile.serial)&&FindNearby.captureModelId(pendingAdvertised.pid,pendingAdvertised.marker,serial);
         if(captured){profile.advertisedPid=pendingAdvertised.pid;profile.advertisedPidWall=System.currentTimeMillis();pendingAdvertised=null;pendingAdvertisedMac="";changed=true;event("Model ID captured");}
+        // Refused (the name's letters, not a model ID): it goes, so nothing on this link reads the model from it.
+        else if(pendingAdvertised!=null&&address.equals(pendingAdvertisedMac)){pendingAdvertised=null;pendingAdvertisedMac="";}
         // Volt's old default "My UT5 MAX" on another identified model was never the owner's choice.
         DeviceDescriptor named=profile.savedDescriptor();
         if(!profile.nameDefault&&ScooterProfiles.LEGACY_NAME.equals(profile.name)&&named.pidSource()!=DeviceDescriptor.PidSource.NONE
@@ -1402,7 +1417,8 @@ public final class BleController {
     private DeviceDescriptor transportDescriptor(){
         ScooterProfiles.Profile p=profile();
         String s=!serial.isEmpty()?serial:p==null?"":p.serial;
-        String pid=pendingAdvertised!=null&&gatt!=null&&gatt.getDevice().getAddress().equals(pendingAdvertisedMac)?pendingAdvertised.pid:p==null?"":p.advertisedPid;
+        String saved=p==null?"":p.advertisedPid;
+        String pid=pendingAdvertised!=null&&gatt!=null&&gatt.getDevice().getAddress().equals(pendingAdvertisedMac)?FindNearby.liveModelId(pendingAdvertised.pid,pendingAdvertised.marker,s,saved):saved;
         return DeviceDescriptor.of(s,pid,1,null,false,DeviceDescriptor.Transport.STANDARD,p==null?0:p.role);
     }
     private void startRecheck(ProximityFollowUp.Recheck r){

@@ -23,7 +23,7 @@ java() { command java -Djava.io.tmpdir="$TEST_TMP" "$@"; }
 rm -rf -- "$TEST_BUILD_DIR/classes"
 mkdir -p "$TEST_BUILD_DIR/classes"
 sources=()
-for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
+for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry ChartAxisLayout ChargeTraceDetail; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
 done
 sources+=("$APP_DIR/src/com/jjricks/volt/Ut5MaxStockVoltageReference.java" "$TEST_DIR/StockStartupReferenceTest.java" "$TEST_DIR/StockVoltageReferenceTest.java" "$TEST_DIR/StockVoltageReplayTrace.java" "$TEST_DIR/StockVoltageReplayTest.java" "$TEST_DIR/DualChargerEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxFastChargeReference.java" "$TEST_DIR/Ut5MaxFastChargeReferenceTest.java" "$APP_DIR/src/com/jjricks/volt/ChargeTaperMatcher.java" "$TEST_DIR/StockChargeHoldoutTrace.java" "$TEST_DIR/ChargeTaperMatcherTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerCaptureProcess.java" "$APP_DIR/src/com/jjricks/volt/Ut5MaxStockChargeReference.java" "$APP_DIR/src/com/jjricks/volt/ChargeReferenceGate.java" "$TEST_DIR/CompletedChargeEstimateTest.java" "$TEST_DIR/StitchedChargeEstimateTest.java" "$APP_DIR/src/com/jjricks/volt/LearnedCurveChart.java" "$TEST_DIR/LearnedCurveChartTest.java" "$TEST_DIR/ChargeJumpRecordings.java" "$TEST_DIR/LearnedJumpTest.java" "$TEST_DIR/ChargeJumpEstimatesTest.java" "$TEST_DIR/LearnNormalTemperatureTest.java" "$APP_DIR/src/com/jjricks/volt/UsableCapacity.java" "$TEST_DIR/UsableCapacityTest.java" "$TEST_DIR/StockChargeReferenceTest.java" "$TEST_DIR/ChargeReferenceGateTest.java")
@@ -67,6 +67,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/HubPages.java" "$TEST_DIR/HubPagesTest.
 # the What's new sheet's bundled release notes (part 9) and Settings' rows (part 11),
 # and the wide Clean Home's pane split (part 13).
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows HubSplit HubServiceFit PageColumn; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
+# What the activity does when an app setting changes, a restore's clear() (null key) included.
+sources+=("$APP_DIR/src/com/jjricks/volt/SettingsChange.java" "$TEST_DIR/SettingsChangeTest.java")
 # Clean Home's charging view: what shows in its slot as the Layout Plan draws it, nothing dropped (decisions on #383).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargingFit.java" "$TEST_DIR/ChargingFitTest.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeTimeReadings.java")
@@ -147,6 +149,8 @@ sources+=("$TEST_DIR/StockPackParity.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastChargeTaperTest.java" "$TEST_DIR/FastChargeTaperReplay.java")
 # UT5 MAX fast charger: "Charging slowed" and the temperature-aware estimate (ut5-fast-thermal-v10).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeSlowdown.java" "$TEST_DIR/ChargeSlowdownTest.java")
+# "Estimating time left" first: the plug-in hold on the time shown (owner, Nov 23 2026).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEstimateHold.java" "$TEST_DIR/ChargeEstimateHoldTest.java")
 # Battery alerts (charge level, full, low) for models without a native charge limit; uses the compat suites' resolver.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")
 # Notification spacing under Android's per-app enqueue rate limit.
@@ -188,7 +192,7 @@ for source in "${sources[@]}"; do
     unique_sources+=("$source"); seen_sources+="$source"$'\n'
 done
 javac --release 8 -encoding UTF-8 -d "$TEST_BUILD_DIR/classes" "${unique_sources[@]}"
-for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
+for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData RegenInference ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry ChartAxisLayout ChargeTraceDetail; do
     java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"
 done
 
@@ -201,6 +205,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NotificationPacerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LiveRangeEstimatorTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.FastChargeTaperTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSlowdownTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeEstimateHoldTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
 # Partial recordings join, and a percent one recording covers counts provisionally (stitched-estimate-v1).
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StitchedChargeEstimateTest
@@ -230,6 +235,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubNavTest
 for name in HomeStyle TopArea HomeMoment HomeQuickActions WhatsNewNotes SettingsRows HubSplit HubServiceFit PageColumn; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SettingsChangeTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargingFitTest
 (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeWireTest)
 (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargePictureTest)

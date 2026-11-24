@@ -875,6 +875,18 @@ public final class ChargingEstimate {
 
     private static boolean same(Double a,Double b){return a==null?b==null:a.equals(b);}
 
+    /** Every wording of the unknown-cutoff sentence the statuses here carry ("Cutoff unknown; …", "Charge cutoff unknown; the …"). */
+    private static final java.util.regex.Pattern CUTOFF_UNKNOWN=java.util.regex.Pattern.compile(
+            " ?(?:Charge c|C)utoff unknown; (?:the )?100% (?:time )?assumes charging continues\\.");
+
+    /**
+     * A status for a model with no charge limit at all (ModelRegistry.noChargeLimit): it charges to 100%, so its cutoff
+     * is known and the unknown-cutoff sentence goes. The estimate stays as it was: a limit is never guessed from the model.
+     */
+    public static String knownFullCutoff(String status) {
+        return status==null?null:CUTOFF_UNKNOWN.matcher(status).replaceAll("").trim();
+    }
+
     private static String cutoffNote(Double target) {
         return target==null?" Cutoff unknown; 100% assumes charging continues."
                 :target<100?" The 100% time assumes a higher charge limit.":"";
@@ -1059,5 +1071,19 @@ public final class ChargingEstimate {
             CharSequence label,
             String status) {
         return new Result(charging, watts, amps, limit, full, target, label, status);
+    }
+
+    /**
+     * The shown form of an estimate while ChargeEstimateHold holds it at plug-in: still charging, with its power, current
+     * and limit, but no time to the limit or to 100% and no planning minutes, so neither the screens nor Charge done by
+     * use the guess; the state is the live card's "Estimating time left" (ChargeLiveState.estimatingText, in the language
+     * of the moment: the estimate is made afresh at every refresh). Its status is empty, never null (readers take a
+     * status as text): the time tiles speak the state and then any status, and the same words twice is noise. Only the display holds it: recordings keep the estimate itself.
+     * A result that is not charging or has no time is returned unchanged.
+     */
+    public static Result estimating(Result shown) {
+        if (shown == null || !shown.charging || shown.remainingMinutesToFull == null && shown.remainingMinutesToLimit == null) return shown;
+        return new Result(true, shown.inputWatts, shown.inputAmps, null, null, shown.targetPercent, ChargeLiveState.estimatingText(), "",
+                false, false, 0, false, false, null, null, null, null, shown.stockPackModel, null, false, null, false);
     }
 }

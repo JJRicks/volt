@@ -941,6 +941,7 @@ public final class MoreScreen implements AppScreen {
                     : T.morePrefsBatteryOptimized());
         });
         Row map = row(connection, "map", mapTitle(), null, this::mapSettings);
+        mapRow = map.view;
         valueRefreshers.add(() -> map.value(basemapSummary()));
         autoSaveGroup();
     }
@@ -1340,6 +1341,12 @@ public final class MoreScreen implements AppScreen {
     private View updatesSheetTitle;
     /** Settings' Updates row (the index's), or null on a page that shows one section. */
     private View updatesIndexRow;
+    /** Recording settings' Map settings row, or null on a page without it. */
+    private View mapRow;
+    /** Whether a search anchor names a row of the Map settings dialog (its Dark map row, its Map on Home's last ride switch). */
+    private static boolean heldByMap(String id) {
+        return HubSearchTables.SETTING_MAP_STYLE.equals(id) || HubSearchTables.SETTING_JUST_BACK_MAP.equals(id);
+    }
     /** Whether a search anchor names a control the Updates sheet holds (its switch, its manual check). */
     private static boolean heldByUpdates(String id) {
         return HubSearchTables.SETTING_UPDATE_AUTO.equals(id) || HubSearchTables.SETTING_CHECK_UPDATES.equals(id);
@@ -1351,6 +1358,8 @@ public final class MoreScreen implements AppScreen {
     @Override public View anchor(String id) {
         // Battery & charging's invite sheet: its Record this charge brings this page's row on screen (ChargeInvite).
         if (ChargeInvite.RECORD_ANCHOR.equals(id)) return chargeCaptureRow != null ? chargeCaptureRow.view : null;
+        // Map settings' rows: Recording settings brings its Map settings row on screen and openHeld opens the dialog.
+        if (mapRow != null && heldByMap(id)) return mapRow;
         return updatesIndexRow != null && heldByUpdates(id) ? updatesIndexRow : null;
     }
     /**
@@ -1368,6 +1377,14 @@ public final class MoreScreen implements AppScreen {
             if (refused != null) host.toast(refused);
             if (closed || chargeCaptureRow == null || s == null || s.isChargeRecording() || s.chargeCaptureUnavailable() != null) return false;
             recordChargeDialog(s);
+            return true;
+        }
+        if (!closed && mapRow != null && heldByMap(id)) {
+            // The Map settings dialog over its row, the searched row flashed in it. The Dark map row shows only while an
+            // online map is on; hidden, the dialog alone opens, where turning a map on brings the row.
+            AlertDialog dialog = mapSettings();
+            View control = dialog == null || dialog.getWindow() == null ? null : dialog.getWindow().getDecorView().findViewWithTag(id);
+            if (control != null) Motion.beforeNextDraw(control, () -> { if (!closed && control.isShown()) HubSearchScreen.flash(control, ui); }, null);
             return true;
         }
         if (closed || updatesIndexRow == null || !heldByUpdates(id)) return false;
@@ -1411,9 +1428,10 @@ public final class MoreScreen implements AppScreen {
         // Only the Just back card's own switch on: the provider, and that it is the last ride's (JustBackBasemap.summary).
         return JustBackBasemap.summary(rides, card, provider, null, T.morePrefsMapLastRide());
     }
-    private void mapSettings() {
+    private AlertDialog mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);
         if (dialog != null) dialog.setOnDismissListener(d -> { if (!closed) refresh(); });
+        return dialog;
     }
     /** Android 16's per-app Live Updates setting; Volt's notification settings where that page is missing. */
     private void openLiveUpdateSettings() {
@@ -1611,6 +1629,9 @@ public final class MoreScreen implements AppScreen {
         if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return autoStopTitle();
         if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return autoSaveTitle();
         if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return autoSaveFolderTitle();
+        // Map settings' rows, named by the files that show them.
+        if (HubSearchTables.SETTING_MAP_STYLE.equals(tag)) return MapStyleControls.name();
+        if (HubSearchTables.SETTING_JUST_BACK_MAP.equals(tag)) return MapPreferences.justBackName();
         return null;
     }
     /** Keep screen awake's title, shown on its switch and named by search (searchRowTitles). */
@@ -2230,6 +2251,11 @@ public final class MoreScreen implements AppScreen {
             default: pill.show(ui.orange, true, sheet ? T.moreLabStatusUnconfirmedSheet() : T.moreLabStatusUnconfirmed(), T.moreLabStatusUnconfirmed());
         }
     }
+    /**
+     * An untried row's status: muted words, and none where they don't fit (pt-PT beside Try at 344 dp); the pill's
+     * description keeps them. For Tried before as well as Not tried yet (TestJournal.triedBefore).
+     */
+    private void quietUntried(LadderPill pill, String words) { pill.quiet(ui.muted, words, ""); }
     /** The running (not finished) try of this control, or null. */
     private static GuidedTest labLive(BleController ble, String key) {
         GuidedTest t = ble.guidedTest();

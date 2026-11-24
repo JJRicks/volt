@@ -1370,7 +1370,7 @@ final class RidingScreen implements AppScreen {
                 RidingValues.Reading battery = v.reading(RidingValues.BATTERY_KEY, now);
                 Double percent = battery == null ? null : battery.value;
                 RidingFocus.Range range = RidingFocus.range(content, session.range(), scooter == null ? null : scooter.value,
-                        scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, units);
+                        scooter == null || scooter.stale, session.learnedKm(percent), percent, battery == null || battery.stale, session.paceModel(), units);
                 // The label names whose estimate it is; a chosen source keeps its name with no reading.
                 // The same rule as RidingFocus.namedAs, which the chip's sizing uses (RidingChipSteadyTest holds the two together).
                 if (range.kind == RidingFocus.RangeKind.SCOOTER || content.equals(RidingLayout.RANGE_SCOOTER))

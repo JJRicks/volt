@@ -313,6 +313,10 @@
     <string name="readings_chart_energy_distance" volt:screen="Ride chart" volt:purpose="legend">Energy / distance</string>
     <!-- How far off the phone's GPS position may be, as each fix reported it (lower is better). -->
     <string name="readings_chart_gps_accuracy" volt:screen="Ride chart" volt:purpose="legend" volt:dnt="GPS">GPS accuracy</string>
+    <!-- Distance travelled since the ride started, by the scooter's odometer (km or mi). -->
+    <string name="readings_chart_distance" volt:screen="Ride chart" volt:purpose="legend">Distance</string>
+    <!-- Distance travelled since the ride started, by the phone's GPS track: shown instead when the scooter sent no odometer readings. -->
+    <string name="readings_chart_gps_distance" volt:screen="Ride chart" volt:purpose="legend" volt:dnt="GPS">GPS distance</string>
     <!-- A GPS accuracy: %1$s is the number, "±12"; its unit follows it, "±12 ft". The fix may be off by up to this much either way. -->
     <string name="readings_accuracy_value" volt:screen="Ride chart and riding mode" volt:purpose="value">±%1$s</string>
     <!-- The top mark of a graph scale that a few larger values go past (they are drawn at the top edge): %1$s is the number, "≥40". -->

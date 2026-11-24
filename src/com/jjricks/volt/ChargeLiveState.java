@@ -108,7 +108,7 @@ public final class ChargeLiveState {
                     plain = T.chargeLiveTextEta(done);
                     text = power == null ? plain : T.chargeLiveTextEtaWatts(done, power);
                 } else {
-                    plain = T.chargeLiveTextEstimating();
+                    plain = estimatingText();
                     text = power == null ? plain : T.chargeLiveTextEstimatingWatts(power);
                 }
         }
@@ -192,4 +192,10 @@ public final class ChargeLiveState {
     public static String actionLabel() {
         return T.chargeLiveActionDisconnect();
     }
+
+    /**
+     * "Estimating time left": the card's words while it has no time, and the charging time's state wherever a time is
+     * held at plug-in (ChargeEstimateHold, ChargingEstimate.estimating), so both say the same thing.
+     */
+    public static String estimatingText() { return T.chargeLiveTextEstimating(); }
 }

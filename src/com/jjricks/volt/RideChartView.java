@@ -74,7 +74,7 @@ public final class RideChartView extends View {
     public void setInspectionListener(InspectionListener listener) { inspectionListener = listener; notifyInspection(); }
     public void setValueFormatter(ValueFormatter formatter) {
         valueFormatter = formatter == null ? DEFAULT_FORMATTER : formatter;
-        notifyInspection(); invalidate();
+        fitAxisWidths(); notifyInspection(); invalidate();
     }
     public String formatSample(RideChartData.Series series, RideChartData.Value value) {
         return valueFormatter.sample(series, value);
@@ -84,7 +84,7 @@ public final class RideChartView extends View {
         if (!Float.isFinite(width) || width <= 0) return;
         float next = Math.max(24, Math.min(144, width));
         if (next == axisWidthDp) return;
-        float position = axisColumnPosition(); axisWidthDp = next;
+        float position = axisColumnPosition(); axisWidthDp = next; fitAxisWidths();
         restoreAxisColumnPosition(position); invalidate();
     }
     /** Clock axes can be wider without adding empty space around numerical axes. */
@@ -93,12 +93,28 @@ public final class RideChartView extends View {
         float next = Math.max(24, Math.min(144, width));
         Float previous = seriesAxisWidths.get(key);
         if (previous != null && previous == next) return;
-        float position = axisColumnPosition(); seriesAxisWidths.put(key, next);
+        float position = axisColumnPosition(); seriesAxisWidths.put(key, next); fitAxisWidths();
         restoreAxisColumnPosition(position); invalidate();
     }
+    /** Each shown axis's column width fitted to its labels (ChartAxisLayout.column), for axes without a set width. */
+    private final Map<RideChartData.Series, Float> fittedAxisWidths = new IdentityHashMap<>();
     private float axisWidth(RideChartData.Series selected) {
         Float width = seriesAxisWidths.get(selected.key);
+        if (width == null) { Float fitted = fittedAxisWidths.get(selected); if (fitted != null) return fitted; }
         return ui.dp(width == null ? axisWidthDp : width);
+    }
+    private float axisTextSize() { return Math.min(ui.sp(10), ui.dp(14)); }
+    /** Fits each axis without a set width (setAxisWidthDp) to its widest label: its five marks and its unit. */
+    private void fitAxisWidths() {
+        fittedAxisWidths.clear();
+        Paint measure = new Paint(Paint.ANTI_ALIAS_FLAG); measure.setTypeface(ui.regular()); measure.setTextSize(axisTextSize());
+        for (RideChartData.Series s : axes) {
+            if (seriesAxisWidths.containsKey(s.key)) continue;
+            float widest = measure.measureText(unitSymbol(s.unit));
+            for (int tick = 0; tick < 5; tick++)
+                widest = Math.max(widest, measure.measureText(s.available() ? valueFormatter.axis(s, s.scale.at(1 - tick / 4d)) : "—"));
+            fittedAxisWidths.put(s, ChartAxisLayout.column(widest, getResources().getDisplayMetrics().density, ui.dp(axisWidthDp)));
+        }
     }
     private float totalAxisWidth() {
         float total = 0;
@@ -151,6 +167,7 @@ public final class RideChartView extends View {
         series = new ArrayList<>(); double end = 1;
         for (RideChartData.Series s : all) { end = Math.max(end, s.endTime); if (selected.contains(s.key)) series.add(s); }
         axes = RideChartData.axes(series);
+        fitAxisWidths();
         boolean reset = duration <= 1; duration = end; if (reset) { from = 0; to = duration; } else clamp();
         // Start the cursor on the last recorded sample so the readout always shows values.
         if (!Double.isFinite(inspectedTime)) inspectedTime = lastSampleTime();
@@ -244,18 +261,13 @@ public final class RideChartView extends View {
     private void intercept(boolean disallow) { if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(disallow); }
     @Override protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        float totalWidth = 0, widest = 0, completeWidth = 0;
-        float budget = Math.min(ui.dp(144), getWidth() * .34f);
-        for (RideChartData.Series selected : axes) {
-            float width = axisWidth(selected);
-            totalWidth += width; widest = Math.max(widest, width);
-            if (totalWidth <= budget) completeWidth = totalWidth;
-        }
-        // Prefer whole columns, but always fit the widest axis when scrolled into view.
-        axesWidth = Math.min(totalWidth, Math.max(widest, completeWidth));
-        axisScroll = Math.max(0, Math.min(axisScroll, totalWidth - axesWidth));
+        float[] columns = new float[axes.size()];
+        for (int i = 0; i < columns.length; i++) columns[i] = axisWidth(axes.get(i));
+        // Whole columns within a third of the chart (more on a wide one), always the widest axis when scrolled into view.
+        axesWidth = ChartAxisLayout.strip(columns, ChartAxisLayout.budget(getWidth()));
+        axisScroll = Math.max(0, Math.min(axisScroll, totalAxisWidth() - axesWidth));
         plot.set(ui.dp(8) + axesWidth, ui.dp(32), getWidth() - ui.dp(12), getHeight() - ui.dp(40));
-        paint.setTypeface(ui.regular()); paint.setTextSize(Math.min(ui.sp(10), ui.dp(14)));
+        paint.setTypeface(ui.regular()); paint.setTextSize(axisTextSize());
         paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(ui.dp(1)); paint.setColor(ui.outline);
         for (int j = 0; j < 5; j++) { float y = plot.top + plot.height() * j / 4; canvas.drawLine(plot.left, y, plot.right, y, paint); }
         paint.setStyle(Paint.Style.FILL); paint.setTextAlign(Paint.Align.CENTER); paint.setColor(ui.muted);
@@ -353,7 +365,8 @@ public final class RideChartView extends View {
     private void drawScaleFades(Canvas canvas) {
         float overflow = totalAxisWidth() - axesWidth;
         if (overflow <= 1) return;
-        float start = ui.dp(8), end = plot.left - ui.dp(4), fade = Math.min(ui.dp(22), (end - start) / 3);
+        // Narrow enough to leave the last whole column's marks readable under it.
+        float start = ui.dp(8), end = plot.left - ui.dp(4), fade = Math.min(ui.dp(10), (end - start) / 3);
         int background = backgroundColor();
         if (axisScroll < overflow - 1) {
             paint.setShader(new LinearGradient(end - fade, 0, end, 0, Ui.withAlpha(background, 0), background, Shader.TileMode.CLAMP));

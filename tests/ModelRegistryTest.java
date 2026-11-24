@@ -10,7 +10,7 @@ public final class ModelRegistryTest {
         // Touch the registry before ScooterCommands so a static-initialiser cycle would show here.
         check(ModelRegistry.resolve(advertised("25381")).layer==ModelRegistry.Layer.UT5_MAX&&ModelRegistry.variant("clock_sync",advertised("25381"),null,null)==ModelRegistry.CLOCK
             &&ModelRegistry.variant("lock",advertised("25381"),null,null).id.equals("lock.ut5"),"Registry initialises first");
-        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); gt3Report(); waitingPhotos(); ownerAnswers(); catalog();
+        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); gt3Report(); waitingPhotos(); ownerAnswers(); catalog(); noChargeLimit();
         System.out.println("ModelRegistry tests passed: "+assertions+" assertions");
     }
 
@@ -51,6 +51,25 @@ public final class ModelRegistryTest {
         check(layer(both("Q2443ZZ9US7777777","24431"))==ModelRegistry.Layer.OEM_GROUP,"Matching advertised + serial is an OEM group");
         check(layer(DeviceDescriptor.simulated("",0))==ModelRegistry.Layer.UT5_MAX&&layer(DeviceDescriptor.simulated("24431",0))==ModelRegistry.Layer.OEM_GROUP
             &&layer(DeviceDescriptor.simulated("39991",0))==ModelRegistry.Layer.SHARED,"Simulated models resolve the same way");
+    }
+
+    /**
+     * A model with no charge limit at all (README #613: the GT3 Max's time tile read "To 100% if uncapped"): only where
+     * the official app hides the control. A model with a limit, one whose full ID decides it, and an unknown or
+     * unidentified model keep an unknown cutoff.
+     */
+    private static void noChargeLimit() {
+        check(ModelRegistry.noChargeLimit(advertised("24182"))&&ModelRegistry.noChargeLimit(DeviceDescriptor.simulated("24182",0)),"The GT3 Max has no charge limit");
+        check(ModelRegistry.noChargeLimit(both("Q2418ZZ9ES7777777","24182")),"The GT3 Max with its own serial too");
+        check(!ModelRegistry.noChargeLimit(both("Q2345ZZ9ES7777777","24182")),"A serial that disagrees with the advertised ID: the model isn't known, nor its cutoff");
+        check(!ModelRegistry.noChargeLimit(advertised("25381"))&&!ModelRegistry.noChargeLimit(serial("X2538-SYNTHETIC"))&&!ModelRegistry.noChargeLimit(DeviceDescriptor.simulated("",0)),
+            "The UT5 MAX has a charge limit, read or not");
+        check(!ModelRegistry.noChargeLimit(advertised("24431"))&&!ModelRegistry.noChargeLimit(DeviceDescriptor.simulated("24431",0)),"The official app's charge family has one");
+        check(!ModelRegistry.noChargeLimit(advertised("2543"))&&!ModelRegistry.noChargeLimit(advertised("25431"))&&ModelRegistry.noChargeLimit(advertised("25432")),
+            "A fifth-digit model: unknown until the full ID is read, then its own answer");
+        check(!ModelRegistry.noChargeLimit(advertised("39991"))&&!ModelRegistry.noChargeLimit(DeviceDescriptor.simulated("39991",0))&&!ModelRegistry.noChargeLimit(serial("Q2443ZZ9US7777777"))
+            &&!ModelRegistry.noChargeLimit(serial(""))&&!ModelRegistry.noChargeLimit(null),"An unknown or unidentified model keeps an unknown cutoff");
+        check(!ModelRegistry.noChargeLimit(advertised("24351"))&&!ModelRegistry.noChargeLimit(advertised("27361")),"An unsupported product or transport is not a no-limit model");
     }
 
     /** Owner decision: a serial-2538 profile always keeps the UT5 MAX layer; a mismatch is diagnostic only. */
@@ -190,6 +209,10 @@ public final class ModelRegistryTest {
             advertised("24411"),advertised("25171"),advertised("26201"),advertised("24431"),advertised("25291"),
             advertised("27451"),advertised("27991"),advertised("24182"),advertised("22131"),advertised("27811"),advertised("27821")};
         for(int i=0;i<riders.length;i++)check(ModelRegistry.unlockHandlebar(riders[i])==bars[i],"Unlock without phone draws "+bars[i]+" for "+riders[i]+", not "+ModelRegistry.unlockHandlebar(riders[i]));
+        // The NT3 has a lever ahead of each grip, so its guide's spoken text says which one step 2 means (#541 review); one lever everywhere else.
+        check(ModelRegistry.twoBrakeLevers(ModelRegistry.unlockHandlebar(advertised("27451")))&&ModelRegistry.twoBrakeLevers(ModelRegistry.unlockHandlebar(advertised("27011"))),"The NT3 names its left brake lever");
+        for(ModelRegistry.Handlebar h:ModelRegistry.Handlebar.values())if(h!=ModelRegistry.Handlebar.NT3)check(!ModelRegistry.twoBrakeLevers(h),h+" has one brake lever in its guide");
+        check(!ModelRegistry.twoBrakeLevers(null),"No drawing, no lever text");
         // An uncertain model gets no drawing: a Model ID mismatch (a GT3 Max serial advertising 2585, the UT5 MAX's serial advertising 24182), no ID, null.
         check(ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2418ZZ9US7777777","25852",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
             &&ModelRegistry.unlockHandlebar(DeviceDescriptor.of("Q2538ZZ9US7777777","24182",1,null,false,DeviceDescriptor.Transport.STANDARD,0))==null
