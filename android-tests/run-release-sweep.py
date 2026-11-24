@@ -199,6 +199,14 @@ STEPS += [
     inst('dashboard-home-widgets', T + 'DashboardValidation', '-e', 'mode', 'home-widgets'),
     inst('dashboard-slots', T + 'DashboardSlotsValidation'),
     inst('capacity-widget', T + 'CapacityWidgetValidation'),
+    # Widgets Home in edit mode: the controls leave each card's first words readable (README #613); and the Reading
+    # tiles fit their card again when a value grows after layout (#514 review, F02), at 1.3x text.
+    inst('widgets-edit-412', T + 'WidgetsEditValidation', '-e', 'mode', 'edit', '-e', 'size_label', '412', '-e', 'theme', 'dark', size='412x915'),
+    inst('widgets-edit-412-light', T + 'WidgetsEditValidation', '-e', 'mode', 'edit', '-e', 'size_label', '412', '-e', 'theme', 'light', size='412x915'),
+    inst('widgets-edit-344', T + 'WidgetsEditValidation', '-e', 'mode', 'edit', '-e', 'size_label', '344', '-e', 'theme', 'dark', size='344x882'),
+    inst('widgets-edit-fold', T + 'WidgetsEditValidation', '-e', 'mode', 'edit', '-e', 'size_label', 'fold', '-e', 'theme', 'dark', size='790x820'),
+    inst('widgets-tiles-412-large', T + 'WidgetsEditValidation', '-e', 'mode', 'tiles', '-e', 'size_label', '412', '-e', 'text_scale', '1.3', size='412x915'),
+    inst('widgets-tiles-fold-large', T + 'WidgetsEditValidation', '-e', 'mode', 'tiles', '-e', 'size_label', 'fold', '-e', 'text_scale', '1.3', '-e', 'theme', 'light', size='790x820'),
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
     # Report diagnostics' charge evidence on a fake link through Report an issue, and Preview on a worst-case file at the narrow size.
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),

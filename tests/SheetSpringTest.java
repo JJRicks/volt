@@ -286,6 +286,28 @@ public final class SheetSpringTest {
         }
         // The light theme's sheet: dark icons at a short pull (a tenth of the dialog dim, 0.6), white at full open.
         require(!SheetSpring.whiteIcons(0xF3F3F0, .06) && SheetSpring.whiteIcons(0xF3F3F0, .6), "a short pull keeps dark icons; full open has white ones");
+        // A short window: the sheet's light surface reaches up under the status bar (its bounce past open, or a morph's
+        // box), so the icons sit on the sheet, not on the dim: dark icons there, whatever the dim (#510 review, round 5).
+        for (double alpha : new double[] {0, .06, .3, .6, 1})
+            require(!SheetSpring.whiteIcons(0xF3F3F0, alpha, true), "the sheet under the status bar keeps dark icons at dim " + alpha);
+        require(SheetSpring.whiteIcons(0xF3F3F0, .6, false) && !SheetSpring.whiteIcons(0xF3F3F0, .06, false),
+                "clear of the status bar, the dim decides as before");
+        // How deep the overshoot must go (#629 review, F03): the sheet covers the icons once its top reaches the bar's
+        // middle, not as soon as it passes the bar's bottom. A 24 dp bar, the sheet open at its bottom edge.
+        double bar = 24 * DP;
+        int barPx = (int) Math.round(bar);
+        for (double over = 0; over <= SheetSpring.CAP_DP * DP + .001; over += DP / 4) {
+            boolean covers = SheetSpring.coversStatusIcons(barPx - over, barPx);
+            require(covers == (barPx - over <= barPx / 2.0), String.format("a %.1f dp overshoot under a 24 dp bar: %s", over / DP, covers));
+            // Over a full dim, white icons stay until the sheet is in their band.
+            require(SheetSpring.whiteIcons(0xF3F3F0, .6, covers) == !covers, String.format("a %.1f dp overshoot: icons %s", over / DP, covers ? "white over the sheet" : "dark over the dim"));
+        }
+        require(!SheetSpring.coversStatusIcons(barPx - 4 * DP, barPx) && !SheetSpring.coversStatusIcons(barPx - 11 * DP, barPx),
+                "a shallow overshoot (4 dp, 11 dp) leaves the icons over the dim");
+        require(SheetSpring.coversStatusIcons(barPx - 12 * DP, barPx) && SheetSpring.coversStatusIcons(barPx - SheetSpring.CAP_DP * DP, barPx),
+                "from the bar's middle down to the overshoot's cap, the sheet covers the icons");
+        require(!SheetSpring.coversStatusIcons(0, 0) && !SheetSpring.coversStatusIcons(-30, 0), "no status bar: nothing to cover");
+        require(!SheetSpring.coversStatusIcons(barPx, barPx) && !SheetSpring.coversStatusIcons(barPx + 100, barPx), "at or below open: clear of the bar");
     }
 
     private static void quickFlickStillOpens() {

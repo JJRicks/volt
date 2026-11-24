@@ -35,6 +35,14 @@ final class ReleaseHolds {
         this.store = store;
     }
 
+    /**
+     * Whether My scooters shows a scooter card's state line (its Current chip and connection words): on the current
+     * scooter's card, and on any card whose release is held, so "Release not confirmed" says why Volt won't connect to it
+     * by itself whichever scooter is current (#492 review: it showed only on the current card). The Current chip itself
+     * stays on the current card.
+     */
+    static boolean cardLine(boolean current, boolean held) { return current || held; }
+
     /** Whether Volt holds every automatic connection to this profile. */
     synchronized boolean held(String profileId) { return profileId != null && held.contains(profileId); }
 

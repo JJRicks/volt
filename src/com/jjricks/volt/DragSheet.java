@@ -184,6 +184,8 @@ final class DragSheet {
     /** The sheet's travel (px; 0 until it is laid out) and where it is now (px below open). */
     private int travel;
     private float offset;
+    /** The status bar's bottom edge in the overlay (px; its top inset): the sheet's surface reaching its middle covers its icons (statusIcons). */
+    private int statusBarBottom;
     /** Pulled: how much of the sheet the finger shows (px; base is where it was when the pull caught it). */
     private float pulled, pullBase;
     /**
@@ -595,6 +597,7 @@ final class DragSheet {
             top = insets.getSystemWindowInsetTop(); bottom = insets.getSystemWindowInsetBottom();
             left = insets.getSystemWindowInsetLeft(); right = insets.getSystemWindowInsetRight();
         }
+        statusBarBottom = top;
         FrameLayout.LayoutParams at = (FrameLayout.LayoutParams) panel.getLayoutParams();
         if (at.topMargin != top || at.leftMargin != left || at.rightMargin != right) {
             at.topMargin = top; at.leftMargin = left; at.rightMargin = right;
@@ -651,7 +654,7 @@ final class DragSheet {
             panel.setClipBounds(clip);
         }
         scrim.setAlpha((float) (dim * showing));
-        statusIcons((float) (dim * showing));
+        statusIcons((float) (dim * showing), SheetSpring.coversStatusIcons(box.top, statusBarBottom));
     }
 
     /**
@@ -688,10 +691,11 @@ final class DragSheet {
      * Light theme (edge to edge): the status bar's icons turn white once the dim behind them (over the page's background)
      * passes the contrast crossover, and dark again below it, so whichever shows has at least 4.5:1. Only on a crossing.
      */
-    private void statusIcons(float alpha) {
+    private void statusIcons(float alpha, boolean underBar) {
         if (ui.dark || Build.VERSION.SDK_INT < 30 || cover == null) return;
-        // The window's icons are white while any of its sheets asks (their dims stack): SheetCover.icons.
-        icons(cover.icons(this, SheetSpring.whiteIcons(ui.bg, alpha)));
+        // The window's icons are white while any of its sheets asks (their dims stack): SheetCover.icons. Not while this
+        // sheet's light surface is under the status bar (a short window's bounce past open): the icons are on it then.
+        icons(cover.icons(this, SheetSpring.whiteIcons(ui.bg, alpha, underBar)));
     }
 
     /** Sets the window's status bar icons white (true) or back to the light theme's dark (false); null: no change. */
@@ -866,10 +870,12 @@ final class DragSheet {
      * The sheet's rows take no key focus (settling closed, or gone), and key focus inside it goes back to the page: to
      * the page view remembered at takeFocus if it can still take it (attached, shown, focusable, no other sheet blocking
      * the page) and nothing else has taken focus meanwhile (a page a row opened keeps its field's focus; the remembered
-     * view is forgotten then). A morph's source is hidden until the sheet has gone, so while it settles closed (closing)
-     * the overlay itself stands in for a remembered view that cannot take focus yet: it holds nothing to press (its rows
-     * are blocked, and Frame swallows confirm keys while it is not focusable), and the page takes focus from it as from
-     * nothing. Gone, the overlay takes no focus at all; with no view to go back to, focus leaves it as Android places it.
+     * view is forgotten then). While it settles closed (closing) the remembered view waits for the sheet to go, even one
+     * that could take focus at once (Home's lock under a sheet TalkBack opened): a key pressed in the close would reach
+     * it while the sheet still covers it (#517 review, round 2). The overlay itself stands in for it meanwhile: it holds
+     * nothing to press (its rows are blocked, and Frame swallows confirm keys while it is not focusable), and the page
+     * takes focus from it as from nothing. Gone, the overlay takes no focus at all, and the remembered view takes it back;
+     * with no view to go back to, focus leaves it as Android places it.
      */
     private void giveFocus(SheetCover<View> windowCover, boolean closing) {
         View now = frame.getRootView().findFocus();
@@ -879,7 +885,7 @@ final class DragSheet {
             pageFocus = null;
         } else {
             View back = pageFocus == null ? null : pageFocus.get();
-            if (back != null && back.isAttachedToWindow() && back.isShown() && back.isFocusable() && !windowCover.blocking()
+            if (!closing && back != null && back.isAttachedToWindow() && back.isShown() && back.isFocusable() && !windowCover.blocking()
                     && back.getRootView() == frame.getRootView() && back.requestFocus()) {
                 pageFocus = null;
             } else if (inMe && closing) {

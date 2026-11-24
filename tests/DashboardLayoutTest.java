@@ -26,6 +26,7 @@ public final class DashboardLayoutTest {
         proportionalGridConversion();
         minimumUsableWidths();
         narrowFiveColumnLayouts();
+        editorControlsAtEnd();
         System.out.println("DashboardLayout tests passed: " + assertions + " assertions");
     }
 
@@ -321,6 +322,17 @@ public final class DashboardLayoutTest {
                 cell("large", Integer.MAX_VALUE, -4, Integer.MAX_VALUE, 3), 4, 6),
                 "Conversion bounds horizontal geometry without overflow and leaves rows to settle");
         rejects(() -> DashboardLayout.rescale(null, 4, 6));
+    }
+
+    /** Edit mode's controls go to the card's end where a title still fits before them (README #613). Sizes in dp. */
+    private static void editorControlsAtEnd() {
+        // A phone's full-width short card (380 dp less the 48 dp resize lane), 52 dp controls: 124 dp left for a title.
+        check(DashboardLayout.editorAtEnd(332, 52, 4, 96), "a full-width short card puts its controls at the end");
+        check(DashboardLayout.editorAtEnd(380, 52, 4, 96), "a full-width tall card too");
+        check(DashboardLayout.editorAtEnd(304, 52, 4, 96) && !DashboardLayout.editorAtEnd(303, 52, 4, 96), "exactly the title's room is enough; less is not");
+        check(!DashboardLayout.editorAtEnd(180, 45, 4, 96), "a half-width card whose controls fill it keeps them from the start");
+        check(!DashboardLayout.editorAtEnd(400, 48, 2, 96) && !DashboardLayout.editorAtEnd(400, 48, 1, 96), "controls on two rows or one column stay as they were");
+        check(!DashboardLayout.editorAtEnd(400, 0, 4, 96), "no control size yet: nothing moves");
     }
 
     private static void narrowFiveColumnLayouts() {

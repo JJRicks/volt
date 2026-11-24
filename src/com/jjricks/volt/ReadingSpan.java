@@ -46,4 +46,16 @@ final class ReadingSpan {
         int cells = Math.max(1, span);
         return cells * cellWidth + (cells - 1) * gap;
     }
+
+    /**
+     * Whether the Reading tiles search their label mode again before this layout (#514 review, F02). A change of space
+     * (width, height budget or columns: {@code sameSpace} false) always does. In the same space the tiles keep their mode,
+     * so a value changing every second never makes the labels flicker, unless what the mode now needs ({@code natural}
+     * px, measured at the kept mode) no longer fits the row ({@code perRow} px; Integer.MAX_VALUE for no budget): a value
+     * that grew (a stored trips total gaining a digit) steps the tiles down. Not once they show values only
+     * ({@code lastMode}): there is nothing more to drop, and another search would only ask for another layout.
+     */
+    static boolean refit(boolean sameSpace, int natural, int perRow, boolean lastMode) {
+        return !sameSpace || natural > perRow && !lastMode;
+    }
 }

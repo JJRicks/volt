@@ -90,7 +90,7 @@ public final class MyScootersValidation extends ValidationInstrumentation {
             bluetoothPrompt = addMonitor(new IntentFilter(BluetoothAdapter.ACTION_REQUEST_ENABLE), new ActivityResult(Activity.RESULT_CANCELED, null), true);
             openMenu();
             expectedLayout();
-            visibleCards(); offlineSelectionAndConnection(); savedScannerLabels(); guards(); simulationSwitches(); forgetWithConfirmation(); onboardingCancellation();
+            visibleCards(); heldReleaseOnEveryCard(); offlineSelectionAndConnection(); savedScannerLabels(); guards(); simulationSwitches(); forgetWithConfirmation(); onboardingCancellation();
             shizukuSetup();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -181,6 +181,48 @@ public final class MyScootersValidation extends ValidationInstrumentation {
         });
         SystemClock.sleep(600); waitForIdleSync(); // Let the outgoing Home snapshot finish its transition.
         screenshot("my-scooters-" + theme + ".png");
+    }
+    /**
+     * A held release (BleController.releaseHeld: a release sent and never confirmed) on the scooter that is not current:
+     * its card says "Release not confirmed" too, without the Current chip, which stays on the current card (#492 review:
+     * the line showed only on the current card). The hold and its owed question are put in through the service's own
+     * ReleaseHolds and taken out again before the next check.
+     */
+    private void heldReleaseOnEveryCard() throws Exception {
+        main(() -> {
+            Object holds = invoke(activity.service().ble, "releaseHolds", new Class<?>[0]);
+            invoke(holds, "ended", new Class<?>[]{String.class, boolean.class}, b.id, true);
+            invoke(holds, "asked", new Class<?>[]{String.class}, b.id);
+            require(activity.service().ble.releaseHeld(b.id) && !activity.service().ble.releaseHeld(a.id), "The synthetic hold is not on the other scooter only");
+            more().refresh();
+        });
+        SystemClock.sleep(700); waitForIdleSync();
+        main(() -> {
+            View current = tag("scooter-card-" + a.id), saved = tag("scooter-card-" + b.id);
+            TextView held = prefix(saved, "Release not confirmed");
+            require(held != null && held.isShown(), "The other scooter's card does not say its release is held");
+            require(!text(saved, "Current").isShown(), "The held card shows the Current chip");
+            require(text(current, "Current").isShown() && prefix(current, "Release not confirmed") == null, "The current card lost its chip or took the other's hold");
+            int[] at = new int[2], card = new int[2]; held.getLocationOnScreen(at); saved.getLocationOnScreen(card);
+            require(at[0] >= card[0] && at[0] + held.getWidth() <= card[0] + saved.getWidth(), "The held line runs off its card");
+            if (held.getLayout() != null) for (int line = 0; line < held.getLayout().getLineCount(); line++)
+                require(held.getLayout().getEllipsisCount(line) == 0, "The held line is cut");
+            ((View) saved.getParent()).requestRectangleOnScreen(new android.graphics.Rect(0, saved.getTop(), saved.getWidth(), saved.getBottom()), true);
+        });
+        SystemClock.sleep(500); waitForIdleSync();
+        screenshot("my-scooters-held-" + theme + ".png");
+        main(() -> {
+            invoke(invoke(activity.service().ble, "releaseHolds", new Class<?>[0]), "end", new Class<?>[]{String.class}, b.id);
+            require(!activity.service().ble.releaseHeld(b.id), "The synthetic hold did not end");
+            more().refresh();
+            View saved = tag("scooter-card-" + b.id);
+            require(prefix(saved, "Release not confirmed") == null || !prefix(saved, "Release not confirmed").isShown(), "The ended hold still shows");
+        });
+        SystemClock.sleep(600); waitForIdleSync();
+        main(() -> {
+            View saved = tag("scooter-card-" + b.id);
+            require(!text(saved, "Current").isShown() && !text(saved, "Offline").isShown(), "Ended hold: the other card's state line did not go");
+        });
     }
     private void offlineSelectionAndConnection() {
         final long[] before = new long[1]; final int prompts = bluetoothPrompt.getHits();
