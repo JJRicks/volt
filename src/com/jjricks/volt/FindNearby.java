@@ -269,6 +269,28 @@ final class FindNearby {
     }
 
     /**
+     * The model ID a connection goes by (BleController.transportDescriptor): this scan's advertised ID while
+     * {@link #captureModelId} would keep it, else the saved one. A refused fallback ID never stands in for the model, so a
+     * UT5 MAX advertising its name's letters stays a UT5 MAX and its short status frames stay refused (#621 review).
+     */
+    static String liveModelId(String pendingPid, int marker, String serial, String savedPid) {
+        return captureModelId(pendingPid, marker, serial) ? pendingPid : savedPid == null ? "" : savedPid;
+    }
+
+    // ------------------------------------------------------------------ Home's find after a wait
+
+    /**
+     * Whether Home's find that had to wait (the service, permission, Bluetooth on) still opens its sheet: the profile it
+     * was tapped for is still the active one and could still be found, and nothing a disconnect would hurt has started
+     * meanwhile (a connection that came up, simulation, a recording, a change in flight). Not the Home stay's timeout
+     * count: leaving Volt for Android's Bluetooth dialog ends that stay, and the rider already chose the find (#621 review).
+     */
+    static boolean homeFindStillWanted(String tappedFor, String activeId, String savedMac, String savedSerial, boolean connected,
+                                       boolean simulating, boolean recording, boolean pending) {
+        return tappedFor != null && tappedFor.equals(activeId) && eligible(savedMac, savedSerial) && !connected && !simulating && !recording && !pending;
+    }
+
+    /**
      * Whether a heard scooter can be the profile's: the profile's model family ({@code family}, "" when unknown) and the
      * scooter's advertised family agree, or either is unknown (an advertisement without a model ID proves nothing).
      */

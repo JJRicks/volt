@@ -180,6 +180,21 @@ public final class MadeKeyPromptTest {
         check(!MadeKeyPrompt.dueOnHome(ID, ID, true, KEY, ""), "the scooter hasn't accepted it yet: not yet");
         check(!MadeKeyPrompt.dueOnHome(ID, ID, true, "not a key", MAC), "not a key");
         check(MadeKeyPrompt.owedStale(false, true) && MadeKeyPrompt.owedStale(true, false), "a removed profile or a key not made here drops the record");
+        owedOnlyOnDisk();
+    }
+
+    /** #621 council round 1 [P3]: setup finishes on HOME_OWED only once Home's record is on disk; else it keeps its preferences. */
+    private static void owedOnlyOnDisk() {
+        String screen;
+        try { screen = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/OnboardingScreen.java")), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("cannot read OnboardingScreen", e); }
+        int owed = screen.indexOf("case MadeKeyPrompt.HOME_OWED:");
+        String branch = screen.substring(owed, screen.indexOf("default:", owed));
+        check(branch.contains("if (owedSaved(generated)) { finish(false); return; }") && branch.indexOf("finish(") == branch.lastIndexOf("finish("),
+                "HOME_OWED finishes only when the record was saved");
+        check(branch.contains("homeFor = null;") && branch.contains("homeButton.setEnabled(true);"), "otherwise setup stays and Go to Home works again");
+        check(screen.contains("try { return madeKeys(host.activity()).edit().putString(MadeKeyPrompt.OWED, profileId).commit(); }")
+                && screen.contains("catch (RuntimeException failed) { return false; }"), "the record's commit() result decides");
     }
 
     private static void check(boolean condition, String what) {

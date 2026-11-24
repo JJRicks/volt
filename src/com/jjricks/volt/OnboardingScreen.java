@@ -1743,6 +1743,12 @@ public final class OnboardingScreen implements AppScreen {
         homeCheck();
     }
 
+    /** Writes Home's record of a popup still owed (MadeKeyPrompt.OWED), on disk (commit()); false if it didn't persist. */
+    private boolean owedSaved(String profileId) {
+        try { return madeKeys(host.activity()).edit().putString(MadeKeyPrompt.OWED, profileId).commit(); }
+        catch (RuntimeException failed) { return false; }
+    }
+
     /** Carries out a Go to Home that is waiting (home()): on every refresh, and again when its wait runs out. */
     private void homeCheck() {
         if (closed || step != DONE || homeFor == null) return;
@@ -1774,9 +1780,13 @@ public final class OnboardingScreen implements AppScreen {
                 return;
             case MadeKeyPrompt.HOME_OWED:
                 // The profile is still loading: finishing clears setup's preferences, so Home gets the popup's record
-                // (MadeKeyPrompt.OWED) and shows it once the profile loads (owedKeyPrompt).
-                try { madeKeys(host.activity()).edit().putString(MadeKeyPrompt.OWED, generated).commit(); } catch (RuntimeException ignored) { }
-                finish(false);
+                // (MadeKeyPrompt.OWED) and shows it once the profile loads (owedKeyPrompt). Only once it is on disk: if it
+                // isn't, setup and its preferences stay, Go to Home works again, and the popup still comes over this page
+                // when the profile loads (keyPrompt, on every refresh).
+                if (owedSaved(generated)) { finish(false); return; }
+                homeFor = null; homeWaitStart = 0;
+                if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
+                if (homeButton != null) { homeButton.setEnabled(true); homeButton.setContentDescription(null); }
                 return;
             default:
                 finish(false);
