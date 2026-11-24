@@ -209,6 +209,13 @@ public final class ChargeEstimateHoldTest {
         check(!late.holding("a", t + 60 * SEC), "Standard: shown after its settling minute");
         late.observe("a", UT5, true, FAST, 49.1, -1.28, t + 70 * SEC);
         check(late.holding("a", t + 70 * SEC) && !late.holding("a", t + ChargeEstimateHold.MAX_HOLD_MS), "High-speed in its soft start: held again, to the cap");
+        // Standard chosen, then Auto while it identifies the charger (none in effect): a change too (round 2 of #619).
+        ChargeEstimateHold auto = plugIn(t);
+        auto.observe("a", UT5, true, STOCK, true, 49.1, -1.28, t, t);
+        auto.observe("a", UT5, true, null, false, 49.1, -1.28, t + 30 * SEC, t + 30 * SEC);
+        check(auto.holding("a", t + 61 * SEC), "Standard, then Auto still identifying: held after Standard's settling minute");
+        auto.observe("a", UT5, true, FAST, false, 50.1, -10.06, t + 90 * SEC, t + 90 * SEC);
+        check(auto.holding("a", t + 149 * SEC) && !auto.holding("a", t + 150 * SEC), "Detected fast at its bulk current: a settling minute, then shown");
         // Detection losing the charger for a moment (null) is not another charger: the time stays.
         ChargeEstimateHold flicker = plugIn(t);
         flicker.observe("a", UT5, true, FAST, 50.0, -10.09, t);
@@ -279,9 +286,10 @@ public final class ChargeEstimateHoldTest {
                 && shown.planningMinutesToLimit == null && shown.planningMinutesToFull == null, "No time and nothing for Charge done by to plan with");
         check(!shown.learnedToFull && !shown.referenceToFull && shown.learnedSessions == 0 && shown.referenceCharger == null, "Claims no source");
         check(shown.labelMsg.render().equals("Estimating time left"), "The state is the live card's words");
-        // The time tiles speak the state, then the status: no status, so TalkBack says the words once (review of #619).
-        check(shown.status == null, "No status beside the state: " + shown.status);
-        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && ChargingEstimate.statusBesideLimit(shown, 58d) == null,
+        // The time tiles speak the state, then any status: an empty one, so TalkBack says the words once (review of #619);
+        // empty, never null, since the widgets' descriptions take the status as text (round 2: null crashed them).
+        check(shown.status != null && shown.status.isEmpty(), "An empty status beside the state: " + shown.status);
+        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && "".equals(ChargingEstimate.statusBesideLimit(shown, 58d)),
                 "The 100% reading beside a limit is held too");
         check(ChargingEstimate.minutesToAlert(ChargingEstimate.estimating(rate), shown) == null, "So is the charge alert's countdown");
         ChargeSessionStore.Estimate recorded = ChargingEstimate.recordingSnapshot(rate);

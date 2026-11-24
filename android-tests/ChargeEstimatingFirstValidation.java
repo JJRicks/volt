@@ -55,6 +55,17 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
                 ScooterProfiles.Profile p = profiles.create("Synthetic UT5 Max", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
                 profiles.update(p); profiles.select(p.id); OnboardingScreen.markDone(getTargetContext());
+                // Widgets Home with the Battery overview and the Charging widget, whose charging rows describe the time
+                // with the estimate's status (round 2 of #619: a held estimate's null status crashed them).
+                DashboardConfig config = new DashboardConfig(settings(), p.id); config.widgets.clear();
+                int i = 0;
+                for (String type : new String[]{"battery", "charging"}) {
+                    DashboardConfig.Widget widget = new DashboardConfig.Widget(type);
+                    for (int columns = 1; columns <= DashboardLayout.MAX_COLUMNS; columns++)
+                        widget.layouts.put(columns, new DashboardLayout.Cell(widget.id, 0, i * 6, columns, 6));
+                    config.widgets.add(widget); i++;
+                }
+                config.save();
             });
             String size = args.getString("size_label", "size");
             for (String style : args.getString("styles", "widgets,clean").split(","))
@@ -85,6 +96,10 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
     private void verify(boolean held) throws Exception {
         String name = held ? "estimating" : "time";
         setHold(held ? Boolean.TRUE : null);
+        // The whole Home from the app's own (simulated) readings first: the widgets' charging rows, then the hero on the
+        // fixture's readings.
+        main(() -> invoke(field(activity, "screen"), "refresh", new Class<?>[0]));
+        SystemClock.sleep(300); sync();
         refresh(readings(62, held ? 1.28 : 9.6));
         SystemClock.sleep(700); sync();
         String estimating = T.chargeLiveTextEstimating();
@@ -107,6 +122,25 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
             } else {
                 require(!text.equals(estimating) && text.matches(".*\\d.*"), label + " shown: the tile shows a time, not '" + text + "'");
                 require(value.getCurrentTextColor() == ui.text, label + " shown: the time in the normal colour");
+            }
+            // Widgets: the Battery overview's and the Charging widget's time rows, and what TalkBack reads there.
+            Object screen = field(activity, "screen");
+            if (screen instanceof DashboardScreen && !label.contains("-clean-")) {
+                int rows = 0;
+                for (Object w : (List<?>) field(screen, "tiles")) {
+                    String type = ((DashboardConfig.Widget) field(w, "widget")).type;
+                    if (!type.equals("battery") && !type.equals("charging")) continue;
+                    TextView eta = (TextView) field(w, "chargingEta");
+                    require(eta != null, label + " " + name + ": the " + type + " widget has a time row");
+                    String shown = String.valueOf(eta.getText());
+                    CharSequence said = eta.getContentDescription();
+                    require(said != null, label + " " + name + ": the " + type + " widget's time is described");
+                    int times = said.toString().split(java.util.regex.Pattern.quote(estimating), -1).length - 1;
+                    if (held) require(shown.equals(estimating) && times == 1, label + " held: the " + type + " widget shows '" + shown + "' and says '" + said + "'");
+                    else require(!shown.equals(estimating) && times == 0, label + " shown: the " + type + " widget shows '" + shown + "'");
+                    rows++;
+                }
+                require(rows == 2, label + " " + name + ": the Battery overview and the Charging widget are on Home (" + rows + ")");
             }
             Rect r = new Rect(); ((View) tile).getGlobalVisibleRect(r);
             tileRect.set(new int[] {r.left, r.top, r.right, r.bottom});
