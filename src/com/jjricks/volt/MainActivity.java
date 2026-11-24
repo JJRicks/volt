@@ -735,6 +735,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void rebuild(){
         if(enteringMaintenance||startupRedirect||DataMaintenance.active())return;
         if(destroyed||rebuilding)return;handler.removeCallbacks(settingsRebuild);handler.removeCallbacks(serviceRebuild);serviceRebuildOwed=false;rebuilding=true;
+        // What the page holds open (a ride's details, its expanded map or chart, a charge recording, a sheet) before the
+        // rebuild closes it: the page built again takes it back (KeptPlace), so a fold, an unfold or a rotation keeps the
+        // owner where they were. Taken first: the dialogs below close with the old screen.
+        KeptPlace kept=keepPlace();
         displayedSimulation = scooterService != null && scooterService.simulating();
         closeQuickMenu();
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
@@ -766,7 +770,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(OnboardingScreen.needed(this,scooterService)){
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;pageHeaderRows=null;
             onboarding=new OnboardingScreen(this,new OnboardingScreen.Listener(){public void onFinished(){onboarding=null;showPage(HubPages.HOME);rebuild();}});
-            screen=onboarding;root.addView(onboarding.view(),new FrameLayout.LayoutParams(-1,-1));
+            screen=onboarding;screenPage=null;root.addView(onboarding.view(),new FrameLayout.LayoutParams(-1,-1));
             Motion.quietScrollbars(root);setContentView(root);root.requestApplyInsets();styleSystemBars();
             rebuilding=false;redraw();return;
         }
@@ -776,9 +780,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(riding!=null&&scooterService!=null){
             // Riding mode fills the window: no header, tab bar or scroller (like onboarding).
             clearDashboardLock();profileTitle=null;scroll=null;pageFrame=null;pageContent=null;pageHeader=null;pageHeaderRows=null;
-            screen=new RidingScreen(this,riding,this::riderClosedRiding);root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
+            screen=new RidingScreen(this,riding,this::riderClosedRiding);screenPage=KeptPlace.RIDING;root.addView(screen.view(),new FrameLayout.LayoutParams(-1,-1));
             setContentView(root);root.requestApplyInsets();styleSystemBars();
-            rebuilding=false;redraw();return;
+            rebuilding=false;redraw();restorePlace(kept);return;
         }
         // A maintenance tap deferred while riding mode or setup was up opens as soon as they close: before the header, so the
         // header is built for Maintenance reminders (back row and title), not for the Home they closed onto.
@@ -869,10 +873,75 @@ public final class MainActivity extends Activity implements ScreenHost {
         // A search result names the row its page brings on screen (after the restored scroll) and flashes once.
         if(args!=null&&args.anchor!=null&&pageArgs==null)revealAnchor(screen,scroll,args.anchor);
         rebuilding=false;redraw();
+        restorePlace(kept);
         showUpdateCheck();
         // The one-time What's new sheet about Home styles: checked once per rebuild, never on a telemetry refresh.
         handler.post(this::maybeShowWhatsNew);
     }
+    /** The page the shown screen was built for (KeptPlace's key): a HubPages id, KeptPlace.RIDING, or null (setup). */
+    private String screenPage;
+    /**
+     * A kept place not taken back yet: held while the page could only show its loading screen (the rebuild that builds
+     * the real page takes it), or while its restore waits to run. A rebuild meanwhile (an unfold's size change, then its
+     * posture) carries it on rather than losing it.
+     */
+    private KeptPlace heldPlace;
+    /** The newest posted restore (KeptPlace.Turns): two rebuilds in one turn leave the place to the second's. */
+    private final KeptPlace.Turns restoreTurns=new KeptPlace.Turns();
+    /** True while a kept place opens its windows again: sheets are simply there, without their entrance motion (showSheet). */
+    private boolean openingInPlace;
+    /** The shown screen's place and open sheet, for the rebuild about to replace it (KeptPlace); else the one still held. */
+    private KeptPlace keepPlace(){
+        KeptPlace held=heldPlace;heldPlace=null;
+        boolean page=screen!=null&&!(screen instanceof LoadingScreen);
+        KeptPlace now=page?KeptPlace.of(screenPage,screen.keepPlace(),openSheet()):null;
+        return now!=null?now:held;
+    }
+    /**
+     * The rebuilt screen takes back the place its page's old screen kept, then the sheet that was open over it, once it is
+     * on screen (posted, so the windows opened again have this layout's size). Another page drops them; the loading page
+     * holds them for the real page.
+     */
+    private void restorePlace(KeptPlace kept){
+        KeptPlace same=KeptPlace.forPage(kept,screenPage);
+        if(same==null||screen==null)return;
+        heldPlace=same;
+        if(screen instanceof LoadingScreen||builtBeforeService())return;
+        AppScreen target=screen;
+        int turn=restoreTurns.next();
+        handler.post(()->{
+            // A newer rebuild posted its own restore of this place (council round 1, F03): leave the place held for it.
+            if(!restoreTurns.newest(turn)||heldPlace!=same)return;
+            heldPlace=null;
+            if(destroyed||rebuilding||screen!=target)return;
+            openingInPlace=true;
+            try{
+                if(same.place!=null)target.restorePlace(same.place);
+                if(same.sheet!=null)same.sheet.run();
+            }finally{openingInPlace=false;}
+        });
+    }
+    /**
+     * The activity's own sheet open over the page, as the call that opens it again (KeptPlace.sheet): Charge done by, Live
+     * charging, Charge alerts, the range source and a control's choices (Battery & charging's, and the other scooter
+     * pages'). A choice already sent to the scooter isn't reopened: its answer is on the page.
+     */
+    private Runnable openSheet(){
+        if(chargeDoneSheet!=null&&chargeDoneSheet.isShowing())return this::showChargeDoneSheet;
+        if(chargeLiveSheet!=null&&chargeLiveSheet.dialog.isShowing())return this::showChargeLive;
+        if(chargeAlertSheet!=null&&chargeAlertSheet.dialog.isShowing())return this::showChargeAlerts;
+        if(rangeSourceSheet!=null&&rangeSourceSheet.dialog.isShowing())return this::showRangeSource;
+        if(choiceSheet!=null&&choiceSheet.dialog.isShowing()){
+            boolean caution=choiceCaution!=null&&choiceCaution.isShowing();
+            // Its caution closes with the rebuild, sending nothing (council round 1, F05): nothing reopens; the owner chooses again.
+            if(caution)choiceCaution.dismiss();
+            if(!KeptPlace.reopensChoice(true,choiceSheet.sent,caution))return null;
+            ScooterCommands.Feature feature=choiceSheet.feature;return()->showChoice(feature);
+        }
+        return null;
+    }
+    /** The model's caution shown over a control's choice sheet (confirmChange), while it shows; null otherwise. */
+    private AlertDialog choiceCaution;
     /** The What's new sheet while it shows; closed with the activity. */
     private AlertDialog whatsNewSheet;
     /**
@@ -1015,6 +1084,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * (Security's) goes with the page; the scooter pane's stays registered.
      */
     private void swapPagePane(int direction){
+        // Another page: a place still held for the old one is dropped, as a rebuild onto another page drops it.
+        heldPlace=null;
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         // As rebuild: Readings let a search result's reading go once the owner typed a search of their own there.
         boolean readingDropped=readingLetGo();
@@ -1045,6 +1116,7 @@ public final class MainActivity extends Activity implements ScreenHost {
      * storage page, Settings and its sub-pages each have a screen. args are the page's one-shot arguments (ScreenHost.open), or null.
      */
     private AppScreen createScreen(String page,HubNav.Args args){
+        screenPage=page;
         // Pages that need the service show the card that grants Nearby devices (or a spinner while it binds) until it binds.
         if(scooterService==null&&!HubPages.withoutService(page))return new LoadingScreen();
         if(HubPages.SETTINGS_HOME.equals(page))return new HomeStyleScreen(this,homeActions());
@@ -1067,7 +1139,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 String ride=args==null?null:args.ride;
                 // A search result's ride or Home's (Just back): closing its details goes back past All rides, to the page
                 // that opened it (HubNav.Args.backAfterRide).
-                Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen==rides)navigateBack(false);}):null;
+                // Any All rides screen: a fold builds the page again and its details page with it (KeptPlace.RidePlace.onClose).
+                Runnable closed=args!=null&&args.backAfterRide?()->handler.post(()->{if(screen instanceof RidesScreen&&HubPages.RIDE_RIDES.equals(screenPage))navigateBack(false);}):null;
                 if(ride!=null)handler.post(()->{if(screen==rides)rides.openRide(ride,closed);});
                 return rides;
             }
@@ -2815,7 +2888,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(caution==null){send.run();return;}
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(shortLabel(feature)).setMessage(caution)
                 .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(done[0])return;done[0]=true;if(scooterService!=null)send.run();else cancelled.run();}).create();
-        dialog.setOnDismissListener(d->{if(!done[0]){done[0]=true;cancelled.run();}});
+        dialog.setOnDismissListener(d->{if(choiceCaution==dialog)choiceCaution=null;if(!done[0]){done[0]=true;cancelled.run();}});
+        // Over a choice sheet: a rebuild closes it with the sheet (openSheet).
+        if(choiceSheet!=null&&choiceSheet.dialog.isShowing())choiceCaution=dialog;
         dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
     }
     /**
@@ -5175,7 +5250,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScrollView holder=new ScrollView(this);holder.addView(content,new ScrollView.LayoutParams(-1,-2));
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setView(holder).create();
         android.view.Window window=dialog.getWindow();
-        Motion.present(dialog,Motion.SHEET);
+        Motion.present(dialog,Motion.SHEET);if(openingInPlace)Motion.inPlace(dialog);
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);
@@ -5209,7 +5284,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.setContentView(content,new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         content.setFocusableInTouchMode(true);content.requestFocus();
         android.view.Window window=dialog.getWindow();
-        Motion.present(dialog,Motion.SHEET);
+        Motion.present(dialog,Motion.SHEET);if(openingInPlace)Motion.inPlace(dialog);
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);

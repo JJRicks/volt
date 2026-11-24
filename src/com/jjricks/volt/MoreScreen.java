@@ -315,6 +315,14 @@ public final class MoreScreen implements AppScreen {
         dialogs.clear();
     }
 
+    /** Charge history & recordings open over the page: it opens again where it was after a fold or a rotation (KeptPlace). */
+    @Override public Object keepPlace() { return chargeHistoryDialog == null ? null : chargeHistoryDialog.place(); }
+    @Override public void restorePlace(Object place) {
+        if (closed || !(place instanceof KeptPlace.ChargePlace)) return;
+        if (chargeHistoryDialog != null) chargeHistoryDialog.close();
+        chargeHistoryDialog = new ChargeHistoryDialog(host); chargeHistoryDialog.show((KeptPlace.ChargePlace) place);
+    }
+
     /** Units returns to its parent; a standalone section otherwise leaves to the page below. */
     @Override public boolean back() {
         // A Hub page's Back is the page stack's; so is Settings' (its sections are Hub pages since PR 11).
@@ -1975,6 +1983,8 @@ public final class MoreScreen implements AppScreen {
         if (handlebar != null) {
             HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui, handlebar);
             diagram.setContentDescription(T.morePinDiagram());
+            // The NT3 has a lever ahead of each grip: step 2 means the left one (#541 review).
+            if (ModelRegistry.twoBrakeLevers(handlebar)) diagram.setContentDescription(T.morePinDiagramLeftLever());
             LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
             box.addView(diagram, dp);
         }
@@ -2232,6 +2242,8 @@ public final class MoreScreen implements AppScreen {
         if (last != null && !last.resolved) { pill.show(ui.danger, true, T.moreLabStatusUnfinished(), T.moreLabStatusUnfinishedShort()); return; }
         // Untried is the default state, so where "Not tried yet" doesn't fit (pt-PT beside Try at 344 dp) the row shows no
         // words rather than a cut-off phrase; the pill's description, which the row speaks, keeps the full words.
+        // A try pruned from the journal (30 days after a report, or for room) leaves Tried before, never Not tried yet.
+        if (last == null && !ble.simulating() && ble.triedBefore(key)) { quietUntried(pill, T.moreLabStatusTriedBefore()); return; }
         if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried(), ""); return; }
         switch (CompatibilityReport.tryResult(last)) {
             case "worked_here": pill.show(ui.ok, true, T.moreLabStatusWorked(), T.moreLabStatusWorkedShort()); return;

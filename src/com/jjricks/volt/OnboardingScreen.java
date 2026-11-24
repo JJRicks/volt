@@ -1768,11 +1768,14 @@ public final class OnboardingScreen implements AppScreen {
                 if (homeSpinner == null && homeButton != null) homeSpinner = spinnerOn(homeButton);
                 if (homeSpinner != null) homeSpinner.setVisibility(View.VISIBLE);
                 if (homeButton != null) homeButton.setEnabled(false);
+                // TalkBack hears that it waits, as Save and continue's "starting" (#491 review).
+                if (homeButton != null) homeButton.setContentDescription(T.onboardingDoneHomeStarting());
                 root.postDelayed(homeRecheck, Math.max(50, MadeKeyPrompt.HOME_WAIT_MS - (now - homeWaitStart)));
                 return;
             case MadeKeyPrompt.HOME_AFTER_PROMPT:
                 if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
                 if (homeButton != null) homeButton.setEnabled(true);
+                if (homeButton != null) homeButton.setContentDescription(T.onboardingDoneHome());
                 keyPrompt();
                 // Never stranded: a popup that didn't come up leaves Go to Home to finish.
                 if (keyPrompt != null && keyPrompt.isShowing()) return;
@@ -1787,6 +1790,7 @@ public final class OnboardingScreen implements AppScreen {
                 homeFor = null; homeWaitStart = 0;
                 if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
                 if (homeButton != null) homeButton.setEnabled(true);
+                if (homeButton != null) homeButton.setContentDescription(T.onboardingDoneHome());
                 return;
             default:
                 finish(false);

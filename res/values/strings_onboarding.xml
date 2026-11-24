@@ -640,6 +640,8 @@
         volt:safety="privacy" volt:dnt="Shizuku|Volt">Revoke Shizuku. Opens Shizuku to remove Volt\'s access</string>
     <!-- Main button: leave setup and open Volt's Home tab. "Home" is the name of Volt's tab. -->
     <string name="onboarding_done_home" volt:screen="You\'re connected" volt:purpose="button">Go to Home</string>
+    <!-- Spoken description of Go to Home while it waits a few seconds for Volt to finish starting (a made key's popup may come first). Same wording as Save and continue's. -->
+    <string name="onboarding_done_home_starting" volt:screen="You\'re connected" volt:purpose="accessibility description">Go to Home, starting</string>
 
     <!-- ===================================================================== troubleshooting -->
 

@@ -138,6 +138,24 @@ public final class RidesScreen implements AppScreen {
     private final List<Runnable> phoneRefreshers = new ArrayList<>();
     private int visibleHistory = 20, savedCount;
     private Boolean activeStyled;
+    /*
+     * Where the owner is beyond the list, for a fold, an unfold or a rotation (KeptPlace.RidePlace): the open details page
+     * (its ride, window, scroller and Done action), the overview's readings chart, and the expanded map and chart while
+     * they show. The wide panes' ride (paneRide) counts once picked on this visit (pickedRide).
+     */
+    private String detailsRide, paneRide; private AlertDialog detailsDialog; private ScrollView detailsScroller; private Runnable detailsClosed;
+    private ChartPanel overviewChart, expandedChart; private PhoneRide overviewMap, expandedMap; private String overviewMapRide;
+    private boolean pickedRide;
+    /** A details page's Done action that a fold carried into the panes with its ride (paneClosedRide), for folding back. */
+    private Runnable paneClosed; private String paneClosedRide;
+    /** Compare two rides, while it shows: a ride's details opened from it sit over it, and a fold keeps both (F07). */
+    private AlertDialog comparisonDialog; private ScrollView comparisonScroller;
+    /** The order the details page and the comparison last opened in (windowOrder): the later one is in front (round 2). */
+    private int windowOrder, detailsOrder, comparisonOrder;
+    /** A kept place still arriving: its ride's details or pane are built, its map or expanded chart not yet (restorePlace). */
+    private KeptPlace.RidePlace arriving;
+    /** True while a kept place opens its windows again: they are simply there, without their entrance motion. */
+    private boolean inPlace;
 
     /** All rides & compare, as the Rides tab was. */
     public RidesScreen(ScreenHost host) { this(host, ALL); }
@@ -304,7 +322,11 @@ public final class RidesScreen implements AppScreen {
      */
     void openRide(String id, Runnable onClose) {
         if (closed || id == null || mode == SENSORS) return;
-        if (wide) selectRide(id); else showDetails(id, onClose);
+        if (!wide) { showDetails(id, onClose); return; }
+        selectRide(id);
+        // A search result's or Home's ride on wide All rides: its details page's Done goes with it for a fold (council
+        // round 1, F08), so folding to one column still goes back past All rides.
+        paneClosed = onClose; paneClosedRide = onClose == null ? null : id;
     }
     /** A shortcut into Back up & restore with only Rides selected. */
     private void rideBackups() { host.dataBackup(null, BackupRegistry.RIDES); }
@@ -847,6 +869,11 @@ public final class RidesScreen implements AppScreen {
         return stopped.isEmpty() ? null : stopped.get(0).id;
     }
     private void selectRide(String id) {
+        // Picked on this visit (a tap, a page argument, a fold): the pane's ride is now where the owner is (keepPlace).
+        pickedRide = true;
+        if (arriving != null && !id.equals(arriving.ride)) arriving = null;
+        // Another ride: a search result's Done went with the one it opened (council round 2).
+        if (!id.equals(paneClosedRide)) { paneClosed = null; paneClosedRide = null; }
         if (!id.equals(selectedRide)) { selectedRide = id; preferences.edit().putString("ride_selected", id).apply(); }
         styleHistoryRows(id);
         boolean changed = !detailKey.startsWith(id + ":");
@@ -1018,7 +1045,12 @@ public final class RidesScreen implements AppScreen {
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller)
                     .setPositiveButton(T.commonDone(), onClose == null ? null : (d, which) -> onClose.run()).create();
             if (onClose != null) dialog.setOnCancelListener(d -> onClose.run());
-            holder[0] = dialog; show(dialog, PAGE, null);
+            detailsRide = id; detailsDialog = dialog; detailsScroller = scroller; detailsClosed = onClose; detailsOrder = ++windowOrder;
+            holder[0] = dialog; show(dialog, PAGE, () -> {
+                if (detailsDialog == dialog) { detailsRide = null; detailsDialog = null; detailsScroller = null; detailsClosed = null; }
+                if (arriving != null && id.equals(arriving.ride)) arriving = null;
+            });
+            if (arriving != null && id.equals(arriving.ride)) arrived(scroller, body);
         } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
     }
     private void rideHeading(LinearLayout body, RideStore.Summary ride) {
@@ -1053,6 +1085,9 @@ public final class RidesScreen implements AppScreen {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent(), ride); body.addView(graph);
+        overviewChart = graph;
+        if (arriving != null && ride.id.equals(arriving.ride) && arriving.inlineChartView instanceof RideChartView.State)
+            graph.keepView((RideChartView.State) arriving.inlineChartView);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
         // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
@@ -1075,6 +1110,13 @@ public final class RidesScreen implements AppScreen {
         LinearLayout phone = vertical(); body.addView(phone);
         detailSections(body, ride.id, ride, measured, afterDelete);
         if (service.phoneRides != null) new PhoneOverview(ride.id, route, phone, graph);
+        // No phone readings will come for this ride: the kept view is final now (council round 2).
+        if (!phoneComing(ride.id)) graph.keptView = null;
+    }
+    /** A phone overview for this ride is still loading its readings and map. */
+    private boolean phoneComing(String id) {
+        for (Runnable refresher : phoneRefreshers) if (refresher instanceof PhoneOverview && ((PhoneOverview) refresher).id.equals(id)) return true;
+        return false;
     }
     /** A pending sensor save refreshes the already-open compact dialog as well as the wide pane. */
     private final class PhoneOverview implements Runnable {
@@ -1099,7 +1141,7 @@ public final class RidesScreen implements AppScreen {
             if(closed||finished||loading||!route.isAttachedToWindow())return;
             if(service.phoneSaving()){placeholder.setContentDescription(T.ridesRouteFinishing());return;}
             PhoneRideStore store=service.phoneRides;
-            if(store==null||(!store.rawCsv(id).isFile()&&!store.motionCsv(id).isFile())){finish();return;}
+            if(store==null||(!store.rawCsv(id).isFile()&&!store.motionCsv(id).isFile())){finish();graph.keptView=null;mapArrived(id, null);return;}
             loading=true;placeholder.setContentDescription(T.ridesRouteLoading());
             phoneLoader.execute(() -> {
             try {
@@ -1108,17 +1150,17 @@ public final class RidesScreen implements AppScreen {
                     if (closed || finished || host.activity().isDestroyed() || !route.isAttachedToWindow()) return;
                     finish();
                     graph.setPhone(track);
-                    if(track.locationCount==0&&track.motionSampleCount==0)return;
+                    if(track.locationCount==0&&track.motionSampleCount==0){mapArrived(id, null);return;}
                     PhoneRide map = phoneRide(track, route, phone, true);
-                    if (!track.points.isEmpty()) route.addView(map.frame, 0, new LinearLayout.LayoutParams(-1, ui.dp(INLINE_MAP_DP)));
-                    else { maps.remove(map.map); map.map.close(); }
+                    if (!track.points.isEmpty()) { route.addView(map.frame, 0, new LinearLayout.LayoutParams(-1, ui.dp(INLINE_MAP_DP))); overviewMap = map; overviewMapRide = id; mapArrived(id, map); }
+                    else { maps.remove(map.map); map.map.close(); mapArrived(id, null); }
                     route.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
                         @Override public void onViewAttachedToWindow(View v) { }
                         @Override public void onViewDetachedFromWindow(View v) { maps.remove(map.map); map.map.close(); }
                     });
                 });
             } catch (IOException failure) {
-                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();routeNotice(route, T.ridesRouteUnavailable(), () -> exportSheet(id));} });
+                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();graph.keptView=null;routeNotice(route, T.ridesRouteUnavailable(), () -> exportSheet(id));mapArrived(id, null);} });
             }
             });
         }
@@ -1192,7 +1234,9 @@ public final class RidesScreen implements AppScreen {
             readings.addView(inspection, new android.widget.HorizontalScrollView.LayoutParams(-2, -2)); addView(readings);
             chart.setInspectionListener(this::inspect);
             LinearLayout zoom = horizontal(); zoom.setGravity(Gravity.CENTER); zoom.setBaselineAligned(false); zoom.setPadding(0, ui.dp(6), 0, ui.dp(8));
-            TextView[] buttons = {ui.secondaryButton("−", () -> chart.zoomBy(.5)), ui.secondaryButton(T.ridesChartFit(), chart::reset), ui.secondaryButton("+", () -> chart.zoomBy(2))};
+            // The rider's own zoom: a fold's kept view is theirs no longer (council round 2).
+            TextView[] buttons = {ui.secondaryButton("−", () -> { keptView = null; chart.zoomBy(.5); }), ui.secondaryButton(T.ridesChartFit(), () -> { keptView = null; chart.reset(); }),
+                    ui.secondaryButton("+", () -> { keptView = null; chart.zoomBy(2); })};
             buttons[0].setContentDescription(T.ridesChartZoomOut()); buttons[1].setContentDescription(T.ridesChartFitDescription()); buttons[2].setContentDescription(T.ridesChartZoomIn());
             for (TextView button : buttons) { LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1); p.setMargins(ui.dp(3), 0, ui.dp(3), 0); zoom.addView(button, p); } addView(zoom);
             update();
@@ -1234,7 +1278,7 @@ public final class RidesScreen implements AppScreen {
                 inspection.addView(cell);
             }
         }
-        void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
+        void setPhone(PhoneRideStore.Track track) { phone = track; update(); keptView = null; }
         void update() {
             applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen, ride));
         }
@@ -1256,14 +1300,34 @@ public final class RidesScreen implements AppScreen {
                 }); choices.addView(toggle);
             }
             chart.set(data, chosen);
+            // A fold's kept view outlives the data arriving after it (the phone's readings, the full journal), which
+            // would otherwise have clamped it to the shorter preview's span (council round 1, F06).
+            if (keptView != null) chart.restoreState(keptView);
         }
+        /**
+         * A fold's kept span and cursor, put back each time data arrives (applyData), until all the data this chart will get
+         * is in (the phone's readings or none, the full journal or a failed read) or the rider changes the view themselves.
+         */
+        RideChartView.State keptView;
+        /** Any touch on the chart, its choices or its buttons is the rider's own view from then on. */
+        @Override public boolean dispatchTouchEvent(android.view.MotionEvent event) {
+            if (event.getActionMasked() == android.view.MotionEvent.ACTION_DOWN) keptView = null;
+            return super.dispatchTouchEvent(event);
+        }
+        /** Takes a fold's kept view now and again once the rest of the data arrives. */
+        void keepView(RideChartView.State view) { keptView = view; chart.restoreState(view); }
+        /** The view a fold keeps: the kept one while it still waits for data, else the chart's own. */
+        RideChartView.State view() { return keptView != null ? keptView : chart.getState(); }
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
             ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen, ride);
+            // Opened again by a fold: the span and cursor it had (the full journal's load keeps them, clamped).
+            if (arriving != null && rideId.equals(arriving.ride) && arriving.chartView instanceof RideChartView.State)
+                expanded.keepView((RideChartView.State) arriving.chartView);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
-            expandedDialog = dialog;
-            show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
+            expandedDialog = dialog; expandedChart = expanded;
+            show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (expandedChart == expanded) expandedChart = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
             dialog.getWindow().setLayout(-1, -1);
             fillPage(expanded, dialog);
             expanded.loadStatus.setOnClickListener(v -> loadFull(expanded, dialog));
@@ -1312,7 +1376,7 @@ public final class RidesScreen implements AppScreen {
                         fullLoad = null; expanded.fullDataLoaded = true;
                         // The preview sharpens into the full journal rather than swapping in one frame.
                         Motion.page(expanded, 0, () -> {
-                            expanded.applyData(prepared);
+                            expanded.applyData(prepared); expanded.keptView = null;
                             expanded.loadStatus.setText(T.ridesAllSamples()); expanded.loadStatus.setContentDescription(T.ridesAllSamplesDescription());
                         });
                     });
@@ -1334,6 +1398,7 @@ public final class RidesScreen implements AppScreen {
                     && isAttachedToWindow() && expanded.isAttachedToWindow() && !host.activity().isDestroyed();
         }
         void fullLoadFailed(ChartPanel expanded, String message) {
+            expanded.keptView = null;
             expanded.loadStatus.setText(T.ridesPreviewRetry()); expanded.loadStatus.setEnabled(true);
             expanded.loadStatus.setContentDescription(T.ridesPreviewRetryDescription()); if (message != null) host.toast(message);
         }
@@ -1461,11 +1526,14 @@ public final class RidesScreen implements AppScreen {
     private void refreshDetail(String id, List<RideStore.Summary> stopped) {
         RideStore.Summary chosen = null;
         for (RideStore.Summary s : stopped) if (s.id.equals(id)) chosen = s;
-        if (chosen == null) { emptyDetail(stopped.isEmpty() ? "none" : "missing"); return; }
+        if (chosen == null) { paneRide = null; pickedRide = false; emptyDetail(stopped.isEmpty() ? "none" : "missing"); return; }
+        // The picked ride went (deleted): the pane falls back to the newest, which nobody picked (council round 1, F10).
+        if (!chosen.id.equals(selectedRide)) pickedRide = false;
+        paneRide = chosen.id;
         String key = chosen.id + ":" + chosen.sampleCount + ":" + chosen.label + ":" + service.phoneSaving() + ":" + (service.phoneRides != null);
         if (key.equals(detailKey)) return;
         boolean sameRide = detailKey.startsWith(chosen.id + ":");
-        int keep = sameRide ? detailScroll.getScrollY() : 0;
+        int keep = sameRide ? detailScroll.getScrollY() : arriving != null && chosen.id.equals(arriving.ride) ? arriving.scrollY : 0;
         final RideStore.Summary ride = chosen;
         List<RideStore.Point> measured = detailPreview(key, ride, sameRide);
         if (measured == null) return;
@@ -1528,6 +1596,7 @@ public final class RidesScreen implements AppScreen {
     private void buildDetail(RideStore.Summary ride, List<RideStore.Point> measured) {
         try { buildOverview(detailPane, ride, measured, null); }
         catch (IOException e) { note(detailPane, T.ridesToastRecordingUnreadable()); }
+        if (arriving != null && ride.id.equals(arriving.ride)) arrived(null, detailPane);
     }
     private void routeNotice(LinearLayout parent, String text, Runnable files) {
         LinearLayout card = ui.card(); card.addView(ui.caption(text));
@@ -1844,10 +1913,10 @@ public final class RidesScreen implements AppScreen {
         body.addView(controlScroll, new LinearLayout.LayoutParams(-1, ui.dp(180)));
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).create();
         dialog.setView(body, 0, 0, 0, 0);
-        source.expandedDialog = dialog;
+        source.expandedDialog = dialog; expandedMap = expanded;
         heading.addView(mapButton("close", T.ridesMapCloseExpanded(), dialog::dismiss));
         show(dialog, PAGE, () -> {
-            source.expandedDialog = null;
+            source.expandedDialog = null; if (expandedMap == expanded) expandedMap = null;
             if (!closed && source.frame.isAttachedToWindow()) { source.map.copyViewStateFrom(expanded.map); syncMapControls(source); }
             maps.remove(expanded.map); expanded.map.close();
         });
@@ -2161,7 +2230,9 @@ public final class RidesScreen implements AppScreen {
                     });
                 } catch (IOException ignored) { }
             });
-            show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(T.ridesCompareSheetRides(), T.ridesCompareSheetTitle())).setView(scroller).setPositiveButton(T.commonDone(), null).create(), PAGE, null);
+            AlertDialog comparison = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(T.ridesCompareSheetRides(), T.ridesCompareSheetTitle())).setView(scroller).setPositiveButton(T.commonDone(), null).create();
+            comparisonDialog = comparison; comparisonScroller = scroller; comparisonOrder = ++windowOrder;
+            show(comparison, PAGE, () -> { if (comparisonDialog == comparison) comparisonDialog = null; });
         } catch (IOException e) { host.toast(T.ridesToastCompareFailed()); }
     }
     /** A ride's name: the owner's, or the default name (also Hub search's ride results). */
@@ -2918,12 +2989,114 @@ public final class RidesScreen implements AppScreen {
     /** A chart series' line pattern, so colour is never the only difference. */
     private static final String MARK_SOLID = "━ ", MARK_DASH = "┄ ", MARK_DOT = "⋯ ";
     private static final String WH_PER_DISTANCE = "wh_per_distance";
+    /**
+     * The ride the owner is looking at, for a fold, an unfold or a rotation (KeptPlace.RidePlace): its details page or
+     * the wide pane's picked ride, the scroll there, the overview chart's view, and the expanded map or chart with theirs.
+     * A place still arriving (its map loading) is kept as it is.
+     */
+    @Override public Object keepPlace() {
+        if (closed || mode == SENSORS) return null;
+        if (arriving != null) return arriving;
+        boolean mapOpen = expandedMap != null, chartOpen = expandedChart != null;
+        Object mapView = mapOpen ? expandedMap.map.viewState() : null, chartView = chartOpen ? expandedChart.view() : null;
+        Object inline = overviewChart != null && overviewChart.isAttachedToWindow() ? overviewChart.view() : null;
+        boolean comparing = comparisonDialog != null && comparisonDialog.isShowing();
+        KeptPlace.RidePlace place = null;
+        if (detailsDialog != null && detailsDialog.isShowing())
+            place = KeptPlace.RidePlace.details(detailsRide, detailsClosed, detailsScroller.getScrollY(), mapOpen, mapView, chartOpen, chartView, inline);
+        else if (wide) place = KeptPlace.RidePlace.pane(paneRide, pickedRide, paneRide != null && paneRide.equals(paneClosedRide) ? paneClosed : null,
+                detailScroll.getScrollY(), mapOpen, mapView, chartOpen, chartView, inline);
+        if (!comparing) return place;
+        int comparisonScroll = comparisonScroller == null ? 0 : comparisonScroller.getScrollY();
+        if (place == null) return KeptPlace.RidePlace.comparisonOnly(comparisonScroll);
+        // In front of the details page when it opened after it; always in front of the wide pane's ride (council round 2).
+        boolean detailsPage = detailsDialog != null && detailsDialog.isShowing();
+        return place.withComparison(!detailsPage || comparisonOrder > detailsOrder, comparisonScroll);
+    }
+    /**
+     * Shows the kept ride again: picked in the panes on a wide All rides, else in its details page (KeptPlace.RidePlace.show),
+     * with its scroll, chart view, and expanded chart or map (the map once it has loaded). A ride deleted meanwhile shows nothing.
+     */
+    @Override public void restorePlace(Object place) {
+        if (!(place instanceof KeptPlace.RidePlace) || closed || mode == SENSORS) return;
+        KeptPlace.RidePlace kept = (KeptPlace.RidePlace) place;
+        if (detailsDialog != null && detailsDialog.isShowing()) return; // a page argument already opened a ride here
+        // Compare two rides behind the ride's details opened from it, or in front of the ride: in the order they were (F07).
+        boolean comparisonBehind = kept.comparison && !kept.comparisonOnTop;
+        if (comparisonBehind) reopenComparison(kept);
+        RideStore.Summary ride = null;
+        if (kept.ride != null) try { ride = service.rides.get(kept.ride); } catch (IOException unreadable) { ride = null; }
+        if (ride != null) showKeptRide(kept);
+        if (kept.comparison && !comparisonBehind) reopenComparison(kept);
+    }
+    /** Compare two rides again, at its scroll, unless it is still open. */
+    private void reopenComparison(KeptPlace.RidePlace kept) {
+        if (comparisonDialog != null && comparisonDialog.isShowing()) return;
+        inPlace = true; try { showComparison(); } finally { inPlace = false; }
+        if (comparisonDialog != null && comparisonScroller != null) Motion.scrollBeforeDraw(comparisonScroller, kept.comparisonScrollY);
+    }
+    /** The kept ride: picked in the panes, or its details page, then its scroll, charts and map as they arrive. */
+    private void showKeptRide(KeptPlace.RidePlace kept) {
+        arriving = kept;
+        inPlace = true;
+        try {
+            if (kept.show(wide) == KeptPlace.RidePlace.Show.PANE) {
+                selectRide(kept.ride);
+                paneClosed = kept.onClose; paneClosedRide = kept.ride;
+                // Built already, from the cache, as this screen was made: the place is taken here (buildDetail won't run).
+                if (kept.ride.equals(paneRide) && detailKey.startsWith(kept.ride + ":")) {
+                    if (overviewChart != null && kept.inlineChartView instanceof RideChartView.State) {
+                        overviewChart.keepView((RideChartView.State) kept.inlineChartView);
+                        if (!phoneComing(kept.ride)) overviewChart.keptView = null;
+                    }
+                    Motion.scrollBeforeDraw(detailScroll, kept.scrollY);
+                    arrived(null, detailPane);
+                }
+            } else showDetails(kept.ride, kept.onClose);
+        } finally { inPlace = false; }
+    }
+    /**
+     * The kept ride's details page (scroller) or pane (scroller null: detailScroll) is built: its scroll, then its expanded
+     * chart; the expanded map follows once the map loads (mapArrived). A ride without a map to load is done here.
+     */
+    private void arrived(ScrollView scroller, LinearLayout body) {
+        KeptPlace.RidePlace kept = arriving;
+        if (kept == null) return;
+        if (scroller != null) Motion.scrollBeforeDraw(scroller, kept.scrollY);
+        if (kept.chartExpanded && overviewChart != null) {
+            ChartPanel chart = overviewChart;
+            body.post(() -> { if (arriving == kept && !closed) { inPlace = true; try { chart.expand(); } finally { inPlace = false; } } });
+        }
+        if (phoneComing(kept.ride)) return;
+        // The map came already (a pane built from the cache), or none comes.
+        boolean here = overviewMap != null && kept.ride.equals(overviewMapRide) && overviewMap.frame.getParent() != null;
+        if (here) mapArrived(kept.ride, overviewMap); else body.post(() -> { if (arriving == kept) arriving = null; });
+    }
+    /** The overview's map for this ride arrived (null: none to show): the kept expanded map opens again over it. */
+    private void mapArrived(String id, PhoneRide map) {
+        KeptPlace.RidePlace kept = arriving;
+        if (kept == null || !id.equals(kept.ride)) return;
+        View anchor = map != null ? map.frame : null;
+        Runnable done = () -> {
+            if (arriving != kept || closed) return;
+            if (detailsScroller != null && id.equals(detailsRide)) Motion.scrollBeforeDraw(detailsScroller, kept.scrollY);
+            else if (detailScroll != null && id.equals(paneRide)) Motion.scrollBeforeDraw(detailScroll, kept.scrollY);
+            if (map != null && kept.mapExpanded) {
+                if (kept.mapView instanceof RouteMapView.ViewState) map.map.restoreViewState((RouteMapView.ViewState) kept.mapView);
+                syncMapControls(map);
+                inPlace = true; try { expandMap(map); } finally { inPlace = false; }
+            }
+            arriving = null;
+        };
+        (anchor != null ? anchor : detailsScroller != null ? detailsScroller : scroll).post(done);
+    }
     /** The icon on every ride export button. */
     private static final String EXPORT_ICON = "download";
     private void show(AlertDialog dialog, int style, Runnable onDismiss) {
         dialogs.add(dialog); dialog.setOnDismissListener(d -> { dialogs.remove(dialog); if (onDismiss != null) onDismiss.run(); });
         Window window = dialog.getWindow();
         Motion.present(dialog, style == PAGE ? Motion.PAGE : style == SHEET ? Motion.SHEET : Motion.DIALOG);
+        if (inPlace) Motion.inPlace(dialog);
         if (window != null) {
             if (style == PAGE) {
                 window.setBackgroundDrawable(new ColorDrawable(ui.bg));
