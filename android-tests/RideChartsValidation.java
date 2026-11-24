@@ -141,7 +141,11 @@ public final class RideChartsValidation extends ValidationInstrumentation {
             for (RideChartData.Series s : data) if (CHOSEN.contains(s.key)) offered++;
             require(offered >= 4, "the graph offers " + offered + " of the chosen lines: " + keys(data));
             note(theme + ": lines offered " + keys(data));
+            // The distance line (2.0.5): last, drawn by the ride's odometer, so named plainly, and read in miles.
+            require(offered == 5 && data.get(data.size() - 1).key.equals(RideChartData.DISTANCE_KEY) && data.get(data.size() - 1).displayLabel().equals("Distance")
+                    && data.get(data.size() - 1).unit.equals("mi") && data.get(data.size() - 1).available(), "the distance line: " + keys(data) + " " + data.get(data.size() - 1).displayLabel());
             inspect(chart(panel()), 312_000);
+            require(texts(panel()).contains("Distance") && texts(panel()).contains(" mi"), "the cursor reads the ride's distance: " + texts(panel()));
             int[] inline = axesShown(chart(panel()));
             note(theme + " inline: " + inline[0] + " of " + inline[1] + " axes shown, strip " + inline[2] + " px of chart " + inline[3] + " px");
             require(inline[1] == offered, "every chosen line has its own axis: " + inline[1] + " for " + offered);
@@ -288,6 +292,19 @@ public final class RideChartsValidation extends ValidationInstrumentation {
         AtomicReference<List<RideChartData.Series>> out = new AtomicReference<>();
         main(() -> out.set((List<RideChartData.Series>) field(panel, "data")));
         return out.get();
+    }
+
+    /** Every shown text under a view, joined. */
+    private String texts(View view) {
+        AtomicReference<StringBuilder> out = new AtomicReference<>(new StringBuilder());
+        main(() -> appendTexts(view, out.get()));
+        return out.get().toString();
+    }
+
+    private static void appendTexts(View view, StringBuilder out) {
+        if (!view.isShown()) return;
+        if (view instanceof TextView) out.append(((TextView) view).getText()).append(" | ");
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) appendTexts(((ViewGroup) view).getChildAt(i), out);
     }
 
     private static String keys(List<RideChartData.Series> data) {

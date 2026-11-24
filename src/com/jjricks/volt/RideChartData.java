@@ -255,10 +255,11 @@ public final class RideChartData {
         }
         return Collections.unmodifiableList(result);
     }
-    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy (off unless chosen). */
+    /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy and distance (off unless chosen). */
     public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
         List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
         lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
+        lines.add(distance(scooter, phone, miles, fullDetail, T.READINGS_CHART_DISTANCE, T.READINGS_CHART_GPS_DISTANCE));
         return Collections.unmodifiableList(lines);
     }
     /**
