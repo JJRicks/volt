@@ -86,6 +86,18 @@ final class Motion {
     }
 
     /**
+     * A window a rebuild opens again in place (a fold, an unfold or a rotation: KeptPlace), after {@code present}: it is
+     * simply there, as the page under it is, without its entrance; once shown it leaves with its usual motion.
+     */
+    static void inPlace(Dialog dialog) {
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window == null) return;
+        int animations = window.getAttributes().windowAnimations;
+        window.setWindowAnimations(0);
+        dialog.setOnShowListener(shown -> { dialog.setOnShowListener(null); window.setWindowAnimations(animations); });
+    }
+
+    /**
      * A sheet ({@code present}ed as SHEET, its content in {@code holder}) whose height glides with the rows a reveal
      * inside it shows or hides, instead of the window resizing in one step. {@code background} is the sheet's own
      * background; call before show(). At rest the window, its background and the keyboard's resizing are as without it.

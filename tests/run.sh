@@ -59,6 +59,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/GpsAccuracy.java" "$TEST_DIR/GpsAccurac
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingNameGroup.java" "$TEST_DIR/RidingNameGroupTest.java")
 # Wide layout or phone layout: window width over text scale (WideLayout).
 sources+=("$APP_DIR/src/com/jjricks/volt/WideLayout.java" "$TEST_DIR/WideLayoutTest.java")
+# A fold, an unfold or a rotation keeps what the page holds open (KeptPlace; 2.0.5).
+sources+=("$APP_DIR/src/com/jjricks/volt/KeptPlace.java" "$TEST_DIR/KeptPlaceTest.java")
 # Icon labels: a centred label's text centres on the whole label, never at the cost of its text (IconLabelBalance).
 sources+=("$APP_DIR/src/com/jjricks/volt/IconLabelBalance.java" "$TEST_DIR/IconLabelBalanceTest.java")
 # Hub pages: the page tree, legacy ids, and MainActivity's page stack (hub layout plan, PR 1).
@@ -230,6 +232,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.EndlessMotionTest "$APP_DIR/
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.PendingControlTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.KeptPlaceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubPagesTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/Ui.java"

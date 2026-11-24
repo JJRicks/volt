@@ -109,9 +109,23 @@ public final class RouteMapView extends View {
     String metric() { return metric; }
 
     /** Opening or closing the expanded map preserves inspection instead of resetting the route. */
-    void copyViewStateFrom(RouteMapView other) {
-        zoom = other.zoom; centerX = other.centerX; centerY = other.centerY; fitted = other.fitted;
-        metric = other.metric; selected = other.selected;
+    void copyViewStateFrom(RouteMapView other) { restoreViewState(other.viewState()); }
+
+    /** The map's view (zoom, centre, colouring and the inspected point), kept across a fold or a rotation (KeptPlace). */
+    static final class ViewState {
+        final double zoom, centerX, centerY; final boolean fitted; final String metric; final int selected;
+        ViewState(double zoom, double centerX, double centerY, boolean fitted, String metric, int selected) {
+            this.zoom = zoom; this.centerX = centerX; this.centerY = centerY; this.fitted = fitted; this.metric = metric; this.selected = selected;
+        }
+    }
+
+    ViewState viewState() { return new ViewState(zoom, centerX, centerY, fitted, metric, selected); }
+
+    /** Takes a view back (viewState, of this route): kept through the first layout when the map has no size yet. */
+    void restoreViewState(ViewState state) {
+        if (state == null) return;
+        zoom = state.zoom; centerX = state.centerX; centerY = state.centerY; fitted = state.fitted;
+        metric = state.metric; selected = state.selected < points.size() ? state.selected : -1;
         preserveViewportOnFirstSize = getWidth() == 0 || getHeight() == 0;
         generation++;
         if (selection != null) selection.accept(selected >= 0 && selected < points.size() ? points.get(selected) : null);

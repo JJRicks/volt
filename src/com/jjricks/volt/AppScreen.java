@@ -19,4 +19,12 @@ public interface AppScreen {
      * Back closes the sheet first, then leaves the page, as from any other result.
      */
     default boolean openHeld(String id) { return false; }
+    /**
+     * What this screen holds over or inside its page beyond the page and its scroll (a ride's details, its expanded map
+     * or chart, a charge recording, a sheet), for the rebuild that replaces it: a fold, an unfold, a rotation, a theme or
+     * text size change (KeptPlace). Asked just before close(); null keeps nothing.
+     */
+    default Object keepPlace() { return null; }
+    /** The screen built again for the same page, on screen: opens again what keepPlace() returned (never null here). */
+    default void restorePlace(Object place) {}
 }
