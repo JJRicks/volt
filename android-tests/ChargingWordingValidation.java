@@ -45,7 +45,8 @@ import com.jjricks.volt.TelemetryHistory;
  *   <li>-e mode invite: Email to Volt's hand-over (#537 review, F03). With this package's stand-in email app (MailStub,
  *   enabled with pm for this step only) beside the emulator's own, Android asks which app takes the recordings' email.
  *   Backing out of that chooser leaves the invite unanswered (before: "sent", and the Battery page's invite gone for
- *   good); picking the stand-in, Volt stops behind it and the answer is "sent".</li>
+ *   good); with the stand-in's screen opened over it, as a picked app's would be, Volt stops behind it and the answer
+ *   is "sent".</li>
  * </ul>
  */
 public final class ChargingWordingValidation extends ValidationInstrumentation {
@@ -176,51 +177,31 @@ public final class ChargingWordingValidation extends ValidationInstrumentation {
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") != null, "The invite banner is gone after a cancelled email"));
         shot("invite-after-cancel");
         checks.add("Email to Volt, the chooser closed with Back: no answer stored, the Battery page's invite still shows");
-        // 2. The stand-in picked in the chooser takes the email: Volt stops behind it, and the answer is "sent".
+        // 2. An app takes the email: the stand-in's screen opens over the chooser and Volt, as a picked email app's does
+        // (Volt can't tell who opened it; the chooser's own list differs by Android version, so it isn't tapped). Volt
+        // stops behind it, and the answer is "sent".
         send();
         await(() -> !activity.resumed(), "Nothing opened over Volt for the email");
         SystemClock.sleep(1200);
-        pick("A stand-in email app");
-        await(() -> "sent".equals(settings().getString(KEY, "")), "The stand-in email app took the email, but the invite has no answer");
+        require(!stop[0] && !settings().contains(KEY), "The chooser alone answered the invite");
+        shell("am start -W -n " + STUB);
+        await(() -> "sent".equals(settings().getString(KEY, "")), "An email app's screen covered Volt, but the invite has no answer");
         require(stop[0], "Volt never stopped behind the stand-in email app");
         main(() -> activity.getApplication().unregisterActivityLifecycleCallbacks(watch));
+        // The stand-in closes itself; a chooser still open under it is closed with Back.
+        for (int i = 0; i < 4; i++) {
+            SystemClock.sleep(2500);
+            boolean[] back = {false}; main(() -> back[0] = activity.resumed());
+            if (back[0]) break;
+            getUiAutomation().performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
+        }
         await(() -> activity.resumed(), "Volt did not come back after the stand-in email app closed itself");
         settle();
         shell("pm disable " + STUB); stubEnabled = false;
         battery();
         main(() -> require(HubTestPages.shownTag(activity, "battery-charge-invite") == null, "The invite banner still shows after the email was taken"));
         shot("invite-after-send");
-        checks.add("Email to Volt, the stand-in picked in the chooser took it (Volt stopped behind it): \"sent\" stored, the invite gone");
-    }
-
-    /** Taps the app named name in whatever chooser shows (scrolling it if needed), then "Just once" if Android asks. */
-    private void pick(String name) throws Exception {
-        long end = SystemClock.uptimeMillis() + 12000;
-        while (SystemClock.uptimeMillis() < end) {
-            android.view.accessibility.AccessibilityNodeInfo root = getUiAutomation().getRootInActiveWindow();
-            if (root != null) {
-                for (android.view.accessibility.AccessibilityNodeInfo node : root.findAccessibilityNodeInfosByText(name)) {
-                    android.view.accessibility.AccessibilityNodeInfo target = node;
-                    while (target != null && !target.isClickable()) target = target.getParent();
-                    if (target != null && target.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK)) {
-                        SystemClock.sleep(1200);
-                        android.view.accessibility.AccessibilityNodeInfo next = getUiAutomation().getRootInActiveWindow();
-                        if (next != null) for (String once : new String[] {"Just once", "JUST ONCE"})
-                            for (android.view.accessibility.AccessibilityNodeInfo b : next.findAccessibilityNodeInfosByText(once)) b.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_CLICK);
-                        return;
-                    }
-                }
-                ArrayDeque<android.view.accessibility.AccessibilityNodeInfo> nodes = new ArrayDeque<>(); nodes.push(root);
-                while (!nodes.isEmpty()) {
-                    android.view.accessibility.AccessibilityNodeInfo n = nodes.pop();
-                    if (n.isScrollable()) { n.performAction(android.view.accessibility.AccessibilityNodeInfo.ACTION_SCROLL_FORWARD); break; }
-                    for (int i = 0; i < n.getChildCount(); i++) if (n.getChild(i) != null) nodes.push(n.getChild(i));
-                }
-            }
-            SystemClock.sleep(500);
-        }
-        shot("invite-pick-missing");
-        throw new IllegalStateException("The chooser never showed \"" + name + "\"");
+        checks.add("Email to Volt, an email app's screen over the chooser (Volt stopped behind it): \"sent\" stored, the invite gone");
     }
 
     /** The recordings' email, as Charge history & recordings' Email to Volt hands it over once the export is ready. */
