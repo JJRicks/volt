@@ -92,6 +92,10 @@ public final class RangeReadout {
         if (soc < EMPTY_PERCENT) { clear(); return remember(unitsKey, tenths, new Value(State.ALMOST_EMPTY, null, null, km, 0, false, true, s.held, s.stale)); }
         if (s.stale && lastValue != null && lastValue.state != State.HIDDEN && lastValue.state != State.ALMOST_EMPTY) {
             lastMs = s.monoMs;
+            // A ride the estimator has just started again (a long gap) settles behind the dash even while stale: the frozen
+            // number is the old ride's pace. Mid-ride, settling never comes back, so ordinary stale freezing is unchanged.
+            boolean settling = lastValue.settling || s.energyModel && s.settling;
+            if (s.energyModel && s.settling) lastSettling = true;
             // The displayed distance stays frozen, in km; only its presentation follows a units or tenths change.
             if (lastValue.primary != null && !Double.isNaN(frozenKm) && (!unitsKey.equals(lastUnits) || tenths != lastTenths)) {
                 Value v = lastValue;
@@ -101,10 +105,10 @@ public final class RangeReadout {
                 // Carry the switch into the calm state, so fresh readings continue from here without counting it as a movement.
                 shown = value; step = q; lastKm = km;
                 remember(unitsKey, tenths, new Value(v.state, value == 0 ? 0d : value, dual ? (Double) round(value * KM_PER_MI, q) : null, km, fine ? 1 : 0,
-                        v.approx, v.amber, v.held, false, v.settling));
+                        v.approx, v.amber, v.held, false, settling));
             }
             Value v = lastValue;
-            return new Value(v.state, v.primary, v.secondaryKm, v.primaryIsKm, v.decimals, v.approx, v.amber, v.held, true, v.settling);
+            return new Value(v.state, v.primary, v.secondaryKm, v.primaryIsKm, v.decimals, v.approx, v.amber, v.held, true, settling);
         }
         if (s.rawKm == null || !Double.isFinite(s.rawKm)) { clear(); return remember(unitsKey, tenths, new Value(State.NO_HISTORY, null, null, km, 0, false, false, s.held, s.stale)); }
         State state = !s.energyModel ? State.NO_HISTORY : soc <= LOW_PERCENT ? State.LOW
@@ -113,15 +117,16 @@ public final class RangeReadout {
         double dt = lastMs < 0 || s.monoMs <= lastMs ? 0 : (s.monoMs - lastMs) / 1000.0;
         lastMs = s.monoMs;
         double raw = Math.max(0, s.rawKm);
-        // The first number after the dash starts the display filter afresh: what it held came from the settling
-        // seconds, mostly the learned prior's figure, which nobody saw and which would hold the hand-over high.
+        // The first number after the dash starts the display filter and the shown number afresh: what they held came
+        // from the settling seconds, mostly the learned prior's figure (or an earlier ride's), which nobody saw. The state
+        // alone doesn't re-seed them: LOW stays LOW across the dash, and LIVE stays LIVE across a ride reset.
         boolean handOver = s.energyModel && lastSettling && !s.settling;
         lastSettling = s.energyModel && s.settling;
         smoothKm = Double.isNaN(smoothKm) || handOver ? raw : smoothKm + (raw - smoothKm) * (1 - Math.exp(-dt / params.smoothTauS));
         double target = smoothKm / perUnit;
         boolean fine = tenths && (state == State.LIVE || state == State.LOW) && target < 99.5;
         double q = fine ? .1 : 1;
-        if (Double.isNaN(shown) || q != step || state != lastState || km != lastKm) {
+        if (Double.isNaN(shown) || handOver || q != step || state != lastState || km != lastKm) {
             shown = round(target, q); fallBudget = 0; riseBudget = 0;
         } else {
             double fallRate = Math.max(params.fallStepsPerS * q, params.fallSharePerS * shown);

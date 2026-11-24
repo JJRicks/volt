@@ -46,6 +46,8 @@ public final class RidingRangeStartValidation extends ValidationInstrumentation 
     private int assertions;
     private boolean fold;
     private String theme = "dark", immersivePrevious;
+    /** What this run changed on the emulator, so the finally restores only that (a refused device is left as it was). */
+    private boolean immersiveChanged, windowChanged;
 
     @Override public void onCreate(Bundle args) {
         if (args != null) { fold = "fold".equals(args.getString("window")); theme = "light".equals(args.getString("theme")) ? "light" : "dark"; }
@@ -59,7 +61,9 @@ public final class RidingRangeStartValidation extends ValidationInstrumentation 
             evidence = new File(getTargetContext().getExternalFilesDir(null), "riding-range-start");
             require(evidence.mkdirs() || evidence.isDirectory(), "Evidence directory");
             immersivePrevious = shell("settings get secure immersive_mode_confirmations").trim();
+            immersiveChanged = true;
             shell("settings put secure immersive_mode_confirmations confirmed");
+            windowChanged = true;
             window(fold);
             main(() -> {
                 prefs("app_settings").edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
@@ -75,9 +79,9 @@ public final class RidingRangeStartValidation extends ValidationInstrumentation 
         } finally {
             if (activity != null) try { main(() -> { activity.service().setSimulation(false); activity.finish(); ScooterService.setUiVisible(false);
                 getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
+            try { if (windowChanged) { shell("wm size reset"); shell("wm density reset"); } } catch (Throwable ignored) { }
             try {
-                shell("wm size reset"); shell("wm density reset");
-                shell(immersivePrevious == null || immersivePrevious.isEmpty() || immersivePrevious.equals("null")
+                if (immersiveChanged) shell(immersivePrevious.isEmpty() || immersivePrevious.equals("null")
                         ? "settings delete secure immersive_mode_confirmations" : "settings put secure immersive_mode_confirmations " + immersivePrevious);
             } catch (Throwable ignored) { }
             try { java.nio.file.Files.write(new File(evidence, "notes-" + label() + ".txt").toPath(), notes); } catch (Throwable ignored) { }
