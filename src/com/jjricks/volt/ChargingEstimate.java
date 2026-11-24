@@ -1060,4 +1060,19 @@ public final class ChargingEstimate {
             String status) {
         return new Result(charging, watts, amps, limit, full, target, label, status);
     }
+
+    /** Status of a time held at plug-in (ChargeEstimateHold), for the time slot's tooltip. */
+    static final String ESTIMATING_STATUS = "Estimating time left: waiting for the charger to settle after plugging in.";
+
+    /**
+     * The shown form of an estimate while ChargeEstimateHold holds it at plug-in: still charging, with its power, current
+     * and limit, but no time to the limit or to 100% and no planning minutes, so neither the screens nor Charge done by
+     * use the guess; the state is "Estimating time left". Only the display holds it: recordings keep the estimate itself.
+     * A result that is not charging or has no time is returned unchanged.
+     */
+    public static Result estimating(Result shown) {
+        if (shown == null || !shown.charging || shown.remainingMinutesToFull == null && shown.remainingMinutesToLimit == null) return shown;
+        return new Result(true, shown.inputWatts, shown.inputAmps, null, null, shown.targetPercent, M.chargeLiveTextEstimating(), ESTIMATING_STATUS,
+                false, false, 0, false, false, null, null, null, null, shown.stockPackModel, null, false, null, false);
+    }
 }
