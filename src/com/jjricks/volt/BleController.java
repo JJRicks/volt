@@ -959,8 +959,9 @@ public final class BleController {
             case NOT_CONNECTED: notice(M.bleStatusNotConnected());return;
             case BUSY: notice(M.bleWaitCurrentChange());return;
             case WARNING_ACTIVE: notice(M.bleResolveWarning(warning));return;
-            // Moving keeps "stop first"; no motion report yet and a switched-off scooter say what they are (motionNotice).
-            case MOVING: case NO_MOTION_REPORT: case SCOOTER_OFF: notice(CapabilityResolver.motionNotice(d.reason,ut5));return;
+            case MOVING: notice(M.bleStopScooterFirst());return;
+            // Before a motion report (or switched off): never "stop first" (CapabilityResolver.noMotionNotice).
+            case NO_MOTION_REPORT: notice(CapabilityResolver.noMotionNotice(d,ut5));return;
             case OWNER_ONLY: if(ut5&&d.feature.equals("pin")){notice(M.blePinOwnerOnly());return;}break;
             case NEEDS_BOND: if(ut5){notice(M.bleNeedsBond());return;}break;
             case NEEDS_PIN: if(ut5){notice(M.bleNeedsPin());return;}break;

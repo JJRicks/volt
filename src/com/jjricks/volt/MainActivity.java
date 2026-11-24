@@ -1683,7 +1683,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String word;int tone;
         if(!permission){word=T.mainConnectionNoPermission();tone=design.dim;}
         else if(ble==null){word=T.mainConnectionStarting();tone=design.muted;}
-        else if(ready&&ble.scooterOff()){word=T.bleStatusScooterOff();tone=design.orange;}
+        else if(ready&&ble.scooterOff()&&ScooterOffWords.state()!=null){word=ScooterOffWords.state();tone=design.orange;}
         else if(ready){word=simulated?T.mainConnectionSimulated():T.bleStatusConnected();tone=design.ok;}
         else if(state==BleController.State.WAITING){word=T.mainConnectionRetrying();tone=design.orange;}
         else if(state==BleController.State.SCANNING){word=T.bleStatusSearching();tone=design.orange;}
@@ -1697,11 +1697,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(state==BleController.State.WAITING&&ble!=null&&!PLAIN_CONNECTION_STATES.contains(message))error=message;
         LinearLayout body=column();body.setPadding(design.dp(24),design.dp(4),design.dp(24),design.dp(4));
         TextView stateValue=connectionRow(body,T.mainConnectionState(),word);
-        View dot=design.icon(ready?"check":"bluetooth",16,tone);
+        // Switched off (its words shown above): no check mark, as for a scooter that isn't connected.
+        View dot=design.icon(ready&&!(ble.scooterOff()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
         stateValue.setTextColor(ready?design.text:design.muted);
         ((LinearLayout)stateValue.getParent()).addView(dot,((LinearLayout)stateValue.getParent()).indexOfChild(stateValue),connectionIcon());
         // Switched off but answering: what to do (ScooterPowerState).
-        if(ready&&ble.scooterOff()){TextView off=design.caption(T.bleScooterOffDetail());off.setPadding(0,design.dp(4),0,design.dp(6));body.addView(off);}
+        String offDetail=ready&&ble.scooterOff()?ScooterOffWords.detail():null;
+        if(offDetail!=null){TextView off=design.caption(offDetail);off.setPadding(0,design.dp(4),0,design.dp(6));body.addView(off);}
         if(profile!=null&&profile.lastConnected>0)connectionRow(body,T.mainConnectionLastConnected(),DisplayTime.dateTime(this,preferences,profile.lastConnected));
         if(error!=null){
             TextView line=design.text(ble.displayMessage(),14,false);line.setTextColor(design.danger);line.setPadding(0,design.dp(10),0,design.dp(2));body.addView(line);
@@ -2048,7 +2050,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
             // Switched off but answering (ScooterPowerState): Scooter off, not Connected.
-            String state=ready?(ble.scooterOff()?T.bleStatusScooterOff():T.bleStatusConnected()):connecting?T.mainLockConnecting():T.bleStatusDisconnected();
+            String offWord=ready&&ble.scooterOff()?ScooterOffWords.state():null;
+            String state=ready?(offWord!=null?offWord:T.bleStatusConnected()):connecting?T.mainLockConnecting():T.bleStatusDisconnected();
             String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,simulatedName!=null?simulatedName:active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));

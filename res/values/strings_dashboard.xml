@@ -681,11 +681,6 @@
     <string name="dashboard_status_connected" volt:screen="Home header" volt:purpose="status">Connected</string>
     <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
     <string name="dashboard_status_connected_mode" volt:screen="Home header" volt:purpose="status">Connected · %1$s</string>
-    <!-- The status line when Volt is connected but the scooter is switched off (it still answers battery and settings
-         reads, without live data). Narrower, the line shows dashboard_status_scooter_off_short. -->
-    <string name="dashboard_status_scooter_off" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Scooter off · Turn the scooter on to use it</string>
-    <!-- The short rung of the line above, when it does not fit the line at the readable size. -->
-    <string name="dashboard_status_scooter_off_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Scooter off</string>
     <string name="dashboard_status_disconnected" volt:screen="Home header" volt:purpose="status" volt:ladder="full">Disconnected</string>
     <!-- The narrow-label ladder's short rung of Disconnected, when the full word does not fit the line at the readable size. -->
     <string name="dashboard_status_disconnected_short" volt:screen="Narrow Home header" volt:purpose="status" volt:ladder="short">Disconnected</string>
@@ -697,7 +692,6 @@
     <string name="dashboard_status_spoken_connected" volt:screen="Home header" volt:purpose="accessibility description">Connected. Connection details</string>
     <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
     <string name="dashboard_status_spoken_connected_mode" volt:screen="Home header" volt:purpose="accessibility description">Connected, %1$s mode. Connection details</string>
-    <string name="dashboard_status_spoken_scooter_off" volt:screen="Home header" volt:purpose="accessibility description">Scooter off. Turn the scooter on to use it. Connection details</string>
     <string name="dashboard_status_spoken_connecting" volt:screen="Home header" volt:purpose="accessibility description">Connecting. Connection details</string>
     <string name="dashboard_status_spoken_disconnected" volt:screen="Home header" volt:purpose="accessibility description">Disconnected. Connection details</string>
     <!-- %1$s is the date and time the scooter was last connected. -->

@@ -31,16 +31,19 @@ import com.jjricks.volt.*;
  * simulator's UT5 MAX, not charging. On Clean and Widgets, dark and light, at the emulator's size:
  * <ul>
  *   <li>before: Home says Connected, never Scooter off;</li>
- *   <li>off: Home's status line says "Scooter off · Turn the scooter on to use it" (or its short rung "Scooter off" when
- *       narrow, never cut mid-word), the connection details say Scooter off with the line under it;</li>
- *   <li>off: cruise control, the headlight and locking are refused with "Turn the scooter on first" and nothing is
- *       applied; the charge limit is still set (and put back);</li>
+ *   <li>off: Home's status line says the scooter is off (ScooterOffWords: "Scooter off · Turn the scooter on to use it",
+ *       or its short rung "Scooter off" when narrow), the connection details say so with the line under it; before those
+ *       words are in the catalog (ScooterOffWords returns null) Home keeps its line, and that is checked instead;</li>
+ *   <li>off: cruise control, the headlight and locking are refused with the resolver's reason (never "Bring the scooter
+ *       to a stop first") and nothing is applied; the charge limit is still set (and put back);</li>
  *   <li>on again (the hook cleared): Connected comes back and cruise control is set (and put back).</li>
  * </ul>
  * Pictures of every state go to the app's external files (scooter-off-validation). Sends no scooter command.
  */
 public final class ScooterOffValidation extends ValidationInstrumentation {
-    private static final String OFF_FULL = "Scooter off · Turn the scooter on to use it", OFF_SHORT = "Scooter off", REFUSAL = "Turn the scooter on first";
+    private static final String STOP_FIRST = "Bring the scooter to a stop first";
+    /** ScooterOffWords' words (by reflection: the class is the app's own), null before they are in the catalog. */
+    private String offFull, offShort, offState, offDetail;
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;
@@ -76,6 +79,8 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
     }
 
     private void run() throws Exception {
+        offFull = words("status"); offShort = words("statusShort"); offState = words("state"); offDetail = words("detail");
+        checks.add("ScooterOffWords: " + (offFull == null ? "not in the catalog yet (Home keeps its line)" : "'" + offFull + "' / '" + offShort + "'"));
         String size = args.getString("size_label", "size");
         for (String style : args.getString("styles", "clean,widgets").split(",")) for (String theme : new String[] {"dark", "light"}) {
             label = size + "-" + style + "-" + theme;
@@ -90,7 +95,8 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
 
             // Before: Connected, never Scooter off.
             redraw();
-            require(!shownStartsWith(OFF_SHORT), label + ": Scooter off before the hook");
+            String before = statusLine();
+            require(offShort == null || !shownStartsWith(offShort), label + ": Scooter off before the hook");
             require(!service.ble.scooterOff(), label + ": off before the hook");
             shot(label + "-on");
 
@@ -98,15 +104,16 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
             hold(true);
             await(() -> service.ble.scooterOff(), label + ": the hook did not take");
             redraw();
-            String shown = statusText();
-            require(OFF_FULL.equals(shown) || OFF_SHORT.equals(shown), label + ": Home's status line says '" + shown + "'");
+            String shown = statusLine();
+            if (offFull != null) require(offFull.equals(shown) || offShort.equals(shown), label + ": Home's status line says '" + shown + "'");
+            else require(Objects.equals(before, shown), label + ": without its words Home's line changed: '" + before + "' became '" + shown + "'");
             checks.add(label + " off: Home's status line '" + shown + "'");
             shot(label + "-off");
             refused("cruise_control", 1);
             refused("headlight", 1);
             AtomicReference<CapabilityResolver.Decision> lock = new AtomicReference<>();
             main(() -> lock.set(service.ble.decision("lock", 1)));
-            require(lock.get().reason == CapabilityResolver.Reason.SCOOTER_OFF && REFUSAL.equals(lock.get().reasonText()), label + ": locking is not refused: " + lock.get());
+            require(!lock.get().available() && lock.get().blockedByRide() && !STOP_FIRST.equals(lock.get().reasonText()), label + ": locking is not refused as off: " + lock.get());
             settable("charge_limit", 90, label + ": the charge limit while off");
             connectionDetails();
 
@@ -114,7 +121,8 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
             hold(false);
             await(() -> !service.ble.scooterOff(), label + ": still off after the hook cleared");
             redraw();
-            require(!shownStartsWith(OFF_SHORT), label + ": Scooter off stayed after switching on");
+            require(offShort == null || !shownStartsWith(offShort), label + ": Scooter off stayed after switching on");
+            require(Objects.equals(before, statusLine()), label + ": Home's line did not come back: '" + statusLine() + "'");
             settable("cruise_control", 1, label + ": cruise control once on");
             shot(label + "-on-again");
             main(() -> service.setSimulation(false));
@@ -126,10 +134,10 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
     private void refused(String key, int value) {
         AtomicReference<Integer> before = new AtomicReference<>(), after = new AtomicReference<>();
         AtomicReference<Boolean> sent = new AtomicReference<>();
-        AtomicReference<String> message = new AtomicReference<>();
-        main(() -> { before.set(service.ble.featureValue(key)); sent.set(service.ble.set(key, value)); message.set(service.ble.displayText()); after.set(service.ble.featureValue(key)); });
+        AtomicReference<String> message = new AtomicReference<>(), expected = new AtomicReference<>();
+        main(() -> { expected.set(service.ble.decision(key, value).reasonText()); before.set(service.ble.featureValue(key)); sent.set(service.ble.set(key, value)); message.set(service.ble.displayText()); after.set(service.ble.featureValue(key)); });
         require(Boolean.FALSE.equals(sent.get()), label + ": " + key + " was applied while off");
-        require(REFUSAL.equals(message.get()), label + ": " + key + " refusal says '" + message.get() + "'");
+        require(!expected.get().isEmpty() && expected.get().equals(message.get()) && !STOP_FIRST.equals(message.get()), label + ": " + key + " refusal says '" + message.get() + "', its reason '" + expected.get() + "'");
         require(Objects.equals(before.get(), after.get()), label + ": " + key + " changed while off");
         checks.add(label + " off: " + key + " refused with '" + message.get() + "'");
     }
@@ -154,7 +162,7 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
         main(() -> dialog.set((AlertDialog) field(activity, "controlDialog")));
         require(dialog.get() != null && dialog.get().isShowing(), label + ": the connection details did not open");
         AtomicReference<Boolean> word = new AtomicReference<>(), line = new AtomicReference<>();
-        main(() -> { View v = dialog.get().getWindow().getDecorView(); word.set(find(v, OFF_SHORT, true)); line.set(find(v, "Turn the scooter on to use it", true)); });
+        main(() -> { View v = dialog.get().getWindow().getDecorView(); word.set(offState == null || find(v, offState, true)); line.set(offDetail == null || find(v, offDetail, true)); });
         require(Boolean.TRUE.equals(word.get()) && Boolean.TRUE.equals(line.get()), label + ": the connection details don't say Scooter off and what to do");
         shot(label + "-off-details");
         main(() -> dialog.get().dismiss());
@@ -181,11 +189,20 @@ public final class ScooterOffValidation extends ValidationInstrumentation {
         redraw();
     }
     private void redraw() { main(() -> activity.redraw()); settle(); SystemClock.sleep(700); settle(); }
-    /** Home's status line: the shown TextView whose text is a connection state. */
-    private String statusText() {
+    /** Home's status line: the shown TextView whose text starts with a connection state Home shows. */
+    private String statusLine() {
         AtomicReference<String> found = new AtomicReference<>();
-        main(() -> found.set(first(root(), OFF_SHORT)));
+        main(() -> {
+            String s = offShort == null ? null : first(root(), offShort);
+            if (s == null) s = first(root(), "Connected");
+            if (s == null) s = first(root(), "Simulated");
+            found.set(s);
+        });
         return found.get();
+    }
+    private static String words(String name) throws Exception {
+        Method m = Class.forName("com.jjricks.volt.ScooterOffWords").getDeclaredMethod(name);
+        m.setAccessible(true); Object v = m.invoke(null); return v == null ? null : v.toString();
     }
     private boolean shownStartsWith(String prefix) {
         AtomicReference<Boolean> found = new AtomicReference<>();

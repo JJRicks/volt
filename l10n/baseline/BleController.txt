@@ -16,6 +16,8 @@ helper	"Proximity change sent before the link dropped; confirming after reconnec
 helper	"Receive 0x%02X · status %d · %d bytes"
 helper	"Reconnect in "
 helper	"Scooter replies use the header-free checksum"
+helper	"Scooter seems switched off: it answers, but no live data for 10 s"
+helper	"Scooter switched on: live data again"
 helper	"Send 0x%02X (%d bytes)"
 helper	"Send failed"
 helper	"Set back approved"

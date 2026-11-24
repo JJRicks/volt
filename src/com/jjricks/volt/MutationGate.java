@@ -49,7 +49,7 @@ final class MutationGate {
             case PIN_READ: {
                 // A PIN read changes nothing on the scooter, so riding (or the scooter being switched off) does not block it.
                 decision=CapabilityResolver.decide(r.feature,d,s,rt);
-                if(decision.reason==CapabilityResolver.Reason.MOVING||decision.reason==CapabilityResolver.Reason.NO_MOTION_REPORT||decision.reason==CapabilityResolver.Reason.SCOOTER_OFF)
+                if(decision.reason==CapabilityResolver.Reason.MOVING||decision.reason==CapabilityResolver.Reason.NO_MOTION_REPORT||decision.reason==CapabilityResolver.OFF_REASON)
                     decision=CapabilityResolver.withReason(decision,CapabilityResolver.Reason.NONE);
                 break;
             }

@@ -29,7 +29,6 @@ reason RECORDING	Stop recording first
 reason NEEDS_REAL_SCOOTER	Needs a real scooter
 reason PARKED_UNCONFIRMED	Confirm the scooter is parked
 reason NO_TEST	No test running
-reason SCOOTER_OFF	Turn the scooter on first
 feature lock label	Electronic lock
 feature lock group	Security
 feature lock description	

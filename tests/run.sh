@@ -135,6 +135,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src
 # (NewOwnerKey's record); BackupProfiles checks a backup's route word by KeyRoute's shape.
 # Diagnostics provider columns: a snapshot's modified time (2.0.5 item 5).
 sources+=("$APP_DIR/src/com/jjricks/volt/SnapshotColumns.java" "$TEST_DIR/SnapshotColumnsTest.java")
+# A scooter switched off but answering: its words seam (ScooterPowerState runs with the compat suites).
+sources+=("$APP_DIR/src/com/jjricks/volt/ScooterOffWords.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/KeyRoute.java" "$APP_DIR/src/com/jjricks/volt/NewOwnerKey.java" "$TEST_DIR/KeyRouteTest.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
 COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry ScooterPowerState CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
