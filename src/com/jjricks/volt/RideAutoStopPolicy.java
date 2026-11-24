@@ -35,6 +35,9 @@ import java.util.Objects;
  *      the speed: it takes {@link #QUIET_LONG_MS}, timed from that first observation.
  *    - When the parked rule arms, it wins and the quiet countdown does not also run, so a failed
  *      save is never retried automatically.
+ *    - A scooter switched off but still answering ({@link #scooterOff}, 2.0.5) counts as gone, timed from its last
+ *      push, and ends the ride with the link still up ({@link #mayEnd}). The link stays bound meanwhile, so rule 3
+ *      keeps counting; a later drop keeps the countdown, and only a push cancels it.
  *
  * 3. No motion while connected: the link stays up but the scooter has not moved for
  *    {@link #NO_MOTION_MS}. A phone that stays connected keeps the scooter from switching itself off,
@@ -117,6 +120,8 @@ public final class RideAutoStopPolicy {
     public final String rideId, profile, serial;
     private int connection;
     private boolean bound, moved, fresh = true;
+    /** The link is up but the scooter is switched off (scooterOff): its countdown runs while rule 3 keeps counting. */
+    private boolean off;
     private long lastNow, lastMotion, lastFrame, runStart, runLast, lossMono;
     private int runCount;
     /** Last fresh motion push on this connection: its speed (-1 unknown) and push time. */
@@ -169,7 +174,7 @@ public final class RideAutoStopPolicy {
 
     /** Explicit stop, user disconnect, profile change, setting off or uncertain state: forget all evidence. */
     public void reset() {
-        bound = moved = fresh = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
+        bound = moved = fresh = off = false; lastMotion = lastFrame = lossMono = lostFrame = 0;
         clearRun(); clearSpeed(); clearQuiet(); clearStill(); clearHeld();
     }
 
@@ -189,8 +194,8 @@ public final class RideAutoStopPolicy {
     public void connected(long now, String boundProfile, String transportSerial, int transport,
             long frameMono, long motionMono, int speedRaw, int driving, double odometerKm, double tripKm) {
         if (!clock(now)) return;
-        // Any authenticated reconnect ends the continuous disconnection, for both rules.
-        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false;
+        // Any authenticated reconnect ends the continuous disconnection, for both rules; a push ends a switch-off.
+        lossMono = 0; lostFrame = 0; clearQuiet(); fresh = false; off = false;
         if (!profile.equals(boundProfile) || !serial.equals(transportSerial)) {
             // Unknown or different scooter: nothing here is evidence for this ride.
             // A serial not read yet right after a reconnect may still be this scooter: keep rule 3's held count.
@@ -240,23 +245,15 @@ public final class RideAutoStopPolicy {
         if (bound) {
             bound = false;
             long frame = lastFrame > 0 ? lastFrame : now;
-            boolean parked = loss == Loss.RECOVERABLE && runCount >= STATIONARY_SAMPLES && runLast - runStart >= STATIONARY_SPAN_MS
-                    && lastFrame >= runLast && lastFrame - runLast <= MOTION_FRESH_MS
-                    && now >= lastFrame && now - lastFrame <= LOSS_WINDOW_MS;
-            boolean slow = speedRaw >= 0 && speedRaw <= WALKING_RAW && lastFrame > 0
-                    && lastFrame >= speedMono && lastFrame - speedMono <= MOTION_FRESH_MS
-                    && now - lastFrame <= LOSS_WINDOW_MS;
+            // A switch-off already started this loss's countdown (scooterOff): the drop keeps it, as any later observation does.
+            if (off) off = false;
+            else arm(now, loss);
             if (stillFrom > 0) {
                 heldFrom = stillFrom; heldFrame = frame; heldOdometer = stillOdometer; heldTrip = stillTrip; heldHold = 0;
                 // Unresolved carry: keep the original pre-gap baselines and deadline, never values learned since.
                 if (carryHold > 0) { heldHold = carryHold; heldOdometer = carryOdometer; heldTrip = carryTrip; }
             }
             clearRun(); clearSpeed(); clearStill(); lastMotion = lastFrame = 0;
-            lostFrame = frame;
-            if (parked) lossMono = now;
-            else if (loss == Loss.PHONE_BLUETOOTH_OFF) startQuiet(frame, QUIET_LONG_MS, Quiet.PHONE_BLUETOOTH_OFF);
-            else if (slow) startQuiet(frame, QUIET_SLOW_MS, Quiet.SLOW);
-            else startQuiet(frame, QUIET_LONG_MS, Quiet.LONG);
             return;
         }
         if (fresh) {
@@ -272,14 +269,95 @@ public final class RideAutoStopPolicy {
 
     /**
      * The link is still up but the scooter is switched off (ScooterPowerState, 2.0.5 item 5): it answers reads but
-     * pushes nothing. Treated exactly as the scooter going away, a {@link Loss#RECOVERABLE} loss whose last frame
-     * heard is its last push ({@code pushMono}, 0 when none arrived on this connection), so both rules time it from the
+     * pushes nothing. Its countdown is the one the scooter going away starts, a {@link Loss#RECOVERABLE} loss whose last
+     * frame heard is its last push ({@code pushMono}, 0 when none arrived on this connection), so both rules time it from the
      * switch-off as they would after a power-off that dropped the link. Only the first observation decides, as for
      * {@link #disconnected}; the scooter's first push afterwards is an authenticated reconnect ({@link #connected}).
      */
-    public void scooterOff(long now, long pushMono) {
-        if (bound && pushMono > 0 && pushMono <= now && pushMono < lastFrame) lastFrame = pushMono;
-        disconnected(now, Loss.RECOVERABLE);
+    public void scooterOff(long now, long pushMono) { scooterOff(now, pushMono, 0); }
+
+    /**
+     * As above, with the newest frame the link has carried ({@code frameMono}, the answered polls; 0 when unknown). The
+     * link is still up, so this ride's scooter stays bound: rule 3 keeps counting from the last motion (the answered
+     * polls keep its link check fresh), so a ride whose countdown ran out but whose save failed still ends at ten
+     * minutes, as on a link that stays up. A later drop keeps the countdown; a push ({@link #connected}) cancels it.
+     */
+    public void scooterOff(long now, long pushMono, long frameMono) {
+        if (!bound) { disconnected(now, Loss.RECOVERABLE); return; }
+        if (!clock(now)) return;
+        if (!off) {
+            off = true;
+            if (pushMono > 0 && pushMono <= now && pushMono < lastFrame) lastFrame = pushMono;
+            arm(now, Loss.RECOVERABLE);
+            clearRun(); clearSpeed();
+        }
+        if (frameMono > 0 && frameMono <= now && frameMono >= lastFrame) lastFrame = frameMono;
+    }
+
+    /** The countdown a loss of this bound scooter starts now (rules 1 and 2), timed from the last frame heard. */
+    private void arm(long now, Loss loss) {
+        long frame = lastFrame > 0 ? lastFrame : now;
+        boolean parked = loss == Loss.RECOVERABLE && runCount >= STATIONARY_SAMPLES && runLast - runStart >= STATIONARY_SPAN_MS
+                && lastFrame >= runLast && lastFrame - runLast <= MOTION_FRESH_MS
+                && now >= lastFrame && now - lastFrame <= LOSS_WINDOW_MS;
+        boolean slow = speedRaw >= 0 && speedRaw <= WALKING_RAW && lastFrame > 0
+                && lastFrame >= speedMono && lastFrame - speedMono <= MOTION_FRESH_MS
+                && now - lastFrame <= LOSS_WINDOW_MS;
+        lostFrame = frame;
+        if (parked) lossMono = now;
+        else if (loss == Loss.PHONE_BLUETOOTH_OFF) startQuiet(frame, QUIET_LONG_MS, Quiet.PHONE_BLUETOOTH_OFF);
+        else if (slow) startQuiet(frame, QUIET_SLOW_MS, Quiet.SLOW);
+        else startQuiet(frame, QUIET_LONG_MS, Quiet.LONG);
+    }
+
+    /**
+     * What ScooterService sees of the link at one observation (observeRideAutoStop): the transport's own facts, never
+     * cached readings. switchedOff is ScooterPowerState's verdict, which only a push ends.
+     */
+    public static final class Link {
+        public final boolean connected, switchedOff;
+        final String profile, serial;
+        final int transport, speedRaw, driving;
+        final long frameMono, motionMono, pushMono;
+        final Loss loss;
+        private Link(boolean connected, boolean switchedOff, String profile, String serial, int transport, long frameMono, long motionMono,
+                int speedRaw, int driving, long pushMono, Loss loss) {
+            this.connected = connected; this.switchedOff = switchedOff; this.profile = profile; this.serial = serial; this.transport = transport;
+            this.frameMono = frameMono; this.motionMono = motionMono; this.speedRaw = speedRaw; this.driving = driving; this.pushMono = pushMono; this.loss = loss;
+        }
+        /** An authenticated link, as {@link #connected} takes it; pushMono is its latest push (0 for none). */
+        public static Link up(String boundProfile, String transportSerial, int transport, long frameMono, long motionMono, int speedRaw, int driving,
+                boolean switchedOff, long pushMono) {
+            return new Link(true, switchedOff, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, pushMono, null);
+        }
+        /** No authenticated link: the loss as {@link #loss} classifies it. */
+        public static Link down(Loss loss) { return new Link(false, false, "", "", 0, 0, 0, -1, -1, 0, loss); }
+    }
+
+    /** One observation of the link: a loss, a switched-off scooter still answering, or an authenticated connection. */
+    public void observe(long now, Link link) {
+        if (link == null) return;
+        if (!link.connected) disconnected(now, link.loss);
+        else if (link.switchedOff) scooterOff(now, link.pushMono, link.frameMono);
+        else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
+    }
+
+    /** Whether rules 1 and 2 may end the ride with this link: gone, or up to a scooter switched off; never one that is on. */
+    public static boolean mayEnd(Link link) { return link == null || !link.connected || link.switchedOff; }
+
+    /** Which rule ends the ride at a tick. */
+    public enum Stop { NONE, PARKED, QUIET, NO_MOTION }
+
+    /**
+     * ScooterService's tick, after this tick's observation: the rule that ends the ride now, once. Rules 1 and 2 are
+     * looked at only when {@link #mayEnd} allows, so a countdown is never used up by a stop that would be refused.
+     */
+    public Stop due(long now, Link link) {
+        if (mayEnd(link)) {
+            if (due(now)) return Stop.PARKED;
+            if (dueQuiet(now)) return Stop.QUIET;
+        }
+        return dueNoMotion(now) ? Stop.NO_MOTION : Stop.NONE;
     }
 
     /** True once when the parked grace has run out; the caller then ends this ride through its normal stop. */

@@ -37,6 +37,8 @@ public final class RideAutoStopPolicyTest {
         cancellationsStopQuiet();
         parkedRuleWins();
         scooterOffWhileAnswering();
+        switchedOffRideEndsWhileLinked();
+        statusGapKeepsOffCountdown();
         System.out.println("RideAutoStopPolicyTest: " + checks + " assertions passed");
     }
 
@@ -486,5 +488,79 @@ public final class RideAutoStopPolicyTest {
         p.connected(T + 10000, PROFILE, SERIAL, 1, T + 10000, 0, -1, -1);
         p.scooterOff(T + 10500, 0);
         check(p.quiet() == RideAutoStopPolicy.Quiet.LONG && p.quietSince() == T + 10000, "No push at all: five minutes from the last frame heard");
+    }
+    private static RideAutoStopPolicy.Link up(long frame, long motion, int speed, int driving, boolean off, long push) {
+        return RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 1, frame, motion, speed, driving, off, push);
+    }
+    /** One ScooterService tick: its observation of the link, then its stop check (autoStopDue). */
+    private static RideAutoStopPolicy.Stop tick(RideAutoStopPolicy p, long now, RideAutoStopPolicy.Link link) {
+        p.observe(now, link);
+        return p.due(now, link);
+    }
+
+    /**
+     * Review of #623: a ride on a scooter switched off but still answering ends on time with the link still up,
+     * through the service's own path (observe, then the tick's stop check), and rule 3 keeps counting meanwhile, as on
+     * main, so a ride whose save failed is still ended at ten minutes.
+     */
+    private static void switchedOffRideEndsWhileLinked() {
+        RideAutoStopPolicy p = policy();
+        long last = rideThenPark(p, T, 4);
+        long at = last + 2000;
+        // Answered polls, no pushes: on (live) for 10 s after the last push, then the off verdict; the link stays up.
+        for (; at < last + 10_000; at += 2000) check(tick(p, at, up(at, last, 0, 0, false, last)) == RideAutoStopPolicy.Stop.NONE, "Live: nothing due");
+        for (; at < last + RideAutoStopPolicy.QUIET_SLOW_MS; at += 2000)
+            check(tick(p, at, up(at, last, 0, 0, true, last)) == RideAutoStopPolicy.Stop.NONE, "Off, counting down with the link up at " + (at - last));
+        at = last + RideAutoStopPolicy.QUIET_SLOW_MS;
+        check(tick(p, at, up(at, last, 0, 0, true, last)) == RideAutoStopPolicy.Stop.QUIET, "A minute after the last push the ride ends, the link still up");
+        check(RideAutoStopPolicy.mayEnd(up(at, last, 0, 0, true, last)) && RideAutoStopPolicy.mayEnd(RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE))
+                && !RideAutoStopPolicy.mayEnd(up(at, last, 0, 0, false, last)), "Rules 1 and 2 end a ride whose scooter is gone or switched off, never one that is on");
+        // Its save failed: the ride records on, and rule 3 still ends it ten minutes after the last motion (T + 1 s).
+        long motion = T + 1000;
+        for (at += 2000; at < motion + RideAutoStopPolicy.NO_MOTION_MS; at += 2000)
+            check(tick(p, at, up(at, last, 0, 0, true, last)) == RideAutoStopPolicy.Stop.NONE, "Nothing more before ten minutes at " + (at - motion));
+        check(tick(p, motion + RideAutoStopPolicy.NO_MOTION_MS, up(motion + RideAutoStopPolicy.NO_MOTION_MS, last, 0, 0, true, last)) == RideAutoStopPolicy.Stop.NO_MOTION,
+                "Rule 3 still counts while off");
+
+        // The link drops while off: the switch-off's countdown keeps its deadline, as a second loss never restarts one.
+        p = policy(); last = rideThenPark(p, T, 4);
+        for (at = last + 2000; at < last + 10_000; at += 2000) tick(p, at, up(at, last, 0, 0, false, last));
+        tick(p, last + 10_500, up(last + 10_500, last, 0, 0, true, last));
+        check(tick(p, last + 30_000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.NONE && p.quietSince() == last,
+                "A drop after the off verdict keeps its countdown");
+        check(tick(p, last + RideAutoStopPolicy.QUIET_SLOW_MS, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.QUIET, "And ends on time");
+
+        // Switched on again: its first push cancels the countdown, and nothing ends while it is on.
+        p = policy(); last = rideThenPark(p, T, 4);
+        for (at = last + 2000; at < last + 10_000; at += 2000) tick(p, at, up(at, last, 0, 0, false, last));
+        tick(p, last + 10_500, up(last + 10_500, last, 0, 0, true, last));
+        long on = last + 30_000;
+        check(tick(p, on, up(on, on, 0, 0, false, on)) == RideAutoStopPolicy.Stop.NONE && !p.armed(), "The first push after switching on cancels it");
+        for (at = on + 1000; at < last + 400_000; at += 1000) check(tick(p, at, up(at, at, 0, 0, false, at)) == RideAutoStopPolicy.Stop.NONE, "On and pushing: nothing due");
+    }
+
+    /**
+     * Review of #623: status replies lapsing for 8 to 11 s mid-countdown, then resuming with still no push, neither ends
+     * the off state nor restarts the countdown. Only a push does. ScooterPowerState (awake time, the same numbers here)
+     * gives the verdict each tick as BleController does.
+     */
+    private static void statusGapKeepsOffCountdown() {
+        ScooterPowerState power = new ScooterPowerState();
+        power.start(T - 1);
+        RideAutoStopPolicy p = policy();
+        p.connected(T - 1, PROFILE, SERIAL, 1, T - 1, 0, -1, -1);
+        long last = rideThenPark(p, T, 4);
+        for (long push = T; push <= last; push += 1000) power.frame(0x92, push);
+        for (long at = last + 1000; at <= last + RideAutoStopPolicy.QUIET_SLOW_MS; at += 1000) {
+            // Status replies every second, except none from 20 s to 31 s after the last push (stale and not ready).
+            boolean gap = at > last + 20_000 && at < last + 31_000;
+            boolean fresh = !gap;
+            ScooterPowerState.Result r = power.verdict(at, false, fresh, true, fresh, false);
+            RideAutoStopPolicy.Stop stop = tick(p, at, up(gap ? last + 20_000 : at, last, 0, 0, r.off(), last));
+            if (at < last + RideAutoStopPolicy.QUIET_SLOW_MS) {
+                check(stop == RideAutoStopPolicy.Stop.NONE, "Nothing due yet at " + (at - last));
+                if (at >= last + ScooterPowerState.SILENCE_MS) check(r.off() && p.quietSince() == last, "Off and counting from the last push at " + (at - last));
+            } else check(stop == RideAutoStopPolicy.Stop.QUIET, "Ends a minute after the last push, the gap notwithstanding");
+        }
     }
 }

@@ -620,16 +620,18 @@ public final class RideNoMotionStopTest {
     /** The service hooks, read from source: the tick order, the switch, the shared stop path and the notice. */
     private static void serviceWiring() throws IOException {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
-        check(src.contains("else autoStopQuiet(autoStop, autoNow);\n                    if (autoStop != null && autoStop == rideAutoStop) autoStopNoMotion(autoStop, autoNow);"),
-                "the tick checks rule 3 after the parked and quiet rules, only while the same policy is current");
+        String due = between(src, "private void autoStopDue(RideAutoStopPolicy policy,long now){", "\n    }");
+        check(src.contains("autoStopDue(rideAutoStop, autoNow);") && due.contains("switch(policy.due(now,autoStopLink())){")
+                && due.indexOf("case NO_MOTION:autoStopNoMotion(policy);") > due.indexOf("case QUIET:") && due.indexOf("case QUIET:") > due.indexOf("case PARKED:"),
+                "the tick checks rule 3 after the parked and quiet rules (RideAutoStopPolicy.due), for the current policy");
         String observe = between(src, "private void observeRideAutoStop(long mono){", "\n    /**");
-        check(observe.indexOf("settings.getBoolean(RIDE_AUTO_STOP,true)") < observe.indexOf("rideAutoStop.connected(") && observe.contains("rideAutoStop.reset();"),
+        check(observe.indexOf("settings.getBoolean(RIDE_AUTO_STOP,true)") < observe.indexOf("rideAutoStop.observe(") && observe.contains("rideAutoStop.reset();"),
                 "End rides automatically off resets the policy before any connected observation");
         check(observe.contains("if(destroyed||simulating()||!isRecording()){rideAutoStop=null;return;}"), "charges and simulations never reach the policy");
-        check(observe.contains("if(ble.connected())rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));")
-                && observe.indexOf("rideAutoStop.distance(") > observe.indexOf("rideAutoStop.connected("), "the service passes the odometer and trip right after the connected observation");
-        String stop = between(src, "private void autoStopNoMotion(RideAutoStopPolicy policy,long now){", "\n    }");
-        check(stop.contains("policy.dueNoMotion(now)") && stop.contains("policy!=rideAutoStop") && stop.contains("policy.owns(rides.activeId())") && stop.contains("!isRecording()"),
+        check(observe.contains("if(link.connected&&!link.switchedOff)rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));")
+                && observe.indexOf("rideAutoStop.distance(") > observe.indexOf("rideAutoStop.observe("), "the service passes the odometer and trip right after the connected observation");
+        String stop = between(src, "private void autoStopNoMotion(RideAutoStopPolicy policy){", "\n    }");
+        check(stop.contains("policy!=rideAutoStop") && stop.contains("policy.owns(rides.activeId())") && stop.contains("!isRecording()"),
                 "rule 3 checks ownership before stopping");
         check(stop.contains("if(stopRide(RideStore.STOP_AUTO_NO_MOTION)){") && stop.contains("showAutoStopNotice(id,RideStore.STOP_AUTO_NO_MOTION);"),
                 "it ends through stopRide(reason) and posts the automatic-stop notice");
