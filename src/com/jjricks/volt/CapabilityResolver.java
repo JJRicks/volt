@@ -21,14 +21,15 @@ public final class CapabilityResolver {
         WARNING_ACTIVE, LOCKED, OWNER_ONLY, NEEDS_BOND, NEEDS_PIN, FIRMWARE_UNKNOWN, FIRMWARE_OLD, FULL_PID_NEEDED,
         IDENTITY_CONFLICT, MODEL_NOT_IDENTIFIED, MODEL_NOT_MAPPED, MODEL_EXCLUDED, REGION_RULE,
         PRODUCT_UNSUPPORTED, TRANSPORT_UNSUPPORTED, DISCOVERY_ACTIVE, TEST_ACTIVE,
-        NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST }
+        NOT_TESTABLE, RECORDING, NEEDS_REAL_SCOOTER, PARKED_UNCONFIRMED, NO_TEST,
+        /** Switched off but still answering (ScooterPowerState): only the charging settings stay usable. */
+        SCOOTER_OFF }
     /**
      * The reason a change is refused while the scooter is switched off but answering (ScooterPowerState): every change
-     * but the charging settings. No motion report until the scooter-off reason and its words arrive with their catalog
-     * strings (ScooterOffWords): a switched-off scooter sends none, so that reason is true, and it keeps the control
-     * tappable so the tap says why (blockedByRide).
+     * but the charging settings. Its words are "Turn the scooter on first"; it keeps the control tappable so the tap
+     * says why (blockedByRide), and a Home lock tap goes back at once (LockTapQueue.gate).
      */
-    static final Reason OFF_REASON=Reason.NO_MOTION_REPORT;
+    static final Reason OFF_REASON=Reason.SCOOTER_OFF;
     /** Status older than this is stale (BleController.ready() uses the same bound). */
     static final long STATUS_MAX_AGE_MS=7000;
 
@@ -68,7 +69,7 @@ public final class CapabilityResolver {
          * Refused only because the scooter is moving, has sent no motion report yet, or (lock) has a
          * warning. The UI keeps such a control tappable so the tap can say why; admission still refuses.
          */
-        public boolean blockedByRide(){return support==Support.KNOWN_ENCODING&&(reason==Reason.MOVING||reason==Reason.NO_MOTION_REPORT||reason==Reason.WARNING_ACTIVE);}
+        public boolean blockedByRide(){return support==Support.KNOWN_ENCODING&&(reason==Reason.MOVING||reason==Reason.NO_MOTION_REPORT||reason==Reason.WARNING_ACTIVE||reason==Reason.SCOOTER_OFF);}
         /** Offered values (empty for a slider: use variant.min/max/step). */
         public int[] values(){return choices.clone();}
         public String[] labels(){String[] out=new String[choices.length];for(int i=0;i<choices.length;i++)out[i]=label(choices[i]);return out;}
@@ -394,6 +395,7 @@ public final class CapabilityResolver {
             case NEEDS_REAL_SCOOTER: return M.controlsReasonNeedsRealScooter();
             case PARKED_UNCONFIRMED: return M.controlsReasonParkedUnconfirmed();
             case NO_TEST: return M.controlsReasonNoTest();
+            case SCOOTER_OFF: return M.controlsReasonScooterOff();
             default: return "";
         }
     }

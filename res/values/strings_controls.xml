@@ -246,6 +246,9 @@
     <string name="controls_reason_moving" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Bring the scooter to a stop first</string>
     <!-- The scooter has not yet said whether it is moving. -->
     <string name="controls_reason_no_motion_report" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">No motion report yet</string>
+    <!-- The scooter is switched off but its Bluetooth still answers (it reads its battery but sends no live data), so
+         this change is refused and nothing is sent. Shown on a control and as the refusal when it is tapped. -->
+    <string name="controls_reason_scooter_off" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride,lock">Turn the scooter on first</string>
     <!-- The scooter shows a warning; clear it before this change. -->
     <string name="controls_reason_warning_active" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Resolve scooter warning first</string>
     <!-- The scooter is locked; unlock it first. -->
