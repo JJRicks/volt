@@ -145,6 +145,8 @@ sources+=("$TEST_DIR/StockPackParity.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastChargeTaperTest.java" "$TEST_DIR/FastChargeTaperReplay.java")
 # UT5 MAX fast charger: "Charging slowed" and the temperature-aware estimate (ut5-fast-thermal-v10).
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeSlowdown.java" "$TEST_DIR/ChargeSlowdownTest.java")
+# "Estimating time left" first: the plug-in hold on the time shown (owner, Nov 23 2026).
+sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEstimateHold.java" "$TEST_DIR/ChargeEstimateHoldTest.java")
 # Battery alerts (charge level, full, low) for models without a native charge limit; uses the compat suites' resolver.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")
 # Notification spacing under Android's per-app enqueue rate limit.
@@ -199,6 +201,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NotificationPacerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LiveRangeEstimatorTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.FastChargeTaperTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSlowdownTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeEstimateHoldTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
 # Partial recordings join, and a percent one recording covers counts provisionally (stitched-estimate-v1).
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StitchedChargeEstimateTest
