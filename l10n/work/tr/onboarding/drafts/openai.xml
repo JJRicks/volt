@@ -223,6 +223,7 @@
     <string name="onboarding_done_revoke" volt:src="ab1135db30145dde8dbf62ea5c43015ee89026f1">Shizuku erişimini kaldır</string>
     <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Shizuku erişimini kaldır. Volt’un erişimini kaldırmak için Shizuku açılacak</string>
     <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Ana sayfaya git</string>
+    <string name="onboarding_done_home_starting" volt:src="aee604de3c8494261aa6acb2f7b3ec40fec8cf22">Ana ekrana git, başlatılıyor</string>
     <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Telefon “device” olarak listelenmiyor</string>
     <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">İstemi onaylayın · veri kablosu kullanın</string>
     <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">NAVEE uygulaması bağlanmadı</string>

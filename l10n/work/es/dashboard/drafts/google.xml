@@ -380,10 +380,13 @@
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">Se restauró «%1$s»</string>
     <string name="dashboard_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Conectado</string>
     <string name="dashboard_status_connected_mode" volt:src="67ce2814b0e0b0c18a94426aa3efd96eec4fc80b">Conectado · %1$s</string>
+    <string name="dashboard_status_scooter_off" volt:src="ba9a5a9ab2dbe65b292a21027cb942ef536c314f">Patinete apagado · Enciende el patinete para usarlo</string>
+    <string name="dashboard_status_scooter_off_short" volt:src="f39e1a01330aee799a733ee8ee90532ce1371f22">Patinete apagado</string>
     <string name="dashboard_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203" volt:attempt="2">Desconectado</string>
     <string name="dashboard_status_disconnected_seen" volt:src="685da721f9ff2b145d69f738ac21657b3567558f" volt:attempt="2">Desconectado · última lectura: %1$s</string>
     <string name="dashboard_status_spoken_connected" volt:src="56c461696100940740107f4b2d6fa0289ea989e6">Conectado. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connected_mode" volt:src="8365501f95a72a9d7455b9f4c5f9d96f88cb3c14">Conectado, modo %1$s. Detalles de la conexión</string>
+    <string name="dashboard_status_spoken_scooter_off" volt:src="ce0ef1fb91ac5f10860d23a23f685b189ac9528f">Patinete apagado. Enciende el patinete para usarlo. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_connecting" volt:src="773e46b6e066dce56c5e9185607ec18f94fea8db">Conectando. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_disconnected" volt:src="d9c881d1fc3f830173a5c611c2644b7d768a47a3">Desconectado. Detalles de la conexión</string>
     <string name="dashboard_status_spoken_disconnected_seen" volt:src="e06022cc0b4286933ac4958b3748778f79f3be5d">Desconectado, última lectura: %1$s. Detalles de la conexión</string>

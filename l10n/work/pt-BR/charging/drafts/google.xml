@@ -21,6 +21,7 @@
     <string name="charging_estimate_out_of_range" volt:src="c57affcd338bb5dce1fe4daca90b62bac125e5e3">Leituras fora do intervalo</string>
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Capacidade desconhecida</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Aguardando % da bateria</string>
+    <string name="charging_estimate_estimating" volt:src="1402fc8d78adbf3fa078aab0ce076cfed2707bb3">Estimando</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Sem estimativa</string>
     <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Ritmo atual</string>
     <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Referência do carregador rápido</string>

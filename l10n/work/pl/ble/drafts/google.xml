@@ -6,6 +6,8 @@
     <string name="ble_status_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Łączenie…</string>
     <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Sprawdzanie właściciela…</string>
     <string name="ble_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Połączono</string>
+    <string name="ble_status_scooter_off" volt:src="f39e1a01330aee799a733ee8ee90532ce1371f22">Hulajnoga wyłączona</string>
+    <string name="ble_scooter_off_detail" volt:src="7dd664d276d1853dae0c468ffe58e81d677e1990">Aby korzystać z hulajnogi, należy ją włączyć</string>
     <string name="ble_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Rozłączono</string>
     <string name="ble_status_disconnected_short" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Rozłączono</string>
     <string name="ble_status_paused" volt:src="1c8e31fe8678fa854df7fdfd9b602b38219a9454">Wstrzymano w tle</string>
@@ -62,6 +64,7 @@
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Należy poczekać na nowe połączenie z hulajnogą.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Przed zablokowaniem należy usunąć przyczynę ostrzeżenia hulajnogi %1$d.</string>
     <string name="ble_stop_scooter_first" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Najpierw należy zatrzymać hulajnogę</string>
+    <string name="ble_waiting_speed_report" volt:src="500fdd63113d2e040c8bfe503af2df48eca2edc1">Oczekiwanie, aż hulajnoga poda prędkość</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Obecnie niedostępne</string>
     <string name="ble_outside_domain" volt:src="83ccb0307f7518bc4a90026bca28b92ed5084d52">Oficjalna aplikacja nie oferuje tej wartości</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: już ustawiono.</string>

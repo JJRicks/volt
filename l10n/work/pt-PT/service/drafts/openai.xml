@@ -187,6 +187,10 @@
     <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Sem movimento durante 10 minutos</string>
     <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Sem movimento durante 10 minutos. Fim da viagem, no último movimento: %1$s.</string>
     <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Sem movimento durante 10 minutos. Fim da viagem, no último movimento: %2$s.</string>
+    <string name="service_ride_switched_off" volt:src="35b8571f78c3bf9b1e168e394971689eed4e85c6">Trotinete desligada</string>
+    <string name="service_ride_switched_off_label" volt:src="075ff1754c68b0ec74957cdbac62105c31412db5">%1$s · Trotinete desligada</string>
+    <string name="service_ride_switched_off_at" volt:src="140c15406c731deeb53385bfb51698a9dfa7b31b">Trotinete desligada. Fim da viagem, no último movimento: %1$s.</string>
+    <string name="service_ride_switched_off_label_at" volt:src="19caa3e5ef9b099bb2e1476b4f82d1f88f395416">%1$s · Trotinete desligada. Fim da viagem, no último movimento: %2$s.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Ligação à trotinete e gravação</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">A medir a carga para «Carga pronta até»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">A verificar o carregamento programado</string>
