@@ -1434,14 +1434,13 @@ public final class DashboardScreen implements AppScreen {
         return DisplayUnits.metricText(r.value, units());
     }
 
-    /** "about 31 mi": the range reading rounded, in the rider's distance units. */
+    /**
+     * "about 31 mi": the range reading rounded, in the rider's distance units, or its text where it has no number
+     * (RangeFigure: the figure Clean Home's recording moment shows too).
+     */
     private String rangeText(TelemetryHistory.Reading r) {
         if (r == null || r.value == null) return "";
-        if (r.number == null) return aboutRange(format(r));
-        String km = T.fmtQuantity(Fmt.decimal(Locale.US, r.number, 0), T.unitsKm());
-        String miles = T.fmtQuantity(Fmt.decimal(Locale.US, r.number / 1.609344, 0), T.unitsMi());
-        String units = units();
-        return aboutRange((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
+        return aboutRange(RangeFigure.of(r.number, r.value, units()));
     }
 
     /**

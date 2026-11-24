@@ -3155,24 +3155,26 @@ public final class ScooterService extends Service {
 
     /** Local choice: never writes the scooter's firmware range mode. */
     public boolean usesLearnedRange() {
-        return !activeProfileId().isEmpty() && "learned".equals(settings.getString("range_source_" + activeProfileId(), "scooter"));
+        return RangeSource.learned(activeProfileId(), settings.getString(RangeSource.key(activeProfileId()), RangeSource.SCOOTER));
     }
     public void useLearnedRange(boolean enabled) {
         if (destroyed || activeProfileId().isEmpty()) return;
-        settings.edit().putString("range_source_" + activeProfileId(), enabled ? "learned" : "scooter").apply();
+        settings.edit().putString(RangeSource.key(activeProfileId()), enabled ? RangeSource.LEARNED : RangeSource.SCOOTER).apply();
         changed();
     }
     /** Current forecast for glanceable UI. Recorded charts and explicit scooter readings stay raw. */
     public Map<String, TelemetryHistory.Reading> dashboardReadings() {
         Map<String, TelemetryHistory.Reading> raw = withShownOdometer(displayReadings());
-        if (!usesLearnedRange() || simulating()) return raw;
+        boolean learned = usesLearnedRange(), simulating = simulating();
         String profile = activeProfileId();
-        LearnedRangeEstimate.Result estimate = currentRangeCache(profile);
-        if (estimate == null && !rangePending.containsKey(profile)) {
+        LearnedRangeEstimate.Result estimate = learned && !simulating ? currentRangeCache(profile) : null;
+        if (learned && !simulating && estimate == null && !rangePending.containsKey(profile)) {
             requestLearnedRangeEstimate(result -> { if (!destroyed && profile.equals(activeProfileId())) changed(); });
         }
         TelemetryHistory.Reading soc = raw.get("battery_percent");
-        Double km = estimate == null || soc == null || soc.value == null ? null : estimate.remainingKm(soc.number);
+        // The choice itself is RangeSource's (tested there): the learned figure at this battery reading, else the scooter's.
+        Double km = RangeSource.learnedKm(learned, simulating, soc == null || soc.value == null ? null : soc.number,
+                estimate == null || soc == null || soc.value == null ? null : estimate.remainingKm(soc.number));
         if (km == null) return raw;
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(raw);
         result.put("remaining_range_km", new TelemetryHistory.Reading("remaining_range_km", "Learned remaining range",

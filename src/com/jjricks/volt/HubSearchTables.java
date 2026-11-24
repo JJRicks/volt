@@ -303,7 +303,9 @@ final class HubSearchTables {
             case HubPages.DATA: return "data live stats readings charts diagnostics favourites";
             case HubPages.DATA_STORAGE: return "data history storage export backup live stats detail density compact dense comfortable";
             case HubPages.SETTINGS: return "settings preferences options theme dark light follow system";
-            case HubPages.SETTINGS_HOME: return "home style clean widgets quick actions";
+            // "Show the ride while recording", the recording moment's switch: its name comes after the
+            // two in pageRows in HubText.pageRowTitles, so its English is in these words (HubSearchRowsTest.oneForOne).
+            case HubPages.SETTINGS_HOME: return "home style clean widgets quick actions show the ride while recording";
             case HubPages.SETTINGS_UNITS: return "units miles kilometres";
             case HubPages.SETTINGS_SCOOTERS: return "my scooters scooter connection connect auto connect";
             // View full notices sits under Licenses & attribution; Connect selected scooter shows only while not connected.

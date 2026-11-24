@@ -447,8 +447,11 @@ public final class BackupPlanTest {
         for (boolean replace : new boolean[]{true, false}) {
             BackupTestStore phone = BackupArchiveTest.phone(new File(root, "home-moments-" + replace));
             phone.put("app_settings", HomeMoment.CHARGING_KEY, false); phone.put("app_settings", HomeMoment.RIDE_KEY, false);
+            phone.put("app_settings", HomeMoment.RECORDING_KEY, false);
             phone.restore(preHub, replace ? BackupTestStore.all() : set(BackupRegistry.PREFERENCES), replace, null);
             Map<String, Object> app = phone.preferences().get("app_settings");
+            check(Boolean.FALSE.equals(app.get(HomeMoment.RECORDING_KEY)),
+                    (replace ? "Replace everything" : "App preferences") + " from a pre-Hub backup keeps this phone's recording moment switch: " + app);
             check(Boolean.FALSE.equals(app.get(HomeMoment.CHARGING_KEY)) && Boolean.FALSE.equals(app.get(HomeMoment.RIDE_KEY)),
                     (replace ? "Replace everything" : "App preferences") + " from a pre-Hub backup keeps this phone's moment switches: " + app);
         }

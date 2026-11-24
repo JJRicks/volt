@@ -683,11 +683,12 @@ final class BackupArchive {
                 && HomeStyle.restoreMarksNotice(prepared.appVersionCode, preHub, backedUp.containsKey(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY),
                         result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_KEY), result.get("app_settings").get(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY)))
             result.get("app_settings").put(HomeStyle.RESTORED_NOTICE_KEY, true);
-        // Clean Home's moment switches (HomeMoment): a backup made before them carries neither (nor home_style); restoring
+        // Clean Home's moment switches (HomeMoment): a backup made before them carries none (nor home_style); restoring
         // it keeps this phone's switches as they are instead of dropping them (absent means on). One that has them applies them.
         if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && preHub
-                && !backedUp.containsKey(HomeMoment.CHARGING_KEY) && !backedUp.containsKey(HomeMoment.RIDE_KEY))
-            for (String key : new String[]{HomeMoment.CHARGING_KEY, HomeMoment.RIDE_KEY}) {
+                && !backedUp.containsKey(HomeMoment.CHARGING_KEY) && !backedUp.containsKey(HomeMoment.RIDE_KEY)
+                && !backedUp.containsKey(HomeMoment.RECORDING_KEY))
+            for (String key : new String[]{HomeMoment.CHARGING_KEY, HomeMoment.RIDE_KEY, HomeMoment.RECORDING_KEY}) {
                 Object mine = mineNow.get(key);
                 if (mine == null) result.get("app_settings").remove(key); else result.get("app_settings").put(key, mine);
             }
