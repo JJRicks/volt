@@ -4,12 +4,12 @@
 
 Volt 2.0.5 knows when your scooter is switched off but still answering, waits for a real figure before showing Range at this pace or the time to full, adds a Dark map switch and a Distance line to the ride graph, and keeps your place when you fold or unfold the phone. Plus a good number of fixes.
 
-- **Scooter off.** A switched-off scooter can keep answering Volt for a while without sending any live readings. Volt used to show it as **Connected**, and a tap on a control said **Bring the scooter to a stop first**. Home now says **Scooter off · Turn the scooter on to use it**, and controls say **Turn the scooter on first** without sending anything. The charging settings and **Unlock** still work. A ride being recorded when the scooter is switched off now ends on time and is saved as **Scooter switched off**.
+- **Scooter off.** A switched-off scooter can keep answering Volt for a while without sending any live readings. Volt used to show it as **Connected**, and a tap on a control said **Bring the scooter to a stop first**. Home now says **Scooter off · Turn the scooter on to use it**, and controls say **Turn the scooter on first** without sending anything. The charging settings and **Unlock** still work. A ride being recorded when the scooter is switched off now ends on time (with **End rides automatically** on, the default) and is saved as **Scooter switched off**.
 - **Range at this pace waits for your pace.** Riding mode no longer opens with a figure far above the real one. It shows a dash until about half a minute of riding has shown this ride's pace, then the number.
 - **Estimating first.** On a UT5 MAX, the first minutes of a charge show **Estimating time left** instead of a guess, for up to three minutes, until the charger's real current shows. On a cold battery the time to full is better too: Volt now measures how fast the battery is warming.
 - **Dark map.** A **Dark map** switch beside **Basemap** on the ride maps also sets Home's **Just back** map. Until you flip it, the maps follow the app's theme.
 - **Distance on the ride graph.** The ride graph can draw how far the ride has gone, from the scooter's odometer or else the phone's GPS. On a wide screen the graph now shows every axis.
-- **Fold and unfold keep your place.** An open ride, its expanded map or graph, a charge recording or a sheet stays open when you fold, unfold or turn the phone.
+- **Fold and unfold keep your place.** An open ride, its expanded map or graph, a charge recording or a ride comparison stays open when you fold, unfold or turn the phone.
 - **Languages:** all new and changed text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
 
 ### Riding

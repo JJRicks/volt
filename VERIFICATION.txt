@@ -43,7 +43,9 @@ Draft, November 24, 2026. The release checks below are still to run.
   (#615); scooter-off-344, -412 and -fold (#623, #628); widgets-edit-344,
   -412, -412-light and -fold, and widgets-tiles-412-large and
   -fold-large (#629). Every validation registered in
-  android-tests/AndroidManifest.xml is covered (the script's own guard).
+  android-tests/AndroidManifest.xml is covered (the script's own guard),
+  except RideAutoExportValidation (its own runner, run in the release kit's
+  finale) and ParkedValidation (needs the scooter).
   [PHASE 2: confirm the step list and counts on the release commit.]
 - Languages: [PHASE 2: ship_check --release --aapt required result and the
   per-language counts, from the release commit. Before the top-up, 20
