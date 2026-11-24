@@ -19,12 +19,13 @@ import java.util.List;
  * "Quick actions" (the four Clean shows, by their names on Clean; it opens the same picker as Clean's Edit sheet),
  * "Overview readings" (the battery card's two small readings on both Home styles, HomeReadingsEditor.Row; owner, Nov 19
  * 2026) and
- * Clean Home's two moments, "Show charging automatically" and "Show the last ride after riding", each a switch with
- * no line under it (answer 3). Both moments are on until turned off. Text from HubText only.
+ * Clean Home's three moments, "Show charging automatically", "Show the ride while recording" (the Ride clock; Ollie's
+ * mock-up, Nov 24 2026) and "Show the last ride after riding", each a switch with no line under it (answer 3). All three are on
+ * until turned off. Text from HubText only.
  */
 final class HomeStyleScreen implements AppScreen {
-    /** View tags of the two moment switches: the keys they write. */
-    static final String TAG_CHARGING = HomeMoment.CHARGING_KEY, TAG_RIDE = HomeMoment.RIDE_KEY;
+    /** View tags of the three moment switches: the keys they write. */
+    static final String TAG_CHARGING = HomeMoment.CHARGING_KEY, TAG_RIDE = HomeMoment.RIDE_KEY, TAG_RECORDING = HomeMoment.RECORDING_KEY;
     /** View tag of the Quick actions row. */
     static final String TAG_QUICK = "home-style-quick-actions";
 
@@ -73,6 +74,9 @@ final class HomeStyleScreen implements AppScreen {
             ui.divider(card);
         }
         card.addView(toggle(HomeMoment.CHARGING_KEY, HubText.momentCharging()));
+        ui.divider(card);
+        // In the order the moments come in a ride: while recording, then the last ride after it.
+        card.addView(toggle(HomeMoment.RECORDING_KEY, HubText.momentRecording()));
         ui.divider(card);
         card.addView(toggle(HomeMoment.RIDE_KEY, HubText.momentRide()));
         LinearLayout.LayoutParams cardSpace = new LinearLayout.LayoutParams(-1, -2);
