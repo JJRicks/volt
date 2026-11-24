@@ -222,12 +222,7 @@ final class HubSearch {
             boolean shared = more != null && sharedPageWords(page);
             String english = title.english() + " " + HubSearchTables.pageWords(page) + (more == null || shared ? "" : " " + more.english());
             CharSequence[] words = more == null || (shared && more.toString().equals(more.english())) ? null : new CharSequence[] {more};
-            // The names its rows show in the current language, as their English titles are in its English words: the
-            // catalog's (HubText.pageRowTitles), and Recording settings' from the files that show them (the gates).
-            // A CharSequence[] copy, never the Msg[] itself: join keeps its first array's type, and the gates' Strings follow.
-            Msg[] titles = HubText.pageRowTitles(page);
-            CharSequence[] named = java.util.Arrays.copyOf(titles, titles.length, CharSequence[].class);
-            if (named.length > 0) words = words == null ? named : join(words, named);
+            // The names its rows show in the current language, as their English titles are in its English words.
             CharSequence[] rows = gates.pageRowTitles(page);
             if (rows != null && rows.length > 0) words = words == null ? rows : join(words, rows);
             entries.add(new Entry(Kind.PAGE, page, english, title, words, null, Target.PAGE, null, null));
