@@ -85,7 +85,7 @@ public final class BleController {
         /** Runs once when this change's frame is handed to Bluetooth (sent becomes true for good); null for none. */
         Runnable sentHook;
         /** When the app began this change (elapsed ms): a control's pending spinner counts from it (PendingControl). */
-        final long startedMs=now();
+        long startedMs=now();
         Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
     /** A proximity change whose link dropped before it was confirmed (ProximityFollowUp): checked on the reconnect's first status read. */
     private ProximityFollowUp.Recheck recheck;private long recheckSequence;
@@ -212,6 +212,11 @@ public final class BleController {
     public String pending(){return mutation==null?null:mutation.key;}
     /** When the change in flight began (elapsed ms), else 0: a control's pending spinner counts from it (PendingControl). */
     public long pendingSinceMs(){return mutation==null?0:mutation.startedMs;}
+    /**
+     * The rider asked for the change in flight earlier than it began (a lock tap that waited for the scooter to take
+     * writes): its pending spinner counts from then, from any control and after a rebuild. Never later than it began.
+     */
+    public void pendingSince(String key,long askedMs){if(mutation!=null&&mutation.key.equals(key)&&askedMs>0)mutation.startedMs=Math.min(mutation.startedMs,askedMs);}
     /** The value the write in flight asks for: a charge start's wire seconds, else its target; null with none. Report diagnostics only. */
     public Long pendingValue(){return mutation==null?null:mutation.time!=null?mutation.time:Long.valueOf(mutation.target);}
     /** A proximity change is waiting for the automatic reconnect to confirm it. */

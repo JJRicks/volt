@@ -132,8 +132,10 @@ final class QuickAccessGrid extends ViewGroup {
             // then "Updating" and a spinner on the tile's cue or the round action's circle (PendingControl). A charge
             // control's schedule writes go one after another, so its second counts from the first busy look.
             boolean chargeWait = chargeControl && charge != null && !unmapped;
-            boolean pending = host.pendingLook(cell.waitLook, cell.entry.id, chargeWait ? charge.busy : writing,
-                    chargeWait || ble == null ? 0 : ble.pendingSinceMs(), cell);
+            // The wait's own name (a feature key, or the schedule's), as every other control gives it, so it is announced once.
+            long latestWrite = ble == null || ble.pending() == null ? 0 : ble.pendingSinceMs();
+            boolean pending = host.pendingLook(cell.waitLook, chargeWait ? MainActivity.SCHEDULE_WAIT : feature != null ? feature.key : cell.entry.id,
+                    chargeWait ? charge.busy : writing, chargeWait ? charge.busySinceMs : latestWrite, latestWrite, cell);
             cell.waiting(pending);
             String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);
             String state = feature == null || feature.sensitive && !unmapped ? ""
@@ -156,6 +158,8 @@ final class QuickAccessGrid extends ViewGroup {
             boolean measuring = doneBy && service != null && service.isChargeMeasuring();
             if (measuring) chargeBlocked = null;
             if (chargeControl && charge != null && !unmapped) {
+                // A narrow tile hides the cue that holds the spinner, so every charge control says it in words too.
+                String updating = T.dashboardModelTileUpdating();
                 value = (doneBy || doneTime ? charge.doneByEnabled : charge.manualEnabled) ? 1 : 0;
                 featureLive = (doneTime || live) && chargeBlocked == null;
                 if (doneBy || doneTime) {
@@ -165,9 +169,9 @@ final class QuickAccessGrid extends ViewGroup {
                     String time = DisplayTime.clock(host.activity(), preferences, deadline.getTimeInMillis());
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
-                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
-                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
-                else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
+                    state = pending ? updating : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
+                } else if (manual) state = pending ? updating : charge.manualEnabled ? T.commonOn() : off;
+                else state = pending ? updating : charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
             // Clean Home's Record action says so while a ride is being recorded.
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();

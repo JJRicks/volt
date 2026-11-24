@@ -2119,7 +2119,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean target=Boolean.TRUE.equals(lockQueue.target());
             // Marked first: a refused send redraws the header from inside set(), which must neither send again nor call it unconfirmed.
             lockQueue.sending(true);
+            long tapped=lockQueue.requestedAt();
             lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+            // The tap's time rides on the write, so a switch rebuilt mid-wait (a recreated activity) keeps its second.
+            else ble.pendingSince("lock",tapped);
             // A riding-mode tap stays held to the complete stop until its frame goes out: a read in flight can leave it queued past this point.
             if(lockQueue.stoppedOnly())ble.holdUnsent("lock",lockStillGate,this::stoppedLockCancelled);
             lockQueue.sending(false);
@@ -2144,6 +2147,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** What a connection action does, never its shown text: its icon follows this. */
     private static final String LINK_CANCEL="Cancel",LINK_DISCONNECT="Disconnect",ADD_SCOOTER="Add scooter",WATCHING="Watching";
     private final java.util.WeakHashMap<TextView,String> linkActions=new java.util.WeakHashMap<>();
+    /** The one name a charge schedule operation's wait goes by on every control that shows it (PendingControl.announce). */
+    static final String SCHEDULE_WAIT="charge_schedule";
     /** Updates the action presentation without changing the Bluetooth transport. */
     private void updateConnectionAction(boolean ready,boolean connecting){
         BleController ble=scooterService==null?null:scooterService.ble;
@@ -4460,7 +4465,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             result.setText(chip==null?"":chip);result.setVisibility(chip==null?View.GONE:View.VISIBLE);
             // TalkBack reads the name and value, plus any short state.
             action.setContentDescription(labelValueState(shortLabel(feature),shown,pending?rowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?rowStateNote(note):""));
-            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
+            // The first second shows the asked side (as the lock switch does), so the tap doesn't look refused; the readback decides after.
+            Long asked=pending?ble.pendingValue():null;
+            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(asked!=null?asked==1:actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
         }
         private void refreshChargeSchedule(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
@@ -4469,8 +4476,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             String note=rowNote(ble,decision,decision!=null&&decision.blockedByRide());
             String blocked=charge==null?T.mainScheduleConnectYourScooter():toggle==null?charge.manualTimeBlockedReason:charge.manualBlockedReason;
             boolean pending=charge!=null&&charge.busy,on=charge!=null&&charge.manualEnabled;
-            // The schedule's writes go one after another: the spinner counts from when this row first saw it busy.
-            boolean spin=pendingLook(waitLook,feature.key,pending,0,action);
+            // The schedule's writes go one after another: the spinner counts from the operation's start, its backstop from the latest write.
+            boolean spin=pendingLook(waitLook,SCHEDULE_WAIT,pending,charge==null?0:charge.busySinceMs,ble==null||ble.pending()==null?0:ble.pendingSinceMs(),action);
             String shown=toggle!=null?(on?T.commonOn():T.commonOff()):charge==null||charge.manualStartWallMs<=0?T.mainRowNotScheduled()
                     :DisplayTime.clock(MainActivity.this,preferences,charge.manualStartWallMs);
             blocked=ChargeScheduleText.shown(blocked);
@@ -4481,7 +4488,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             spinner.setVisibility(spin?View.VISIBLE:View.GONE);result.setVisibility(View.GONE);
             action.setContentDescription(note==null||note.equals(blocked)?(blocked==null?T.mainLabelValue(shortLabel(feature),shown):T.mainLabelValueDetail(shortLabel(feature),shown,blocked))
                     :blocked==null?T.mainLabelValueDetail(shortLabel(feature),shown,note):T.mainLabelValueDetails(shortLabel(feature),shown,blocked,note));
-            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);}
+            // Scheduled charging turned on or off shows the asked side until the scooter answers.
+            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setChecked(pending&&charge.busyManualTarget!=null?charge.busyManualTarget:on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);}
         }
         /**
          * Short caption for a connected row: why the control is refused (not the transient states the row
@@ -4641,7 +4649,8 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(Build.VERSION.SDK_INT>=30)button.setStateDescription(on?T.commonSelected():"");
             }
             boolean pending=ble!=null&&feature.key.equals(ble.pending());
-            if(!pending)requested=null;
+            // The asked speed is the write's own, so a card rebuilt mid-wait still marks its button.
+            Long asked=pending?ble.pendingValue():null;requested=asked==null?null:asked.intValue();
             int index=-1;for(int i=0;i<buttons.size();i++)if(requested!=null&&requested==feature.optionValues[i])index=i;
             boolean spin=pendingLook(waitLook,feature.key,pending,ble==null?0:ble.pendingSinceMs(),card);
             for(int i=0;i<bars.size();i++)bars.get(i).waiting(spin&&i==index);

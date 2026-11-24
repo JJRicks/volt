@@ -23,8 +23,16 @@ public interface ScreenHost {
      * that starts (or backstops) it, and has speaker tell a screen reader pendingWords() once per wait.
      */
     default boolean pendingLook(PendingControl look, String key, boolean waiting, long sinceMs, android.view.View speaker) {
+        return pendingLook(look, key, waiting, sinceMs, 0, speaker);
+    }
+    /**
+     * The same for a wait of several writes (a charge schedule): latestMs is when its current write began (0 between
+     * writes), so the backstop counts from the latest write. key names the wait, the same from every control that shows
+     * it (a feature key, or "charge_schedule"), so a screen reader hears it once.
+     */
+    default boolean pendingLook(PendingControl look, String key, boolean waiting, long sinceMs, long latestMs, android.view.View speaker) {
         long now = android.os.SystemClock.elapsedRealtime();
-        look.look(waiting, sinceMs, now);
+        look.look(waiting, sinceMs, latestMs, now);
         long next = look.nextLookIn(now);
         if (next > 0) redrawIn(next);
         boolean spin = look.showing(now);

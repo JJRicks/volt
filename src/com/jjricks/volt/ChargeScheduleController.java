@@ -136,6 +136,13 @@ public final class ChargeScheduleController {
     }
     public static final class View {
         public final boolean manualEnabled, doneByEnabled, busy, chargerConnected;
+        /**
+         * While busy: when the operation began (elapsed ms, 0 when unknown), and the side Scheduled charging was asked
+         * to go to (null for any other operation). A control's pending spinner counts from the start, and its switch
+         * shows the asked side until the scooter answers (PendingControl).
+         */
+        public final long busySinceMs;
+        public final Boolean busyManualTarget;
         public final Missed missed;
         public final int doneByMinuteOfDay;
         public final long startWallMs, manualStartWallMs, doneByWallMs;
@@ -145,8 +152,8 @@ public final class ChargeScheduleController {
         public final long testStartWallMs;
         public final ChargeScheduleTest.Outcome lastTest;
         public final Integer lastTestOffsetSeconds;
-        private View(State state, Context c, boolean busy, ChargeScheduleTest test) {
-            this.busy=busy;doneByEnabled=state.mode==2;
+        private View(State state, Context c, boolean busy, long busySince, Boolean manualTarget, ChargeScheduleTest test) {
+            this.busy=busy;busySinceMs=busy?busySince:0;busyManualTarget=busy?manualTarget:null;doneByEnabled=state.mode==2;
             manualEnabled=state.mode==1 || state.mode==0&&!state.retired&&Integer.valueOf(1).equals(c.enabled);
             chargerConnected=alive(c)&&Integer.valueOf(1).equals(c.charging);
             doneByMinuteOfDay=state.minute;startWallMs=state.start;manualStartWallMs=state.manualStart;
@@ -211,6 +218,10 @@ public final class ChargeScheduleController {
     private final Map<String,State> states=new HashMap<>();
     private long operation;
     private boolean busy;
+    /** The busy operation's start (elapsed ms) and, for Scheduled charging on or off, the side asked for (View). */
+    private long busySince;private Boolean busyManual;
+    /** setManualEnabled's side, taken by the operation it starts (disable or program) and cleared either way. */
+    private Boolean askedManual;
     private Context pendingContext;
     private Consumer<String> pendingCompletion;
     private ChargeScheduleTest test;
@@ -241,7 +252,7 @@ public final class ChargeScheduleController {
             // calculated write may be ours (including an earlier failed attempt).
             // Only genuinely unowned native times can seed a manual preference.
             if(shown.manualStart==0&&s.calculatedWire==0)shown.manualStart=shown.start;}
-        return new View(shown,c,busy,test!=null&&c.scope.equals(testContext.scope)?test:null);}
+        return new View(shown,c,busy,busySince,busyManual,test!=null&&c.scope.equals(testContext.scope)?test:null);}
     /** Fresh observations may retire a remembered intention; this method never touches the radio. */
     public void observe(){Context c=context();
         // A transport can remove its queued callback when it closes between two steps.
@@ -439,7 +450,7 @@ public final class ChargeScheduleController {
     public void setManualEnabled(boolean enabled,Consumer<String> completion,LongConsumer confirmed){
         Context c=context();View view=view();completion=traced(enabled?Op.MANUAL_ON:Op.MANUAL_OFF,completion);
         if(view.manualBlockedReason!=null){blocked(completion,view.manualBlockedReason);return;}
-        if(!enabled){disable(completion);return;}
+        if(!enabled){askedManual=false;disable(completion);return;}
         long start=view.manualStartWallMs;
         if(start<=c.now){
             if(start<=0){answer(completion,Result.CHOOSE_START_FIRST,T.chargingScheduleChooseStartFirst());return;}
@@ -450,6 +461,7 @@ public final class ChargeScheduleController {
         // Enabling an existing native time is also an explicit manual choice. Keep
         // it even if confirmation fails after the native timestamp was rewritten.
         state(c).manualStart=chosen;save(c,state(c));
+        askedManual=true;
         program(c,chosen,offset,()->{state(c).manualStart=chosen;state(c).calculatedWire=0;armManual(c,chosen,offset);startConfirmed(confirmed,chosen);},true,null,null,completion);
     }
     public void setManualStart(long wallMs,Consumer<String> completion){setManualStart(wallMs,completion,null);}
@@ -491,9 +503,9 @@ public final class ChargeScheduleController {
     }
     /** OFF, then optionally the manual Charge start; off names what is off if that restore fails. */
     private void disable(boolean restoreManual,String off,Consumer<String> completion){
-        Context c=context();String reason=busy?WAIT_CHANGE:baseReason(c,false);
+        Context c=context();String reason=busy?WAIT_CHANGE:baseReason(c,false);Boolean asked=askedManual;askedManual=null;
         if(reason!=null){blocked(completion,reason);return;}
-        long token=++operation;busy=true;pendingContext=c;pendingCompletion=completion;
+        long token=++operation;busy=true;busySince=c.mono;busyManual=asked;pendingContext=c;pendingCompletion=completion;
         driver.enabled(false,success->{
             if(!valid(c,token,completion))return;
             if(!success){finishBusy();answer(completion,Result.CANCEL_NOT_CONFIRMED,T.chargingScheduleCancelNotConfirmed());return;}
@@ -526,8 +538,9 @@ public final class ChargeScheduleController {
         State s=state(c);s.status=status;save(c,s);finishBusy();answer(completion,Result.RESTORE_FAILED,s.status);
     }
     private void program(Context c,long start,int offset,Runnable commit,boolean enable,Double deadlineTarget,Double stableSoc,Consumer<String> completion){
+        Boolean asked=askedManual;askedManual=null;
         if(busy){answer(completion,Result.BLOCKED_WAIT_CHANGE,T.commonWaitCurrentChange());return;}
-        long token=++operation;busy=true;pendingContext=c;pendingCompletion=completion;
+        long token=++operation;busy=true;busySince=c.mono;busyManual=asked;pendingContext=c;pendingCompletion=completion;
         driver.clock(clock->{
             if(!valid(c,token,completion))return;
             if(!clock){finishBusy();answer(completion,Result.CLOCK_FAILED,T.chargingScheduleClockFailed());return;}
@@ -592,7 +605,7 @@ public final class ChargeScheduleController {
                 &&original.zone.getID().equals(current.zone.getID())
                 &&original.zone.getOffset(original.now)==current.zone.getOffset(current.now);
     }
-    private void finishBusy(){busy=false;pendingContext=null;pendingCompletion=null;}
+    private void finishBusy(){busy=false;busySince=0;busyManual=null;pendingContext=null;pendingCompletion=null;}
     private void interrupt(Interruption why){Consumer<String> callback=pendingCompletion;++operation;finishBusy();
         if(callback!=null){cut=why;answer(callback,Result.INTERRUPTED,T.chargingScheduleConnectionChanged());cut=null;}}
     public boolean testing(){return test!=null;}

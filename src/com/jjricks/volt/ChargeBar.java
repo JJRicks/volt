@@ -209,7 +209,8 @@ final class ChargeBar extends View {
         if (kind == ChargeBarDrag.LIMIT && commit.phase == ChargeBarDrag.Commit.IN_FLIGHT) resolve(service);
         commit.report(value);
         if (!gesture.dragging()) settleTo(commit.shown(), Float.isNaN(drawn));
-        boolean inFlight = kind == ChargeBarDrag.LIMIT && commit.phase == ChargeBarDrag.Commit.IN_FLIGHT;
+        // Its own released limit, or one sent elsewhere (the Charge limit row, the Battery pane) or before a rebuild.
+        boolean inFlight = kind == ChargeBarDrag.LIMIT && (commit.phase == ChargeBarDrag.Commit.IN_FLIGHT || otherPending);
         waitLook.look(inFlight, inFlight && service != null && KEY.equals(service.ble.pending()) ? service.ble.pendingSinceMs() : 0,
                 android.os.SystemClock.elapsedRealtime());
         removeCallbacks(waitTick);

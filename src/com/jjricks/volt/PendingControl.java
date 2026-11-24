@@ -25,6 +25,8 @@ final class PendingControl {
 
     /** The start of the wait this control is in (elapsed ms), or 0 when it isn't waiting. */
     private long since;
+    /** The latest write of that wait seen so far (elapsed ms), or 0: the backstop counts from it. */
+    private long latest;
 
     /**
      * One look at the control.
@@ -32,24 +34,35 @@ final class PendingControl {
      * @param startedMs when that wait began (elapsed ms), or 0 when the caller can't say: then from the first look
      * @param now the elapsed clock
      */
-    void look(boolean waiting, long startedMs, long now) {
-        if (!waiting) { since = 0; return; }
-        since = startedMs > 0 ? Math.min(startedMs, now) : since > 0 ? since : now;
+    void look(boolean waiting, long startedMs, long now) { look(waiting, startedMs, 0, now); }
+
+    /**
+     * One look at a wait of several writes (a charge schedule: clock, time, switch).
+     * @param latestMs when its current write began (elapsed ms), or 0 between writes: the backstop counts from the latest
+     *                 write seen, so a long but healthy operation isn't cut short; the second still counts from startedMs
+     */
+    void look(boolean waiting, long startedMs, long latestMs, long now) {
+        if (!waiting) { since = 0; latest = 0; return; }
+        long start = startedMs > 0 ? Math.min(startedMs, now) : since > 0 ? since : now;
+        if (start != since) latest = 0;
+        since = start;
+        if (latestMs > 0) latest = Math.max(latest, Math.min(latestMs, now));
     }
 
     /** Whether the spinner shows now. */
     boolean showing(long now) {
         if (since <= 0) return false;
-        long age = now - since;
-        return age >= DELAY_MS && age < LIMIT_MS;
+        return now - since >= DELAY_MS && now - backstopFrom() < LIMIT_MS;
     }
 
     /** How long until the spinner should start (or the backstop stop it), for a redraw then; -1 when nothing is due. */
     long nextLookIn(long now) {
         if (since <= 0) return -1;
-        long age = now - since;
-        return age < DELAY_MS ? DELAY_MS - age : age < LIMIT_MS ? LIMIT_MS - age : -1;
+        long age = now - since, last = now - backstopFrom();
+        return age < DELAY_MS ? DELAY_MS - age : last < LIMIT_MS ? LIMIT_MS - last : -1;
     }
+
+    private long backstopFrom() { return Math.max(since, latest); }
 
     /**
      * True once per wait of this control key, on the first look its spinner shows: the moment to tell a screen reader
