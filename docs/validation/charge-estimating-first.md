@@ -49,8 +49,10 @@ That is the same charging state, power, current and limit, with:
 
 - no time to the limit or to 100%;
 - no planning minutes;
-- the state "Estimating time left" (the live card's existing string, so no new text);
-- a tooltip status saying it waits for the charger to settle.
+- the state "Estimating time left", also as its tooltip.
+
+The words are the live card's existing string, through `ChargeLiveState.estimatingText()`, so the change adds no new
+text and no new catalog reference.
 
 Every reader of the estimate gets it:
 
