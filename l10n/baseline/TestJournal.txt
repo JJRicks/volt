@@ -11,5 +11,6 @@ multiword	"Test records unavailable. A previous test may not have been set back;
 multiword	"Too many unfinished tests"
 multiword	"Unknown resolution"
 multiword	"Unknown test journal format"
+multiword	"tried\tprofile="
 multiword	"volt-compat-tests v1"
 multiword	"volt-compat-tests v2"

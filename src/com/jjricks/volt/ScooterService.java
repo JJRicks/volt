@@ -677,7 +677,7 @@ public final class ScooterService extends Service {
             chargeReferenceGate.reset();
             chargeStore.sample(chargeFrame(mono,wall),chargeRecordingEstimate());chargeStatus=M.serviceChargeStarted();
             cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return isChargeRecording();
-        }catch(IOException|IllegalStateException failure){chargeStatus=M.serviceChargeStartFailed();finishChargeCapture(ChargeSessionStore.Stop.ERROR);changed();return false;}
+        }catch(IOException|IllegalStateException|IllegalArgumentException failure){chargeStatus=M.serviceChargeStartFailed();finishChargeCapture(ChargeSessionStore.Stop.ERROR);changed();return false;}
     }
     /** The owner's Stop, on the page or in the notification. It holds the scooter (holdAutoChargeAfterHandStop). */
     public void stopChargeRecording(){holdAutoChargeAfterHandStop();finishChargeCapture(ChargeSessionStore.Stop.STOPPED);}
@@ -854,7 +854,9 @@ public final class ScooterService extends Service {
         final String profile=activeProfileId();
         chargeWorker.execute(()->{
             List<ChargeSessionStore.HistorySession> recordings=null;
-            try{recordings=chargeStore.history(profile,full);}catch(IOException unavailable){}
+            // IllegalArgumentException: a scooter ID the store refuses (one restored from a hand-edited backup before
+            // BackupProfiles checked it) reads as no recordings, not a crash on the worker.
+            try{recordings=chargeStore.history(profile,full);}catch(IOException|IllegalArgumentException unavailable){}
             final List<ChargeSessionStore.HistorySession> result=recordings;
             handler.post(()->{
                 if(destroyed)return;
@@ -905,7 +907,7 @@ public final class ScooterService extends Service {
                 }
                 if(count==0){output.delete();output=null;error=M.serviceChargeExportEmpty();}
                 else if(attachment)output=ChargeSend.prepare(output);
-            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=chargeExportFailed();}
+            }catch(IOException|IllegalStateException|IllegalArgumentException failure){if(output!=null)output.delete();output=null;error=chargeExportFailed();}
             final File result=output;final CharSequence message=error;
             handler.post(()->{chargeExporting=false;if(destroyed){if(result!=null)result.delete();return;}
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});
