@@ -100,6 +100,10 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
             if (held) {
                 require(text.equals(estimating), label + " held: the tile says '" + estimating + "', not '" + text + "'");
                 require(value.getCurrentTextColor() == ui.muted, label + " held: the words are muted");
+                // TalkBack says the words once: the held state has no status to repeat them (review of #619).
+                CharSequence spoken = value.getContentDescription();
+                int said = spoken == null ? 0 : spoken.toString().split(java.util.regex.Pattern.quote(estimating), -1).length - 1;
+                require(said == 1, label + " held: TalkBack reads '" + estimating + "' once, not in '" + spoken + "'");
             } else {
                 require(!text.equals(estimating) && text.matches(".*\\d.*"), label + " shown: the tile shows a time, not '" + text + "'");
                 require(value.getCurrentTextColor() == ui.text, label + " shown: the time in the normal colour");

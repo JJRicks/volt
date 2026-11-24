@@ -21,7 +21,9 @@ Right after plugging in, the first time a UT5 MAX charge showed was often far of
 ## The rule (`ChargeEstimateHold`)
 
 It is fed once per fresh frame in `ScooterService.updateChargerDetection()`, after detection, beside the other charge
-observers.
+observers. That runs only while status is under about 7 s old, and out of sight status comes every 15 s, so the hold is
+also fed the charging state alone from `updateChargeLive()`, the reports the live card follows. A pause and resume
+between background status reads then still starts a new hold.
 
 - **Scope:** models with charger detection (`ChargerDetection.supports`: the UT5 MAX).
   - On other models the charger is never identified. The hold would be a flat three minutes on every charge, followed
@@ -32,13 +34,19 @@ observers.
     charge plugged in near full has no bulk stage; the taper model times it.
 
   The standard charger's current at plug-in is its bulk.
+
+  Only readings taken after the last not-charging state count. A charging report that omits voltage and current keeps
+  the old values, so a 10 A reading from before a pause can't make the resumed soft start ready.
 - **Held:** from the first charging reading until ready. If Volt saw the charge begin (a not-charging reading within
   5 minutes before), it is held one more minute (`SETTLE_MS`) while the voltage settles. A charge Volt joins midway
   (a reconnect, a new process) is held only until it is ready.
 - **Hard cap:** `MAX_HOLD_MS` = 3 minutes from the first charging reading Volt sees. After it, a time shows whatever
   the readings say. This covers a charger stuck in its soft start, a standard charger read as the fast one, a charger
   never identified, and readings stopping after plug-in.
-- **Ends for the charge:** once shown, the time is not held again in that charge. A charger pause (not charging) or
+- **Another charger:** a different charger chosen or detected than the one in effect when the charge became ready (Standard,
+  then High-speed during the soft start) makes it unready again, within the cap. Detection losing the charger for a moment
+  (none in effect) doesn't.
+- **Ends for the charge:** once shown, the time is not held again in that charge, except after another charger. A charger pause (not charging) or
   30 minutes without readings begins a new charge, as in `ChargeProgressTracker`.
 - **Simulation:** never held. The emulator validation sets the service's test-only `testEstimateHold` instead.
 
@@ -49,7 +57,7 @@ That is the same charging state, power, current and limit, with:
 
 - no time to the limit or to 100%;
 - no planning minutes;
-- the state "Estimating time left", also as its tooltip.
+- the state "Estimating time left", with no status (the time tiles speak the state and then the status, so TalkBack would say it twice).
 
 The words are the live card's existing string, through `ChargeLiveState.estimatingText()`, so the change adds no new
 text and no new catalog reference.

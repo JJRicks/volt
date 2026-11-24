@@ -25,7 +25,8 @@ package com.jjricks.volt;
  * The hold is for display and planning only. The charge recording saves what the estimator computed, with its
  * source, so recorded charges can still be scored against the estimator. Fed once per fresh frame, beside the other
  * charge observers; nothing is stored, and a process restart watches the charge again. Instances hold one profile's
- * charge, on the monotonic clock.
+ * charge, on the monotonic clock. It is also fed the charging state alone from the reports the live card follows, so
+ * a pause and resume between background status reads still starts a new hold.
  */
 public final class ChargeEstimateHold {
     /** The fast charger's bulk stage starts here; below it a fast charge is still in its soft start (FastChargeTaper). */
@@ -44,6 +45,8 @@ public final class ChargeEstimateHold {
     private String profile;
     private boolean active, startObserved, released;
     private long firstSeen, lastSeen, lastNotCharging, readyAt;
+    /** The charger in effect when the charge became ready; another one chosen or detected makes it unready again. */
+    private ChargeSessionStore.Charger readyCharger;
 
     /** Whether this model's estimate is held at plug-in: the models whose charger Volt identifies. */
     public static boolean applies(int productId) { return ChargerDetection.supports(productId); }
@@ -62,13 +65,24 @@ public final class ChargeEstimateHold {
 
     public void reset() { profile = null; lastNotCharging = 0; clearCharge(); }
 
-    /**
-     * One reading. charging is the fresh charging state (null changes nothing). productId is the model's charge reference
-     * product; charger the charger in effect for this reading (null: not known yet). volts and amps are a fresh paired
-     * reading or null. nowMs is the monotonic clock.
-     */
+    /** One reading whose electrical values (if any) were taken now: {@link #observe(String, int, Boolean,
+     * ChargeSessionStore.Charger, Double, Double, long, long)} with sampleMs = nowMs. */
     public void observe(String profile, int productId, Boolean charging, ChargeSessionStore.Charger charger,
             Double volts, Double amps, long nowMs) {
+        observe(profile, productId, charging, charger, volts, amps, nowMs, nowMs);
+    }
+
+    /**
+     * One reading. charging is the fresh charging state (null changes nothing); a charging report without electrical
+     * values (volts and amps null) feeds the transitions alone, so a pause and resume seen only there still starts a new
+     * hold. productId is the model's charge reference product; charger the charger in effect for this reading (null: not
+     * known yet). volts and amps are a fresh paired reading or null, and sampleMs the time it was taken: a reading from
+     * before the last not-charging state (the scooter's report kept the old values) never makes this charge ready.
+     * Another charger than the one in effect when the charge became ready (Standard, then High-speed chosen during the
+     * soft start) makes it unready again, within the cap. nowMs is the monotonic clock.
+     */
+    public void observe(String profile, int productId, Boolean charging, ChargeSessionStore.Charger charger,
+            Double volts, Double amps, long sampleMs, long nowMs) {
         if (profile == null || profile.isEmpty() || charging == null || nowMs <= 0) return;
         if (!profile.equals(this.profile)) { reset(); this.profile = profile; }
         if (!applies(productId)) { clearCharge(); return; }
@@ -79,8 +93,10 @@ public final class ChargeEstimateHold {
             startObserved = lastNotCharging > 0 && nowMs - lastNotCharging <= START_GRACE_MS;
         }
         lastSeen = nowMs;
+        if (readyCharger != null && charger != null && charger != readyCharger) { readyAt = 0; readyCharger = null; released = false; }
         if (released || readyAt > 0) return;
-        if (volts != null && amps != null && ready(charger, volts, amps)) readyAt = nowMs;
+        boolean thisCharge = lastNotCharging <= 0 || sampleMs > lastNotCharging;
+        if (thisCharge && volts != null && amps != null && ready(charger, volts, amps)) { readyAt = nowMs; readyCharger = charger; }
     }
 
     /** Whether this profile's charge shows "Estimating time left" now instead of a time. */
@@ -92,7 +108,7 @@ public final class ChargeEstimateHold {
         return true;
     }
 
-    private void clearCharge() { active = startObserved = released = false; firstSeen = lastSeen = readyAt = 0; }
+    private void clearCharge() { active = startObserved = released = false; firstSeen = lastSeen = readyAt = 0; readyCharger = null; }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
 }
