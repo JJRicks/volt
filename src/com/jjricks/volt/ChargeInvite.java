@@ -40,4 +40,46 @@ final class ChargeInvite {
     static boolean answered(Object stored) {
         return DISMISSED.equals(stored) || SENT.equals(stored);
     }
+
+    /**
+     * Email to Volt's hand-over to an email app, for the {@link #SENT} answer (#537 review, F03: backing out of Android's
+     * email chooser marked the invite sent, because Volt stored SENT as soon as the chooser opened).
+     *
+     * <p>What Android lets an app know: nothing about whether the email was sent (ACTION_SEND has no result, and email
+     * apps don't report one), and no callback from the "Open with" list Android shows when several email apps could take
+     * it. What Volt can see is whether an app took the email: that app's screen covers Volt, so Volt stops. The "Open
+     * with" list and the share sheet are see-through windows over Volt that only pause it, so backing out of either
+     * resumes Volt without a stop, and the invite stays. So the answer is stored when Volt stops after handing the
+     * email over (an app was picked, or the only email app opened), and dropped when Volt comes back without stopping.
+     * A stop with the screen off, or for a configuration change, isn't an app taking the email: it waits. Two edges
+     * remain, both rare: Home pressed while the list shows stores it (indistinguishable from an app opening), and an
+     * email app opened beside Volt in split screen doesn't (Volt never stops); the banner's X still hides it then.
+     * Pure, so the JVM suite tests it.
+     */
+    static final class HandOver {
+        private static final int IDLE = 0, OPENED = 1, AWAY = 2;
+        private int state = IDLE;
+
+        /** The email was handed to Android (startActivity returned): an app or a chooser is opening. */
+        void opened() { state = OPENED; }
+
+        /** Volt paused: the chooser or the app is over it. */
+        void paused() { if (state == OPENED) state = AWAY; }
+
+        /**
+         * Volt stopped: true when that means an app took the email, so the answer is stored (once). interactive: the
+         * screen is on; changing: a configuration change is recreating Volt.
+         */
+        boolean stopped(boolean interactive, boolean changing) {
+            if (state == IDLE || !interactive || changing) return false;
+            state = IDLE;
+            return true;
+        }
+
+        /** Volt is back on screen without having stopped: the chooser was closed and no app took the email. */
+        void resumed() { if (state == AWAY) state = IDLE; }
+
+        /** A hand-over is waiting for its answer. */
+        boolean pending() { return state != IDLE; }
+    }
 }
