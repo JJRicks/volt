@@ -1278,9 +1278,12 @@ public final class MainActivity extends Activity implements ScreenHost {
             // files that read them (#393 council review, third round, finding 2).
             @Override public CharSequence[] pageRowTitles(String page){
                 String[] more=MoreScreen.searchRowTitles(page),rides=RidesScreen.searchRowTitles(page);
-                if(more.length+rides.length==0)return null;
-                CharSequence[] all=new CharSequence[more.length+rides.length];
+                // Every other page's rows by the catalog's names for them (HubText.pageRowTitles; #533 review, F04/F05).
+                Msg[] named=HubText.pageRowTitles(page);
+                if(more.length+rides.length+named.length==0)return null;
+                CharSequence[] all=new CharSequence[more.length+rides.length+named.length];
                 System.arraycopy(more,0,all,0,more.length);System.arraycopy(rides,0,all,more.length,rides.length);
+                System.arraycopy(named,0,all,more.length+rides.length,named.length);
                 return all;
             }
         };
