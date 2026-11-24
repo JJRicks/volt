@@ -94,7 +94,7 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
             View h = hero();
             require(h != null && h.isShown(), label + " " + name + ": the charging view shows");
             Object tile = field(h, "timeTile");
-            TextView value = ((TextView[]) field(tile, "values"))[0];
+            TextView value = ((TextView[]) field(tile, "values"))[(Integer) invoke(tile, "chosen", new Class<?>[0])];  // the reading shown at rest
             String text = String.valueOf(invoke(value, "fullText", new Class<?>[0]));
             Ui ui = activity.ui();
             if (held) {
@@ -106,8 +106,20 @@ public final class ChargeEstimatingFirstValidation extends ValidationInstrumenta
             }
             Rect r = new Rect(); ((View) tile).getGlobalVisibleRect(r);
             tileRect.set(new int[] {r.left, r.top, r.right, r.bottom});
-            // The live charging card and its lock-screen version, built by the service from its own readings.
-            ChargeLiveState live = (ChargeLiveState) invoke(service, "chargeLiveState", new Class<?>[0]);
+            // The live charging card and its lock-screen version: the service's own estimate of its own readings, built into
+            // the card as ScooterService.chargeLiveState() does for a connected scooter (the simulator's link counts as
+            // out of reach for the card's connection facts, so the card is built here from the same two calls).
+            @SuppressWarnings("unchecked")
+            Map<String, TelemetryHistory.Reading> own = (Map<String, TelemetryHistory.Reading>) invoke(service, "displayReadings", new Class<?>[0]);
+            ChargingEstimate.Result estimate = service.chargingEstimate(own);
+            require(estimate.charging, label + " " + name + ": the simulator charges");
+            ChargeLiveState.Input in = new ChargeLiveState.Input();
+            in.scooter = "Synthetic UT5 Max"; in.percent = 62; in.nowWall = System.currentTimeMillis();
+            boolean capped = estimate.targetPercent != null && estimate.targetPercent < 100;
+            in.minutesLeft = capped ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull;
+            in.watts = estimate.inputWatts;
+            require(held == (in.minutesLeft == null), label + " " + name + ": the card's minutes " + in.minutesLeft);
+            ChargeLiveState live = ChargeLiveState.of(in, wall -> "10:42 PM");
             require(live != null && live.text != null, label + " " + name + ": a live card");
             require(live.text.startsWith(estimating) == held && (live.publicText == null || live.publicText.startsWith(estimating) == held),
                     label + " " + name + ": the live card says '" + live.text + "' (lock screen '" + live.publicText + "')");
