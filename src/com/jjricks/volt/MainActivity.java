@@ -4366,6 +4366,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     row.line.setMinimumHeight(design.dp(40));row.line.setPadding(0,design.dp(10),0,0);
                     patternSelector=new SegmentedSelector(design,feature.label().toString(),optionTexts(feature),index->{
                         restorePatternSelection(false);
+                        if(offWords!=null){toast(offWords);return;}
                         chooseInline(feature,feature.optionValues[index]);
                     });
                     patternSelector.setWrapChoices(true);
@@ -4377,7 +4378,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                     for(int i=0;i<feature.optionValues.length;i++){
                         final int choice=feature.optionValues[i];String label=feature.options[i];
                         Swatch swatch=new Swatch(label.equals("Red")?design.accent:label.equals("Ice blue")?design.blue:design.muted);
-                        swatch.setContentDescription(T.mainSwatchDescription(shortLabel(feature),feature.optionLabel(i)));swatch.setOnClickListener(v->chooseInline(feature,choice));
+                        swatch.setContentDescription(T.mainSwatchDescription(shortLabel(feature),feature.optionLabel(i)));swatch.setOnClickListener(v->{if(offWords!=null){toast(offWords);return;}chooseInline(feature,choice);});
                         options.put(choice,swatch);swatches.addView(swatch,new LinearLayout.LayoutParams(design.dp(48),design.dp(48)));
                     }
                     row.line.addView(swatches);
@@ -4425,12 +4426,14 @@ public final class MainActivity extends Activity implements ScreenHost {
                 boolean wide=(feature.type!=ScooterCommands.Type.TIME||captioned)&&textOver(shown,10,5.12,value);value.setText(wide?NO_TEXT:shown);row.setSub(joinNote(wide?shown:rowDetail(feature),note));
             }else if(inline)row.setSub(actual==null?T.commonNotReported():note);
             else row.setSub(joinNote(rowDetail(feature),note));
-            if(patternSelector!=null){restorePatternSelection(true);patternSelector.setEnabled(usable);patternSelector.setAlpha(usable?1f:.5f);}
+            // Switched off: the choices stay tappable (greyed) so a tap says why, like the other rows (offWords).
+            boolean tappable=usable||offWords!=null;
+            if(patternSelector!=null){restorePatternSelection(true);patternSelector.setEnabled(tappable);patternSelector.setAlpha(usable?1f:.5f);}
             if(swatchRow!=null)extraSwatches(decision);
             for(Map.Entry<Integer,View> option:options.entrySet()){
                 boolean on=actual!=null&&actual.intValue()==option.getKey();View view=option.getValue();
                 ((Swatch)view).set(on);
-                view.setEnabled(usable);view.setAlpha(usable?1f:.5f);
+                view.setEnabled(tappable);view.setAlpha(usable?1f:.5f);
                 if(Build.VERSION.SDK_INT>=30)view.setStateDescription(on?T.commonSelected():"");
             }
             // Short-lived result state: a spinner in the switch slot while pending, then a red chip if it failed.
@@ -4479,7 +4482,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 }
                 final int choice=v;String label=decision.label(v);
                 Swatch swatch=new Swatch(swatchColor(label));swatch.rainbow=label.equals("Rainbow");
-                swatch.setContentDescription(T.mainSwatchDescription(shortLabel(feature),decision.labelText(v)));swatch.setOnClickListener(x->chooseInline(feature,choice));
+                swatch.setContentDescription(T.mainSwatchDescription(shortLabel(feature),decision.labelText(v)));swatch.setOnClickListener(x->{if(offWords!=null){toast(offWords);return;}chooseInline(feature,choice);});
                 options.put(choice,swatch);swatchRow.addView(swatch,new LinearLayout.LayoutParams(0,design.dp(48),1));
             }
             for(Map.Entry<Integer,View> option:options.entrySet())if(!base.contains(option.getKey())){

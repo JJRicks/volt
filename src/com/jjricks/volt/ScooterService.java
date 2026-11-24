@@ -2621,7 +2621,7 @@ public final class ScooterService extends Service {
     private RideAutoStopPolicy.Link autoStopLink(){
         if(!ble.connected())return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
         ScooterProfiles.Profile bound=ble.profile();
-        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());
+        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.ready(),ble.lastPushMs());
     }
     /** Called from the tick only, after this tick's observation: ends the ride when one of the three rules is due (RideAutoStopPolicy.due). */
     private void autoStopDue(RideAutoStopPolicy policy,long now){
@@ -2668,7 +2668,7 @@ public final class ScooterService extends Service {
         String id=policy.rideId;
         if(stopRide(reason)){
             // Switched off or gone: stop reconnecting to it by itself until the rider connects, Volt opens or it pushes (OffReconnectHold).
-            ble.rideEndedAutomatically(policy.profile,reason);
+            ble.rideEndedAutomatically(policy.profile,reason,policy.seenOffWhileLinked());
             if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
             showAutoStopNotice(id,reason);
         }
@@ -2816,12 +2816,16 @@ public final class ScooterService extends Service {
                         recordPhoneTelemetry(mono);
                         try {
                             if (recordingError == null) {
-                                if (!ble.connected()) {
+                                if (!autoStopLink().recordsReadings()) {
+                                    // No link, or one to a scooter switched off or not pushing yet (Link.recordsReadings):
+                                    // its answered polls are not ride readings, so the saved end and duration stop here.
+                                    boolean linked = ble.connected();
                                     if (!gapMarked) {
-                                        rides.markGap(wall, mono, "Bluetooth disconnected");
+                                        rides.markGap(wall, mono, linked ? "Scooter switched off" : "Bluetooth disconnected");
                                         gapMarked = true;
                                     }
                                     rides.heartbeat(wall, mono);
+                                    if (linked && ++samples % 2 == 0) ble.refresh(false);
                                 } else {
                                     gapMarked = false;
                                     Map<String, RideStore.Sample> values = new LinkedHashMap<>();

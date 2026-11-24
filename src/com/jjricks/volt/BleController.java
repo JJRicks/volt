@@ -327,15 +327,19 @@ public final class BleController {
     /** Judged by ScooterPowerState: the UT5 MAX layer, or this scooter pushed before (never the simulator). */
     public boolean powerJudged(String profileId){ScooterProfiles.Profile p=profile();return !simulating()&&p!=null&&p.id.equals(profileId)&&powerArmed();}
     /** Automatic reconnects to the active scooter are paused after its ride ended with it switched off or gone (OffReconnectHold). */
-    public boolean reconnectPaused(){ScooterProfiles.Profile p=profile();return p!=null&&offHold.held(p.id);}
+    public boolean reconnectPaused(){ScooterProfiles.Profile p=profile();return p!=null&&offHold.held(p.id,visible);}
     /**
      * A ride on this scooter just ended automatically (stopReason, RideStore's token): when OffReconnectHold.pauses says so,
      * Volt stops reconnecting to it by itself. A waiting reconnect is dropped; a link that is still up stays.
      */
-    public void rideEndedAutomatically(String profileId,String stopReason){
-        if(!OffReconnectHold.pauses(stopReason,powerJudged(profileId)))return;
+    public void rideEndedAutomatically(String profileId,String stopReason,boolean seenOff){
+        if(!OffReconnectHold.pauses(stopReason,powerJudged(profileId),seenOff))return;
         offHold.hold(profileId);event("Ride ended with the scooter off or gone: reconnects paused until you connect or open Volt");
-        if(gatt==null&&state==State.WAITING){state=State.DISCONNECTED;message=notConnected();changed();}
+        // In sight the hold doesn't apply (OffReconnectHold.held): the retry loop carries on. Out of sight it drops a
+        // waiting reconnect, and closes an attempt that hasn't authenticated yet, as Disconnect does before READY.
+        if(visible||profile==null||!profile.id.equals(profileId))return;
+        if(OffReconnectHold.closesAttempt(gatt!=null,authenticated)){event("Reconnect attempt closed");close(State.DISCONNECTED);message=notConnected();changed();}
+        else if(gatt==null&&state==State.WAITING){state=State.DISCONNECTED;message=notConnected();changed();}
     }
     /** The idle state's words, at start and when a paused reconnect is dropped. */
     private static CharSequence notConnected(){return M.bleStatusNotConnected();}
@@ -731,7 +735,7 @@ public final class BleController {
         boolean reconnect=retry&&wanted&&workAllowed()&&profile!=null&&!profile.mac.isEmpty();
         if(releaseHold)reconnect=false;
         // A ride that ended with this scooter switched off or gone pauses automatic reconnects (OffReconnectHold).
-        if(profile!=null&&offHold.held(profile.id))reconnect=false;
+        if(profile!=null&&offHold.held(profile.id,visible))reconnect=false;
         // A sent proximity change is not cancelled by a drop: some scooters restart Bluetooth after taking it. Its expected
         // value (and completion) waits for the automatic reconnect's first status read (confirmRecheck).
         ProximityFollowUp.Recheck next=!dropped||recheck!=null?null:ProximityFollowUp.afterDrop(mutation.key,mutation.sent,guided(mutation),reconnect,
@@ -749,7 +753,7 @@ public final class BleController {
         notice(shown,code==-1?shown:shown+" ("+code+")");
         if(reconnect){
             int session=generation;long delay=Math.min(60000,1000L<<Math.min(6,retries++));event("Reconnect in "+delay/1000+"s");
-            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed()&&!offHold.held(profile.id))connect(profile,profile.mac);},delay);
+            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed()&&!offHold.held(profile.id,visible))connect(profile,profile.mac);},delay);
         }
     }
     private void notice(CharSequence text){notice(text,ConnectionText.english(text));}
