@@ -28,6 +28,8 @@ public final class ScooterPowerStateTest {
         offEndsOnlyWithAPush();
         switchOnLoggedOnlyByAPush();
         staleChargingReadings();
+        awaitingFirstPush();
+        switchOnLoggedFromThePush();
         System.out.println("ScooterPowerStateTest: " + checks + " assertions passed");
     }
 
@@ -207,5 +209,37 @@ public final class ScooterPowerStateTest {
         check(!ScooterPowerState.charging(1d, window + 1, null, -1), "An older charging state too");
         check(ScooterPowerState.charging(1d, 0, 0d, window + 1), "A fresh charging state still counts beside an old current");
         check(!ScooterPowerState.charging(1d, -1, 0.5, -1), "No age (never read) is not a reading");
+    }
+    /**
+     * After a drop: a connection that has brought no push yet, on a judged scooter, is not yet evidence that the scooter
+     * is on (a switched-off one still answering looks exactly like this). Its first push is. Charging, the simulator and
+     * scooters that are never judged keep today's behaviour.
+     */
+    private static void awaitingFirstPush() {
+        ScooterPowerState s = new ScooterPowerState();
+        check(s.awaitingPush(s.verdict(READY, false, false, true, false, false), true), "Connected, not ready yet: awaiting its first push");
+        s.start(READY);
+        check(s.awaitingPush(judge(s, READY + 1000), true), "Ready, in the grace: awaiting");
+        check(!s.awaitingPush(judge(s, READY + ScooterPowerState.GRACE_MS), true), "Off: no longer awaiting, it is off");
+        s = started();
+        check(s.awaitingPush(s.verdict(READY + 3000, false, true, true, false, false), true), "A stale status before any push: still awaiting");
+        s.frame(0x92, READY + 1500);
+        check(!s.awaitingPush(judge(s, READY + 2000), true), "Its first push: on");
+        check(!s.awaitingPush(s.verdict(READY + 60_000, false, true, true, false, false), true), "Pushed on this connection: never awaiting again");
+        s = started();
+        check(!s.awaitingPush(judge(s, READY + 1000), false), "A scooter that is never judged: never awaiting (today's behaviour)");
+        check(!s.awaitingPush(s.verdict(READY + 1000, false, true, true, true, true), true), "Charging: never awaiting");
+        check(!s.awaitingPush(s.verdict(READY + 1000, true, true, true, true, false), true), "The simulator: never awaiting");
+    }
+    /** #623 round 2: a push during a stale-status gap is a switch-on, logged from the push itself. */
+    private static void switchOnLoggedFromThePush() {
+        ScooterPowerState s = started();
+        check(judge(s, READY + 20_000).off(), "Off");
+        s.frame(0x92, READY + 25_000);
+        ScooterPowerState.Result stale = s.verdict(READY + 25_000, false, false, true, false, false);
+        check(stale.why == ScooterPowerState.Why.NOT_READY, "The push came while the status was stale: not ready");
+        check(ScooterPowerState.logged(true, stale, true) == ScooterPowerState.Logged.SWITCHED_ON, "Logged as a switch-on, from the push");
+        check(ScooterPowerState.logged(true, stale, false) == ScooterPowerState.Logged.CLEARED, "Without a push it is only cleared");
+        check(ScooterPowerState.logged(false, stale, true) == ScooterPowerState.Logged.NONE, "Never logged off: nothing to say");
     }
 }

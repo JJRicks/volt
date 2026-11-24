@@ -63,6 +63,10 @@ public final class SegmentedSelector extends HorizontalScrollView {
     }
 
     /** Inline controls can show every choice without horizontal scrolling or smaller text. */
+    private Runnable refusal;
+    /** While set, a tap on any choice runs this instead of selecting (null: choices select as usual). */
+    public void setRefusal(Runnable refusal) { this.refusal = refusal; }
+
     public void setWrapChoices(boolean wrap) {
         track.wrapChoices = wrap;
         for (TextView button : track.choices) button.setSingleLine(!wrap);
@@ -150,6 +154,8 @@ public final class SegmentedSelector extends HorizontalScrollView {
                 });
                 button.setOnClickListener(v -> {
                     if (!SegmentedSelector.this.isEnabled() || !button.isEnabled()) return;
+                    // A refused selector (a switched-off scooter) says why on every choice, the selected one included.
+                    if (refusal != null) { refusal.run(); return; }
                     if (selected == choice) return;
                     Haptics.tick(button);
                     select(choice, true);

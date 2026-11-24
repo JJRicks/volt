@@ -115,7 +115,7 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargeSend.java" "$TEST_DIR/ChargeSendT
 # A drag in ReorderList counts from where the finger is when the row lifts, past the touch slop.
 sources+=("$APP_DIR/src/com/jjricks/volt/ReorderDrag.java" "$TEST_DIR/ReorderDragTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
-for name in RideAutoStopPolicy; do
+for name in RideAutoStopPolicy OffReconnectHold; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
 done
 sources+=("$TEST_DIR/RideAutoStopStoreTest.java")
@@ -272,6 +272,7 @@ for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign Ridin
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingNameGroupTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.OffReconnectHoldTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoEndsTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingLinkTest

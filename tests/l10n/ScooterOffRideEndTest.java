@@ -30,6 +30,7 @@ public final class ScooterOffRideEndTest {
             noMovementNoMovementWords();
             pushlessReconnectKeepsTheSwitchOff();
             offThenPluggedInEndsSwitchedOff();
+            withTheReconnectHold();
         } finally { T.install(null); }
         System.out.println("ScooterOffRideEndTest: " + checks + " checks passed");
     }
@@ -217,7 +218,89 @@ public final class ScooterOffRideEndTest {
         check(!ChargeAutoRecordPolicy.shouldStart(true, true, true, false, true, false, false, false), "While the ride records, charge recording waits (chargeCaptureBlocked)");
         check(ChargeAutoRecordPolicy.shouldStart(true, true, true, false, false, false, false, false), "Once it ends, automatic charge recording starts");
         String svc = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
-        check(svc.contains("ble.drivingStatus(),ble.scooterOff(),ble.lastPushMs());") && svc.contains("if(isRecording()||phoneSaving())return M.serviceChargeFinishRide();"),
+        check(svc.contains("ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());") && svc.contains("if(isRecording()||phoneSaving())return M.serviceChargeFinishRide();"),
                 "the service feeds the ride the raw verdict, and holds charge recording only while a ride records");
+    }
+
+    /**
+     * The link as ScooterService.autoStopLink builds it after #627 merged: the raw off verdict, the first-push wait
+     * (ScooterPowerState.awaitingPush) and the last push, from a real ScooterPowerState that BleController starts when the
+     * link is ready and resets, with its last push, when the link closes. Polls every 2 s keep the status fresh.
+     */
+    private static final class Ride {
+        final ScooterPowerState power = new ScooterPowerState();
+        final RideAutoStopPolicy policy = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        long now = T0, lastFrame, lastMotion, lastPush, ended = -1; int transport = 1, speed; boolean up = true, powered, scooterOn = true;
+        RideAutoStopPolicy.Stop stop = RideAutoStopPolicy.Stop.NONE;
+        Ride() { power.start(now); powered = true; }
+        RideAutoStopPolicy.Link link() {
+            if (up && !powered) { power.start(now); powered = true; }
+            if (!up && powered) { power.reset(); powered = false; lastPush = 0; }
+            if (!up) return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE);
+            boolean fresh = lastFrame > 0 && now - lastFrame <= CapabilityResolver.STATUS_MAX_AGE_MS;
+            ScooterPowerState.Result verdict = power.verdict(now, false, fresh, true, fresh, false);
+            return RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, lastMotion, speed, speed > 0 ? 1 : 0, verdict.off(), power.awaitingPush(verdict, true), lastPush);
+        }
+        /** One second: a push (scooter on) or an answered poll every 2 s (off), then the service's observe and due. */
+        void tick() {
+            if (ended >= 0) { now += 1000; return; }
+            if (up && scooterOn) { lastFrame = lastMotion = lastPush = now; power.frame(0x92, now); }
+            else if (up && now % 2000 == 0) lastFrame = now;
+            RideAutoStopPolicy.Link l = link();
+            policy.observe(now, l);
+            RideAutoStopPolicy.Stop due = policy.due(now, l);
+            if (due == RideAutoStopPolicy.Stop.PARKED || due == RideAutoStopPolicy.Stop.QUIET) { ended = now; stop = due; }
+            now += 1000;
+        }
+        void until(long t) { while (now < t) tick(); }
+        /** ScooterService.autoStopRide: the switch-off mark, then BleController.rideEndedAutomatically's hold. */
+        boolean switchedOff() { return policy.switchedOffCountdown(); }
+        boolean hold() {
+            String reason = stop == RideAutoStopPolicy.Stop.PARKED ? RideStore.STOP_AUTO_PARKED : RideStore.quietStopReason(8, false);
+            if (switchedOff()) reason = RideStore.switchedOffStopReason(reason);
+            return OffReconnectHold.pauses(reason, true, policy.seenOffWhileLinked());
+        }
+    }
+
+    /**
+     * Main merge with #627: both PRs' rules at once. Switched off mid-ride, the link drops, Volt reconnects to the still-off
+     * scooter (a first-push wait, not a reconnect), the link drops again, and the deadline comes: the ride ends switched
+     * off, and the reconnect hold is set only when the off verdict was seen on a live link.
+     */
+    private static void withTheReconnectHold() {
+        // A: the off verdict on the live link first (parked, switched off), then drop, pushless reconnect, drop.
+        Ride a = new Ride();
+        a.speed = 150; a.until(T0 + 60_000); a.speed = 0; a.until(T0 + 70_000);
+        long last = a.lastPush;
+        a.scooterOn = false; a.until(last + 15_000);
+        check(a.policy.seenOffWhileLinked() && a.switchedOff() && a.policy.armed(), "A: off verdict on the live link: seen off, a switch-off countdown");
+        a.up = false; a.until(last + 25_000);
+        a.up = true; a.transport = 2; a.until(last + 31_000);
+        check(a.link().awaitingPush && a.switchedOff() && a.policy.armed(), "A: the pushless reconnect is a first-push wait: the countdown and its mark stand");
+        a.up = false; a.until(last + 400_000);
+        check(a.ended > 0 && a.ended <= last + 60_000 + 1000, "A: ends on the switch-off's deadline: " + (a.ended - last));
+        check(a.switchedOff() && a.hold(), "A: saved as switched off, and the hold is set (seen off on a live link)");
+        // B: dropped at riding speed with no verdict, a pushless reconnect that drops again inside the grace: not off.
+        Ride b = new Ride();
+        b.speed = 250; b.until(T0 + 60_000);
+        last = b.lastPush;
+        b.scooterOn = false; b.up = false; b.until(last + 60_000);
+        b.up = true; b.transport = 2; b.until(last + 66_000);
+        check(b.link().awaitingPush && !b.policy.seenOffWhileLinked(), "B: answered inside the grace: awaiting, never seen off");
+        b.up = false; b.until(last + 400_000);
+        check(b.ended > 0 && b.ended <= last + 300_000 + 1000, "B: ends on the drop's five minutes: " + (b.ended - last));
+        check(!b.switchedOff() && !b.hold(), "B: never seen off: no switch-off mark, no hold");
+        // C: the same drop, then the reconnect stays up long enough for the off verdict: the original deadline, marked, held.
+        Ride c = new Ride();
+        c.speed = 250; c.until(T0 + 60_000);
+        last = c.lastPush;
+        c.scooterOn = false; c.up = false; c.until(last + 60_000);
+        c.up = true; c.transport = 2; c.until(last + 75_000);
+        check(c.policy.seenOffWhileLinked() && c.switchedOff(), "C: the off verdict on the reconnect: seen off, a switch-off");
+        c.up = false; c.until(last + 85_000);
+        c.up = true; c.transport = 3; c.until(last + 90_000);
+        c.up = false; c.until(last + 400_000);
+        check(c.ended > 0 && c.ended <= last + 300_000 + 1000, "C: keeps the original deadline: " + (c.ended - last));
+        check(c.switchedOff() && c.hold(), "C: saved as switched off, and held");
     }
 }
