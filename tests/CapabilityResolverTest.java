@@ -336,6 +336,32 @@ public final class CapabilityResolverTest {
         DeviceDescriptor simulated=DeviceDescriptor.simulated("",0);
         check(decide("cruise_control",simulated,StatusFields.NONE,sim).reason==CapabilityResolver.OFF_REASON&&decide("charge_limit",simulated,StatusFields.NONE,sim).available(),"Simulated off refuses the same way");
         rt=parked();check(!rt.scooterOff,"Off by default");
+        offRows();
+    }
+
+    /**
+     * Review of #623: a row refused because the scooter is switched off says that, never "Stop to change": the row's
+     * words, its spoken state and its tap's toast follow parkedOnly() and rowRefusal() (MainActivity.ControlRow). Lock
+     * carries the off mark too, so its waiting tap is refused (LockTapQueue.gate).
+     */
+    private static void offRows() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.scooterOff=true;
+        for(String key:new String[]{"headlight","cruise_control","turn_sound","maximum_speed"}){
+            CapabilityResolver.Decision d=decide(key,ut5,s,rt);
+            check(d.switchedOff&&!d.parkedOnly(),"Off is not a ride's refusal: "+key);
+            String note=d.rowRefusal();
+            check(note!=null&&note.equals(d.reasonText())&&!note.toLowerCase(java.util.Locale.ROOT).contains("stop"),"The row says the off reason, not stop: "+key+" "+note);
+        }
+        check(CapabilityResolver.admit("lock",1,ut5,s,rt).switchedOff,"Locking while off carries the off mark");
+        check(!decide("charge_limit",ut5,s,rt).switchedOff&&decide("charge_limit",ut5,s,rt).rowRefusal()==null,"A charging setting usable while off has no refusal");
+        // Not off: moving and no motion report keep "Stop to change".
+        CapabilityResolver.Runtime on=parked();on.stationary=false;on.motionSeen=true;
+        CapabilityResolver.Decision moving=decide("timed_charging",ut5,s,on);
+        check(!moving.switchedOff&&moving.parkedOnly()&&moving.rowRefusal()==null,"Moving: Stop to change, as before");
+        on.motionSeen=false;
+        CapabilityResolver.Decision waiting=decide("timed_charging",ut5,s,on);
+        check(!waiting.switchedOff&&waiting.parkedOnly()&&waiting.reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"No motion report while on: as before");
     }
 
     /**

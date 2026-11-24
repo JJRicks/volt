@@ -220,7 +220,7 @@ final class ChargeBar extends View {
         s.fresh = service.featureFresh(KEY);
         s.actual = ble.featureValue(KEY);
         s.available = d.available();
-        s.parkedOnly = d.blockedByRide();
+        s.parkedOnly = d.parkedOnly();
         s.choices = ble.featureChoices(KEY);
         return s;
     }
