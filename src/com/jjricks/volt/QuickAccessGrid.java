@@ -128,14 +128,21 @@ final class QuickAccessGrid extends ViewGroup {
             // whatever else holds the control right now (moving, locked).
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
+            // A change the scooter hasn't confirmed: the old value stays for a second (a quicker answer shows nothing new),
+            // then "Updating" and a spinner on the tile's cue or the round action's circle (PendingControl). A charge
+            // control's schedule writes go one after another, so its second counts from the first busy look.
+            boolean chargeWait = chargeControl && charge != null && !unmapped;
+            boolean updating = host.pendingLook(cell.waitLook, cell.entry.id, chargeWait ? charge.busy : pending,
+                    chargeWait || ble == null ? 0 : ble.pendingSinceMs(), cell);
+            cell.waiting(updating);
             String lockState = feature == null || value == null ? null : DisplayUnits.lockStateText(feature, value);
             String state = feature == null || feature.sensitive && !unmapped ? ""
-                    : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
+                    : unmapped ? NO_VALUE : updating ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
                     : lockState != null ? lockState
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValueText(feature, value, units);
             boolean wasLockState = cell.lockState;
-            cell.lockState = !pending && lockState != null;
+            cell.lockState = !updating && lockState != null;
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
@@ -159,13 +166,13 @@ final class QuickAccessGrid extends ViewGroup {
                     String time = DisplayTime.clock(host.activity(), preferences, deadline.getTimeInMillis());
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
-                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
-                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
+                    state = updating ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : off;
+                } else if (manual) state = updating ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : off;
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
             // Clean Home's Record action says so while a ride is being recorded.
             if (HomeQuickActions.RECORD.equals(cell.entry.id) && service != null && service.isRecording()) state = HubText.qaRecording().render();
-            if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
+            if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !updating)
                 state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             String shortValue = null;
             Integer level = null, low = null;
@@ -199,7 +206,7 @@ final class QuickAccessGrid extends ViewGroup {
                 look = QuickActionLayout.setting(value, offValue(feature, decision), featureLive);
             boolean lockUnknown = look != null && look.look == QuickActionLayout.Look.UNKNOWN;
             // The lock's spoken state on Clean (its circle has no value line): Locked, Unlocked or Lock state unknown.
-            if (clean && isLock && !pending)
+            if (clean && isLock && !updating)
                 state = lockUnknown ? MainActivity.lockUnknownText() : DisplayUnits.lockWord(value == 1);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
             boolean selected = toggle && value != null && value == 1 && featureLive;
@@ -290,6 +297,9 @@ final class QuickAccessGrid extends ViewGroup {
         final android.graphics.Paint ring = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
         int color;
         boolean highlighted;
+        /** Waiting over a second for the scooter: the cue turns a spinner (PendingControl). */
+        boolean waiting;
+        void waiting(boolean next) { if (waiting != next) { waiting = next; invalidate(); } }
         TileAction(boolean toggle) {
             super(host.activity()); color = ui.muted; kind(toggle);
             setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -307,6 +317,14 @@ final class QuickAccessGrid extends ViewGroup {
             float size = Math.min(getWidth(), getHeight());
             if (size <= 0) return;
             float x = getWidth() / 2f, y = getHeight() / 2f;
+            if (waiting) {
+                // On the lead tile's accent fill the spinner sits on the same neutral disc as its power ring.
+                if (highlighted) { ring.setStyle(android.graphics.Paint.Style.FILL); ring.setColor(ui.surface); canvas.drawCircle(x, y, size / 2f, ring); }
+                int ink = highlighted ? ui.text : ui.accent;
+                if (PendingSpinner.draw(canvas, new android.graphics.RectF(x - size / 2f, y - size / 2f, x + size / 2f, y + size / 2f), ring,
+                        ui.dp(2), ink, Ui.withAlpha(ink, 50)) && isShown()) postInvalidateOnAnimation();
+                return;
+            }
             if (glyph.equals("power")) {
                 float stroke = ui.dp(1), radius = (size - stroke) / 2f;
                 if (highlighted) {
@@ -341,6 +359,25 @@ final class QuickAccessGrid extends ViewGroup {
         }
         /** Round only: the circle the icon sits in (filled while the action is on). */
         FrameLayout circle;
+        /** This action's change the scooter hasn't confirmed (refresh): a spinner after 1 s (PendingControl). */
+        final PendingControl waitLook = new PendingControl();
+        private boolean waiting;
+        private final android.graphics.Paint waitPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        /** A tile's cue turns the spinner; a round action's circle and a plain action's icon get it drawn around them. */
+        void waiting(boolean next) {
+            if (icon instanceof TileAction) ((TileAction) icon).waiting(next);
+            else if (waiting != next) invalidate();
+            waiting = next;
+        }
+        @Override protected void dispatchDraw(android.graphics.Canvas canvas) {
+            super.dispatchDraw(canvas);
+            if (!waiting || icon instanceof TileAction) return;
+            View around = circle != null ? circle : icon;
+            float pad = circle != null ? 0 : ui.dp(5);
+            android.graphics.RectF box = new android.graphics.RectF(around.getLeft() - pad, around.getTop() - pad, around.getRight() + pad, around.getBottom() + pad);
+            int ink = circle != null && isSelected() && !unknown ? ui.onAccent : ui.accent;
+            if (PendingSpinner.draw(canvas, box, waitPaint, ui.dp(2.5f), ink, 0) && isShown()) postInvalidateOnAnimation();
+        }
         /** Setting tiles only: the value the tile states, and a shorter whole value for a tile too narrow for it (or null). */
         String fullValue, shortValue;
         Cell(QuickAccessActions.Entry entry) {

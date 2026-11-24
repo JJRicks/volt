@@ -14,6 +14,22 @@ public interface ScreenHost {
     /** Settings saw Nearby devices permission granted: the service starts if it isn't bound or starting. Nothing by default. */
     default void nearbyGranted() {}
     void redraw(); void rebuild(); void toast(String text); void connect();
+    /** A redraw in delayMs, when a control's pending spinner is due (PendingControl.nextLookIn). Nothing by default. */
+    default void redrawIn(long delayMs) {}
+    /**
+     * One look at a control waiting on the scooter (PendingControl): true while its spinner shows. Schedules the redraw
+     * that starts (or backstops) it, and has speaker tell a screen reader "Waiting for the scooter" once per wait.
+     */
+    default boolean pendingLook(PendingControl look, String key, boolean waiting, long sinceMs, android.view.View speaker) {
+        long now = android.os.SystemClock.elapsedRealtime();
+        look.look(waiting, sinceMs, now);
+        long next = look.nextLookIn(now);
+        if (next > 0) redrawIn(next);
+        boolean spin = look.showing(now);
+        if (spin && resumed() && speaker != null && speaker.isShown() && look.announce(key, now))
+            speaker.announceForAccessibility(T.mainControlWaiting());
+        return spin;
+    }
     /** Opens a Hub page (HubPages id; legacy tab ids are accepted) above the current one. */
     void open(String page);
     /** The same, with one-shot arguments for the page built (HubNav.Args); args may be null. */

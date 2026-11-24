@@ -81,6 +81,16 @@ final class ChargeBar extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final android.text.TextPaint text = new android.text.TextPaint(Paint.ANTI_ALIAS_FLAG);
     private final RectF box = new RectF();
+    /** A released limit the scooter hasn't confirmed: a spinner in the value's pill after 1 s, until it settles (PendingControl). */
+    private final PendingControl waitLook = new PendingControl();
+    /** Redraws when the spinner is due, and tells a screen reader once. */
+    private final Runnable waitTick = () -> {
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (isShown() && waitLook.announce(KEY, now)) announceForAccessibility(T.mainControlWaiting());
+        long next = waitLook.nextLookIn(now);
+        if (next > 0) postDelayed(this.waitTick, next + 16);
+        invalidate();
+    };
     /** Where the mark and the value label were last drawn, in this view's pixels (the label empty when not shown). */
     final RectF markBox = new RectF(), labelBox = new RectF();
     private final ChargeBarDrag.Gesture gesture = new ChargeBarDrag.Gesture();
@@ -196,6 +206,11 @@ final class ChargeBar extends View {
         if (kind == ChargeBarDrag.LIMIT && commit.phase == ChargeBarDrag.Commit.IN_FLIGHT) resolve(service);
         commit.report(value);
         if (!gesture.dragging()) settleTo(commit.shown(), Float.isNaN(drawn));
+        boolean inFlight = kind == ChargeBarDrag.LIMIT && commit.phase == ChargeBarDrag.Commit.IN_FLIGHT;
+        waitLook.look(inFlight, inFlight && service != null && KEY.equals(service.ble.pending()) ? service.ble.pendingSinceMs() : 0,
+                android.os.SystemClock.elapsedRealtime());
+        removeCallbacks(waitTick);
+        if (inFlight) waitTick.run();
         describe();
         invalidate();
     }
@@ -326,7 +341,10 @@ final class ChargeBar extends View {
         String words = labelText(Math.round(drawn));
         Paint.FontMetrics m = text.getFontMetrics();
         float padX = ui.dp(8), padY = ui.dp(4), tw = text.measureText(words), th = m.descent - m.ascent;
-        float pw = tw + 2 * padX, ph = th + 2 * padY, w = getWidth();
+        // Waiting over a second for the scooter: a spinner before the value, inside the pill.
+        boolean spin = waitLook.showing(android.os.SystemClock.elapsedRealtime());
+        float spinner = spin ? th * .8f : 0, lead = spin ? spinner + ui.dp(6) : 0;
+        float pw = tw + lead + 2 * padX, ph = th + 2 * padY, w = getWidth();
         float top = floor - markHeight / 2 - ui.dp(6) - ph, cx = x, cy;
         if (top >= 0) cy = top + ph / 2;
         else {
@@ -347,7 +365,14 @@ final class ChargeBar extends View {
         paint.setColor(Ui.withAlpha(ui.outline, Math.round(((ui.outline >>> 24) & 255) * alpha)));
         canvas.drawRoundRect(box, ph / 2, ph / 2, paint);
         text.setColor(Ui.withAlpha(ui.text, Math.round(255 * alpha)));
-        canvas.drawText(words, cx, cy - (m.ascent + m.descent) / 2, text);
+        canvas.drawText(words, cx + lead / 2, cy - (m.ascent + m.descent) / 2, text);
+        if (spin) {
+            float left = box.left + padX;
+            if (PendingSpinner.draw(canvas, new RectF(left, cy - spinner / 2, left + spinner, cy + spinner / 2), paint, ui.dp(2),
+                    Ui.withAlpha(ui.accent, Math.round(255 * alpha)), Ui.withAlpha(ui.text, Math.round(40 * alpha))) && isShown())
+                postInvalidateOnAnimation();
+            paint.setStyle(Paint.Style.FILL);
+        }
     }
 
     /** "85%" for a limit; the alert sheet's own words for an alert level ("80%", or "Full" at 100). */
