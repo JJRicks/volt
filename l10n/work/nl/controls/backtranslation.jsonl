@@ -73,3 +73,4 @@
 {"back":"Locking","key":"controls_feature_lock_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"8f8525e4a0f6699513581880c6a0fe05239feb75","target":"Vergrendeling"}
 {"back":"Locking time","key":"controls_feature_lock_expiry_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e757f783669177e094c98bf1dc206399c9be61d5","target":"Vergrendeltijd"}
 {"back":"Engine assistance","key":"controls_feature_parking_assist_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e143dc46cc0f3d598a9d06a21319aa4063756882","target":"Motorhulp"}
+{"back":"Turn on the scooter first","key":"controls_reason_scooter_off","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"9be0d0e13f941134dd3a36a4b7c59104a2c2efa0","target":"Zet de step eerst aan"}
