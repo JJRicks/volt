@@ -16,6 +16,7 @@ public final class KeptPlaceTest {
         pageRules();
         rideRules();
         chargeRules();
+        roundOneRules();
         System.out.println("KeptPlace: " + checks + " checks passed");
     }
 
@@ -93,6 +94,33 @@ public final class KeptPlaceTest {
         require(list.shown(50, 90) == 90, "Never more rows than there are");
         require(new KeptPlace.ChargePlace(null, 0, 0, false, null, null).shown(50, 400) == 50, "At least one page of rows");
         require(new KeptPlace.ChargePlace("c-1", 50, 0, false, "chart", "expanded").expandedView == null, "Not expanded: no expanded view");
+    }
+
+    /** Council round 1 on #625: the failure modes it found, as rules. */
+    private static void roundOneRules() {
+        // F03: an unfold's size change and its posture rebuild twice in one turn; the first restore must not take the
+        // place away from the second (it was cleared before the first noticed its screen was gone).
+        KeptPlace.Turns turns = new KeptPlace.Turns();
+        int first = turns.next(), second = turns.next();
+        require(!turns.newest(first) && turns.newest(second), "Two rebuilds in one turn: only the second restore runs the place");
+        int only = turns.next();
+        require(turns.newest(only), "One rebuild: its restore runs");
+        // F05: a choice sheet with the model's caution up over it: the caution's Continue would send the old choice.
+        require(KeptPlace.reopensChoice(true, false, false), "An open, unsent choice sheet opens again");
+        require(!KeptPlace.reopensChoice(true, false, true), "With its caution up, nothing reopens: the caution closes, nothing is sent");
+        require(!KeptPlace.reopensChoice(true, true, false), "A choice already sent isn't reopened: its answer is on the page");
+        require(!KeptPlace.reopensChoice(false, false, false), "No sheet, nothing reopens");
+        // F12: the tune menu only reopens when the scooter is still now, never from a consumed speed peak.
+        require(KeptPlace.reopensTuneMenu(true, true), "Stopped: the tune menu opens again");
+        require(!KeptPlace.reopensTuneMenu(true, false), "Moving off during the fold: the tune menu stays closed");
+        require(!KeptPlace.reopensTuneMenu(false, true), "No menu was open: none opens");
+        // F07: a ride opened from Compare two rides keeps the comparison under it.
+        KeptPlace.RidePlace fromCompare = KeptPlace.RidePlace.details("ride-1", null, 0, false, null, false, null, null).overComparison(true);
+        require(fromCompare.comparison && "ride-1".equals(fromCompare.ride), "Details over the comparison: both come back");
+        KeptPlace.RidePlace compareOnly = KeptPlace.RidePlace.comparisonOnly();
+        require(compareOnly.comparison && compareOnly.show(false) == KeptPlace.RidePlace.Show.NOTHING && compareOnly.show(true) == KeptPlace.RidePlace.Show.NOTHING,
+                "The comparison alone: it comes back, no ride's details with it");
+        require(!fromCompare.overComparison(false).comparison, "Closed comparison: not kept");
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }

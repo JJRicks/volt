@@ -185,10 +185,13 @@ final class ChargeHistoryDialog {
         openSession = session; detailPanel = panel; detailScroll = scroll;
         KeptPlace.ChargePlace kept = arriving;
         if (kept != null && session.id.equals(kept.recording)) {
-            arriving = null;
             if (kept.chartView instanceof RideChartView.State) panel.chart.restoreState((RideChartView.State) kept.chartView);
             Motion.scrollBeforeDraw(scroll, kept.scrollY);
-            if (kept.expanded) panel.post(() -> {
+            // The place stays kept until its expanded chart is back too, so a rebuild in between keeps it (council round 1, F02).
+            if (!kept.expanded) arriving = null;
+            else panel.post(() -> {
+                if (arriving != kept) return;
+                arriving = null;
                 if (!available() || detailPanel != panel) return;
                 inPlace = true;
                 try { panel.expand(kept.expandedView instanceof RideChartView.State ? (RideChartView.State) kept.expandedView : null); }
@@ -257,7 +260,8 @@ final class ChargeHistoryDialog {
     private LinearLayout header(String title, boolean back) {
         LinearLayout head = new LinearLayout(host.activity()); head.setGravity(Gravity.CENTER_VERTICAL);
         head.setPadding(ui.dp(back ? 4 : 18), ui.dp(4), ui.dp(6), ui.dp(4));
-        if (back) head.addView(iconButton("back", T.statsChargeHistoryBack(), this::showList));
+        // Back drops a place still on its way (an older recording being read for a fold): the list stays (F01).
+        if (back) head.addView(iconButton("back", T.statsChargeHistoryBack(), () -> { arriving = null; showList(); }));
         TextView label = ui.text(title, 20, true); label.setMaxLines(2);
         head.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
         head.addView(iconButton("close", T.statsChargeHistoryClose(), this::close)); return head;

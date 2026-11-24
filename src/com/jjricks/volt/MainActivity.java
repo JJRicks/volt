@@ -845,6 +845,10 @@ public final class MainActivity extends Activity implements ScreenHost {
      * posture) carries it on rather than losing it.
      */
     private KeptPlace heldPlace;
+    /** The newest posted restore (KeptPlace.Turns): two rebuilds in one turn leave the place to the second's. */
+    private final KeptPlace.Turns restoreTurns=new KeptPlace.Turns();
+    /** True while a kept place opens its windows again: sheets are simply there, without their entrance motion (showSheet). */
+    private boolean openingInPlace;
     /** The shown screen's place and open sheet, for the rebuild about to replace it (KeptPlace); else the one still held. */
     private KeptPlace keepPlace(){
         KeptPlace held=heldPlace;heldPlace=null;
@@ -863,12 +867,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         heldPlace=same;
         if(screen instanceof LoadingScreen||builtBeforeService())return;
         AppScreen target=screen;
+        int turn=restoreTurns.next();
         handler.post(()->{
-            if(heldPlace!=same)return;
+            // A newer rebuild posted its own restore of this place (council round 1, F03): leave the place held for it.
+            if(!restoreTurns.newest(turn)||heldPlace!=same)return;
             heldPlace=null;
             if(destroyed||rebuilding||screen!=target)return;
-            if(same.place!=null)target.restorePlace(same.place);
-            if(same.sheet!=null)same.sheet.run();
+            openingInPlace=true;
+            try{
+                if(same.place!=null)target.restorePlace(same.place);
+                if(same.sheet!=null)same.sheet.run();
+            }finally{openingInPlace=false;}
         });
     }
     /**
@@ -881,9 +890,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(chargeLiveSheet!=null&&chargeLiveSheet.dialog.isShowing())return this::showChargeLive;
         if(chargeAlertSheet!=null&&chargeAlertSheet.dialog.isShowing())return this::showChargeAlerts;
         if(rangeSourceSheet!=null&&rangeSourceSheet.dialog.isShowing())return this::showRangeSource;
-        if(choiceSheet!=null&&choiceSheet.dialog.isShowing()&&!choiceSheet.sent){ScooterCommands.Feature feature=choiceSheet.feature;return()->showChoice(feature);}
+        if(choiceSheet!=null&&choiceSheet.dialog.isShowing()){
+            boolean caution=choiceCaution!=null&&choiceCaution.isShowing();
+            // Its caution closes with the rebuild, sending nothing (council round 1, F05): nothing reopens; the owner chooses again.
+            if(caution)choiceCaution.dismiss();
+            if(!KeptPlace.reopensChoice(true,choiceSheet.sent,caution))return null;
+            ScooterCommands.Feature feature=choiceSheet.feature;return()->showChoice(feature);
+        }
         return null;
     }
+    /** The model's caution shown over a control's choice sheet (confirmChange), while it shows; null otherwise. */
+    private AlertDialog choiceCaution;
     /** The What's new sheet while it shows; closed with the activity. */
     private AlertDialog whatsNewSheet;
     /**
@@ -1026,6 +1043,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      * (Security's) goes with the page; the scooter pane's stays registered.
      */
     private void swapPagePane(int direction){
+        // Another page: a place still held for the old one is dropped, as a rebuild onto another page drops it.
+        heldPlace=null;
         if(controlDialog!=null){controlDialog.dismiss();controlDialog=null;}
         // As rebuild: Readings let a search result's reading go once the owner typed a search of their own there.
         boolean readingDropped=readingLetGo();
@@ -2781,7 +2800,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(caution==null){send.run();return;}
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(shortLabel(feature)).setMessage(caution)
                 .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainConfirmContinue(),(d,n)->{if(done[0])return;done[0]=true;if(scooterService!=null)send.run();else cancelled.run();}).create();
-        dialog.setOnDismissListener(d->{if(!done[0]){done[0]=true;cancelled.run();}});
+        dialog.setOnDismissListener(d->{if(choiceCaution==dialog)choiceCaution=null;if(!done[0]){done[0]=true;cancelled.run();}});
+        // Over a choice sheet: a rebuild closes it with the sheet (openSheet).
+        if(choiceSheet!=null&&choiceSheet.dialog.isShowing())choiceCaution=dialog;
         dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
     }
     /**
@@ -5123,7 +5144,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScrollView holder=new ScrollView(this);holder.addView(content,new ScrollView.LayoutParams(-1,-2));
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setView(holder).create();
         android.view.Window window=dialog.getWindow();
-        Motion.present(dialog,Motion.SHEET);
+        Motion.present(dialog,Motion.SHEET);if(openingInPlace)Motion.inPlace(dialog);
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);
@@ -5157,7 +5178,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.setContentView(content,new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,ViewGroup.LayoutParams.MATCH_PARENT));
         content.setFocusableInTouchMode(true);content.requestFocus();
         android.view.Window window=dialog.getWindow();
-        Motion.present(dialog,Motion.SHEET);
+        Motion.present(dialog,Motion.SHEET);if(openingInPlace)Motion.inPlace(dialog);
         if(window!=null){
             android.graphics.drawable.GradientDrawable sheet=new android.graphics.drawable.GradientDrawable();sheet.setColor(design.bg);
             float r=design.dp(24);sheet.setCornerRadii(new float[]{r,r,r,r,0,0,0,0});sheet.setStroke(design.dp(1),design.raised);

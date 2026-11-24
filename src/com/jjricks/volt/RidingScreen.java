@@ -816,11 +816,16 @@ final class RidingScreen implements AppScreen {
 
     @Override public View view() { return view; }
     /**
-     * The tune menu open: the screen built again after a fold, an unfold or a rotation opens it again (KeptPlace), under
-     * the same rule as a tap (still stopped). A change made in it is already saved, and the rebuild shows it.
+     * The tune menu open: the screen built again after a fold, an unfold or a rotation opens it again (KeptPlace) when
+     * the scooter is still (KeptPlace.reopensTuneMenu), and then under the same rule as a tap. A change made in it is
+     * already saved, and the rebuild shows it.
      */
     @Override public Object keepPlace() { AlertDialog d = sheet; return d != null && d.isShowing() ? Boolean.TRUE : null; }
-    @Override public void restorePlace(Object place) { if (Boolean.TRUE.equals(place) && !closed) edit(); }
+    @Override public void restorePlace(Object place) {
+        // Still now, read fresh (council round 1, F12): the refresh before this already took the speed peak edit() and
+        // menuChangeAllowed() look at, so a rider moving off during the fold would otherwise get the menu back.
+        if (!closed && KeptPlace.reopensTuneMenu(Boolean.TRUE.equals(place), still())) edit();
+    }
     @Override public void close() {
         closed = true;
         // Rotation, folding and every rebuild close this screen: its sheet goes with it (and opens again on the new
