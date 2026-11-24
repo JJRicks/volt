@@ -85,6 +85,15 @@ final class HubSearchTables {
      * MoreScreen.searchTitle) and the background switch's own.
      */
     static final String SETTING_RIDE_AUTO_STOP = "preference_ride_auto_stop", SETTING_RECORD_BACKGROUND = "preference-auto-record-background";
+    /**
+     * Map settings' Dark map row (MapStyleControls.TAG_SETTINGS) and its Map on Home's last ride switch (the tag
+     * MapPreferences' JustBackControl sets): rows of the Map settings dialog that Recording settings' Map settings row
+     * opens, so their results open that page at the row with the dialog over it and the row flashed in it
+     * (MoreScreen.openHeld; #614 review). Spelled out because this table stays pure; tests/l10n/HubSearchTest.java checks
+     * they are the tags the rows carry. Named through the gates (MoreScreen.searchTitle), the shown names coming from the
+     * files that show them.
+     */
+    static final String SETTING_MAP_STYLE = "map_settings_style", SETTING_JUST_BACK_MAP = "map-settings-just-back";
 
     /** Every settings row search lists. */
     static final String[] SETTINGS = {
@@ -98,7 +107,8 @@ final class HubSearchTables {
      * Settings rows search names through its gates (HubSearch.Gates.settingTitle), not HubText: rows whose text only
      * their own screen's file reads (MoreScreen.searchTitle). HubText names every row in SETTINGS.
      */
-    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_RIDE_AUTO_STOP, SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER};
+    static final String[] SCREEN_NAMED_SETTINGS = {SETTING_RIDE_AUTO_STOP, SETTING_AUTO_SAVE, SETTING_AUTO_SAVE_FOLDER,
+            SETTING_MAP_STYLE, SETTING_JUST_BACK_MAP};
 
     /**
      * The page that holds a hand-built row. Rows still on a scooter page are found in ControlsPages; the rows no
@@ -161,6 +171,7 @@ final class HubSearchTables {
                 return HubPages.RIDE_RIDING;
             case SETTING_RIDING_AUTO_RECORD: case SETTING_AUTO_SAVE: case SETTING_AUTO_SAVE_FOLDER:
             case SETTING_RIDE_AUTO_STOP: case SETTING_RECORD_BACKGROUND:
+            case SETTING_MAP_STYLE: case SETTING_JUST_BACK_MAP:
                 return HubPages.RIDE_RECORDING;
             case SETTING_REPORT_ISSUE: return HubPages.SERVICE_REPORTS;
             case SETTING_RIDE_BACKUPS: return HubPages.RIDE;
@@ -211,6 +222,8 @@ final class HubSearchTables {
             case SETTING_AUTO_SAVE_FOLDER: return "folder auto-save rides folder autosave folder save rides to folder";
             case SETTING_RIDE_AUTO_STOP: return "end rides automatically auto stop stop rides automatically ride end";
             case SETTING_RECORD_BACKGROUND: return "start recording in the background background recording auto record";
+            case SETTING_MAP_STYLE: return "dark map map style dark mode map night map dark tiles light map basemap style";
+            case SETTING_JUST_BACK_MAP: return "map on home's last ride map on homes last ride just back map last ride map home map basemap";
             default: return null;
         }
     }

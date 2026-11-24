@@ -97,6 +97,8 @@ public final class HubSearchTest {
         if (HubSearchTables.SETTING_RIDE_AUTO_STOP.equals(tag)) return T.morePrefsAutoStop();
         if (HubSearchTables.SETTING_AUTO_SAVE.equals(tag)) return T.moreAutoSaveJson();
         if (HubSearchTables.SETTING_AUTO_SAVE_FOLDER.equals(tag)) return T.moreAutoSaveFolder();
+        if (HubSearchTables.SETTING_MAP_STYLE.equals(tag)) return T.mapsDarkMap();
+        if (HubSearchTables.SETTING_JUST_BACK_MAP.equals(tag)) return T.mapsJustBackSwitch();
         return null;
     }
     private static final HubSearch.Gates NONE = new HubSearch.Gates() {
@@ -126,6 +128,7 @@ public final class HubSearchTest {
             settingsRowsFindable();
             anchorsBuilt();
             maintenanceFindable();
+            mapSettingsFindable();
             layoutRules();
             T.install(ZONES);
             zones();
@@ -294,6 +297,51 @@ public final class HubSearchTest {
      * review, second round, finding 5: they were found by English words only), and the rows this round moved, which the
      * gates and HubText name in every language.
      */
+    /**
+     * Map settings' Dark map row and Map on Home's last ride switch (#614 review): "dark map" and the rows' names find them,
+     * as settings on Ride › Recording settings with their own tags as anchors, which the page brings on screen through
+     * its Map settings row and opens the dialog over (MoreScreen.anchor and openHeld). The tags are the ones the rows carry.
+     */
+    private static void mapSettingsFindable() {
+        List<HubSearch.Entry> index = everything();
+        String[][] cases = {
+                {"dark map", HubSearchTables.SETTING_MAP_STYLE}, {"Dark map", HubSearchTables.SETTING_MAP_STYLE},
+                {"map style", HubSearchTables.SETTING_MAP_STYLE},
+                {"Map on Home's last ride", HubSearchTables.SETTING_JUST_BACK_MAP}, {"last ride map", HubSearchTables.SETTING_JUST_BACK_MAP},
+        };
+        for (String[] c : cases) {
+            HubSearch.Entry hit = null;
+            for (HubSearch.Entry e : HubSearch.search(index, c[0])) if (c[1].equals(e.anchor)) { hit = e; break; }
+            check(hit != null && hit.kind == HubSearch.Kind.SETTING && HubPages.RIDE_RECORDING.equals(hit.page),
+                    "\"" + c[0] + "\" finds " + c[1] + " on Recording settings: " + (hit == null ? "nothing" : hit.page));
+        }
+        boolean top = false;
+        // Results are grouped by kind (pages first: Settings matches its theme words); among the settings, Dark map leads.
+        StringBuilder order = new StringBuilder();
+        for (HubSearch.Entry e : HubSearch.search(index, "dark map")) {
+            order.append(e.shown).append(" @").append(e.anchor).append("; ");
+            if (e.kind == HubSearch.Kind.SETTING) { top = HubSearchTables.SETTING_MAP_STYLE.equals(e.anchor); break; }
+        }
+        check(top, "\"dark map\" lists the Dark map row first among settings: " + order);
+        check(T.mapsDarkMap().contentEquals(HubSearch.settings(ALL).stream().filter(e -> HubSearchTables.SETTING_MAP_STYLE.equals(e.anchor))
+                .findFirst().get().shown), "the result is named as the row shows it");
+        for (String tag : new String[] {HubSearchTables.SETTING_MAP_STYLE, HubSearchTables.SETTING_JUST_BACK_MAP})
+            check(tag.equals(HubSearchTables.settingAnchor(tag)), "anchored at its own tag: " + tag);
+        // The tags are the ones the rows carry, and MoreScreen names, anchors and opens them.
+        check(read("src/com/jjricks/volt/MapStyleControls.java").contains("TAG_SETTINGS = \"" + HubSearchTables.SETTING_MAP_STYLE + "\""),
+                "SETTING_MAP_STYLE is MapStyleControls.TAG_SETTINGS");
+        check(read("src/com/jjricks/volt/MapPreferences.java").contains("setTag(\"" + HubSearchTables.SETTING_JUST_BACK_MAP + "\");"),
+                "SETTING_JUST_BACK_MAP is the tag on Map settings' Just back switch");
+        String more = read("src/com/jjricks/volt/MoreScreen.java");
+        check(more.contains("if (HubSearchTables.SETTING_MAP_STYLE.equals(tag)) return MapStyleControls.name();")
+                && more.contains("if (HubSearchTables.SETTING_JUST_BACK_MAP.equals(tag)) return MapPreferences.justBackName();")
+                && read("src/com/jjricks/volt/MapStyleControls.java").contains("static String name() { return T.mapsDarkMap(); }")
+                && read("src/com/jjricks/volt/MapPreferences.java").contains("static String justBackName() { return T.mapsJustBackSwitch(); }"),
+                "MoreScreen names them through the files that show them");
+        check(more.contains("mapRow = map.view;") && more.contains("if (mapRow != null && heldByMap(id)) return mapRow;")
+                && more.contains("AlertDialog dialog = mapSettings();"), "Recording settings brings its Map settings row on screen and opens the dialog");
+    }
+
     private static void recordingInPortuguese() {
         check("Terminar viagens automaticamente".equals(T.morePrefsAutoStop()), "Portuguese (Portugal) is installed: " + T.morePrefsAutoStop());
         List<HubSearch.Entry> index = everything();

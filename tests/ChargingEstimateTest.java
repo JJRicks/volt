@@ -138,7 +138,18 @@ public final class ChargingEstimateTest {
             near(217.5, result.remainingMinutesToFull, .00001, "Unknown cutoff still permits explicit hypothetical full time");
             check(result.status.contains("cutoff unknown") && result.status.contains("assumes charging continues"),
                     "Unknown-cutoff full time is identified as hypothetical");
+            // A model with no charge limit at all (the GT3 Max, README #613) charges to 100%: spoken, its cutoff is known.
+            String known = ChargingEstimate.knownFullCutoff(result.status);
+            check(!known.toLowerCase(java.util.Locale.ROOT).contains("cutoff unknown") && !known.contains("assumes charging continues")
+                    && known.equals(known.trim()) && !known.contains("  ") && !known.isEmpty(), "No-limit model: the unknown-cutoff sentence goes, the rest stays: " + known);
         }
+        for (String status : new String[] {"Time to displayed 100%; balancing may continue. Cutoff unknown; 100% assumes charging continues.",
+                "Learned from 3 charges. Cutoff unknown; 100% assumes charging continues. Uses 11.1 Ah per 100%.",
+                "Stock reference.Cutoff unknown; 100% assumes charging continues."})
+            check(!ChargingEstimate.knownFullCutoff(status).contains("Cutoff unknown") && ChargingEstimate.knownFullCutoff(status).startsWith(status.substring(0, 10)),
+                    "Every wording of the unknown-cutoff sentence goes: " + ChargingEstimate.knownFullCutoff(status));
+        check(ChargingEstimate.knownFullCutoff(null) == null && ChargingEstimate.knownFullCutoff("The 100% time assumes a higher charge limit.")
+                .equals("The 100% time assumes a higher charge limit."), "Other statuses are left alone");
         values = nominal(); values[3] = live(90); ChargingEstimate.Result pastTarget = estimate(values);
         near(0, pastTarget.remainingMinutesToLimit, 0, "SOC already above cutoff never produces negative time");
         near(43.5, pastTarget.remainingMinutesToFull, .00001, "Hypothetical full time remains separate above cutoff");

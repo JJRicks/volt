@@ -87,6 +87,11 @@
     <!-- Switch under the map provider selector: an online map behind the route on Home's last-ride card (shown for about
          an hour after a ride), separate from the ride maps' basemap. -->
     <string name="maps_just_back_switch" volt:screen="Map settings" volt:purpose="switch">Map on Home\'s last ride</string>
+    <!-- Switch for the online map's style, shown only while an online map is on: on draws the map's tiles dark (lightness
+         inverted, colours softened), off draws them as the provider sends them. One setting for the ride maps (beside
+         their Basemap switch, sharing its row when both fit) and Home's last-ride card (in Map settings). Until it is
+         first flipped it follows the app's dark or light theme; afterwards the choice is kept in either theme. -->
+    <string name="maps_dark_map" volt:screen="Rides, map settings" volt:purpose="switch">Dark map</string>
     <!-- Opens the custom map provider editor. -->
     <string name="maps_edit_custom" volt:screen="Map settings" volt:purpose="button">Edit custom provider</string>
     <!-- Title of the map settings dialog. -->

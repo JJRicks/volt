@@ -468,7 +468,8 @@ public final class ChargeEstimateValidation extends ValidationInstrumentation {
     private Dialog dialog(){Object viewer=viewer();return viewer==null?null:(Dialog)field(viewer,"dialog");}
     private View dialogRoot(){return dialog().getWindow().getDecorView();}
     private View findDescription(View root,String description){if(description.equals(String.valueOf(root.getContentDescription())))return root;if(root instanceof ViewGroup)for(int i=0;i<((ViewGroup)root).getChildCount();i++){View found=findDescription(((ViewGroup)root).getChildAt(i),description);if(found!=null)return found;}return null;}
-    private String text(View root){if(root==null)return "";StringBuilder result=new StringBuilder();if(root instanceof TextView)result.append(((TextView)root).getText()).append('\n');if(root instanceof ViewGroup)for(int i=0;i<((ViewGroup)root).getChildCount();i++)result.append(text(((ViewGroup)root).getChildAt(i)));return result.toString();}
+    /** Shown text, as read: the word joiners that keep an estimator version from wrapping inside are left out. */
+    private String text(View root){if(root==null)return "";StringBuilder result=new StringBuilder();if(root instanceof TextView)result.append(((TextView)root).getText().toString().replace("\u2060","")).append('\n');if(root instanceof ViewGroup)for(int i=0;i<((ViewGroup)root).getChildCount();i++)result.append(text(((ViewGroup)root).getChildAt(i)));return result.toString();}
     private void admit(){
         require(Build.HARDWARE.contains("ranchu")||Build.HARDWARE.contains("goldfish")||Build.PRODUCT.startsWith("sdk_gphone"),"Refusing physical device");
         for(String name:new String[]{"app_settings","profiles","scooter","pending_documents","onboarding"})require(getTargetContext().getSharedPreferences(name,Context.MODE_PRIVATE).getAll().isEmpty(),"Refusing existing preferences");
