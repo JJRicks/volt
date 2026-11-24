@@ -1,0 +1,7 @@
+# #623 round 2: a ride Volt ended because its scooter was switched off says so ("Scooter switched off") and ends at its
+# last movement. tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java
+# from the repository root; RideAutoStopPolicy, RideStore and RideAutoStopText are also compiled by other lists.
+src/com/jjricks/volt/RideAutoStopPolicy.java
+src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/RideAutoStopText.java
+tests/l10n/ScooterOffRideEndTest.java
