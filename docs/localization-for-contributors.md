@@ -363,4 +363,4 @@ python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 \
     --out .local/pseudo-evidence --only locale-en-XA-344 --only locale-ar-XB-344
 ```
 
-`$ADB` is your `adb` path. Use a disposable emulator. Read the runner first, and keep `--out` out of Git (`.local/` and `build/` are ignored). It walks the main pages, Settings and its pages, and setup, so a new sheet may need checking by hand. If you have no emulator, say so in the PR so your reviewer knows.
+`$ADB` is your `adb` path. Use a disposable emulator. Read the runner first, and keep `--out` out of Git (`.local/` and `build/` are ignored). It walks the main pages, Settings' sections, three of its pages (My scooters, About & permissions and Developer options) and the setup steps of the capture route, so a new sheet, another Settings page or another setup route (Make a new owner key, for one) may need checking by hand. If you have no emulator, say so in the PR so your reviewer knows.
