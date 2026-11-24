@@ -285,7 +285,13 @@ public final class RideAutoStopPolicy {
      * minutes, as on a link that stays up. A later drop keeps the countdown; a push ({@link #connected}) cancels it.
      */
     public void scooterOff(long now, long pushMono, long frameMono) {
-        if (!bound) { disconnected(now, Loss.RECOVERABLE); return; }
+        if (!bound) {
+            // A ride started while the scooter was already off (a fresh policy): its countdown is a switch-off's too.
+            boolean wasFresh = fresh;
+            disconnected(now, Loss.RECOVERABLE);
+            if (wasFresh && armed()) offCountdown = true;
+            return;
+        }
         if (!clock(now)) return;
         if (!off) {
             off = true;

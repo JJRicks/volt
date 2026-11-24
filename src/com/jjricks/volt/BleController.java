@@ -317,7 +317,7 @@ public final class BleController {
      * push for 10 s of awake time (10 s after connecting at first), not charging, on a scooter known to push. Home then
      * says "Scooter off" and every change but the charging settings is refused with "Turn the scooter on first".
      */
-    public boolean scooterOff(){return powerVerdict().off();}
+    public boolean scooterOff(){ScooterPowerState.Result verdict=powerVerdict();return power.shownOff(verdict);}
     /** The verdict and why (diagnostics). */
     public ScooterPowerState.Result powerVerdict(){
         if(simulating())return power.verdict(awake(),true,ready(),false,false,false);

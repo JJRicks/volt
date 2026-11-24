@@ -68,6 +68,8 @@ final class ScooterPowerState {
     private long lastPush;
     /** Judged off since the last push on this connection: sticky until a push or the link closes. */
     private boolean off;
+    /** The charging reading the latest verdict was given: it suspends the off words (shownOff). */
+    private boolean chargingNow;
     private final long[] counts = new long[PUSHES.length];
     private final long[] lastAt = new long[PUSHES.length];
 
@@ -95,6 +97,7 @@ final class ScooterPowerState {
      * charging: {@link #charging}; armed: {@link #armed}. Once off, it stays off until a push or {@link #reset}.
      */
     Result verdict(long nowAwake, boolean simulation, boolean ready, boolean armed, boolean statusFresh, boolean charging) {
+        chargingNow = charging;
         if (simulation) return heldOff && ready ? new Result(State.OFF, Why.SIMULATION) : new Result(State.NOT_JUDGED, Why.SIMULATION);
         if (off && readyAt > 0) return new Result(State.OFF, Why.SILENT);
         if (!ready || readyAt <= 0) return new Result(State.NOT_JUDGED, Why.NOT_READY);
@@ -119,6 +122,17 @@ final class ScooterPowerState {
         if (!loggedOff) return Logged.NONE;
         return r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
     }
+
+    /**
+     * Whether Volt says "Scooter off" (and refuses as off) for this verdict: off, and not charging now. Switched off and
+     * then plugged in, the usual way to charge, the verdict stays off until a push, but a charging reading suspends the
+     * words and refusals, so "Scooter off" never sits over the Charging view. The simulator's hook is shown as set.
+     */
+    static boolean shownOff(Result verdict, boolean chargingNow) {
+        return verdict != null && verdict.off() && (verdict.why == Why.SIMULATION || !chargingNow);
+    }
+    /** As above, with the charging reading the latest {@link #verdict} was given (BleController.scooterOff). */
+    boolean shownOff(Result verdict) { return shownOff(verdict, chargingNow); }
 
     /** Which scooters are judged: the UT5 MAX layer, or one that has pushed on an earlier connection. */
     static boolean armed(boolean ut5Max, boolean pushedBefore) { return ut5Max || pushedBefore; }

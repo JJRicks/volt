@@ -339,6 +339,8 @@
 
     <!-- Volt ended a ride on its own: the scooter was switched off with its button but kept answering Volt (no live data). Used when the ride or its last movement is unknown. The notice wraps, so no width budget. -->
     <string name="service_ride_switched_off" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter switched off</string>
+    <!-- Same notice for a named ride whose last movement is unknown (it recorded none). %1$s is the ride's name. -->
+    <string name="service_ride_switched_off_label" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Scooter switched off</string>
     <!-- Same notice with the end time. %1$s is the clock time of the scooter's last movement (for example 4:12 PM), which the saved ride shows as its end. -->
     <string name="service_ride_switched_off_at" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Scooter switched off. Ended at %1$s, its last movement.</string>
     <!-- Same notice for a named ride. %1$s is the ride's name; %2$s is the clock time of the scooter's last movement. -->

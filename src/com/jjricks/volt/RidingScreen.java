@@ -1046,10 +1046,15 @@ final class RidingScreen implements AppScreen {
     private void showStatus(BleController ble, long now, Long recordingMs, Long savedAgoMs, boolean savedAutomatic) {
         boolean ready = ble != null && ble.ready();
         RidingFocus.Link link = RidingFocus.link(ready, reconnecting(ble, ready));
-        int color = link == RidingFocus.Link.CONNECTED ? ui.ok : ui.orange;
+        // Switched off but answering: Scooter off, orange, as Home says it (RidingFocus.showsOff), never a green Connected.
+        boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOff());
+        int color = link == RidingFocus.Link.CONNECTED && !off ? ui.ok : ui.orange;
         dot.setBackground(oval(color));
-        status.setTextColor(link == RidingFocus.Link.CONNECTED ? ui.text : ui.orange);
-        if (link == RidingFocus.Link.CONNECTED) {
+        status.setTextColor(link == RidingFocus.Link.CONNECTED && !off ? ui.text : ui.orange);
+        if (off) {
+            ui.statusRungs(status, ScooterOffWords.state());
+            statusPill.setContentDescription(ScooterOffWords.state());
+        } else if (link == RidingFocus.Link.CONNECTED) {
             String mode = mode(ble);
             // The green dot alone is the last rung: the pill's icon (the narrow-label ladder).
             if (mode != null) ui.statusRungs(status, T.ridingStatusConnectedMode(mode), T.ridingStatusConnectedModeShort(), "");

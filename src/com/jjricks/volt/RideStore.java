@@ -145,6 +145,8 @@ public final class RideStore {
         public final boolean noMotionStop;
         /** A went-quiet stop whose scooter was switched off while still answering (switchedOffStopReason): ends at its last movement. */
         public final boolean stopSwitchedOff;
+        /** The shown end is the ride's last movement (a no-motion or switched-off stop with motion recorded). */
+        public final boolean stopEndsAtMotion;
         /**
          * What a rider sees as the end. For an automatic stop it is the last real reading (any fresh
          * scooter value), so the silent link, gap and wait after it never count; otherwise, and when
@@ -181,6 +183,7 @@ public final class RideStore {
             // A no-motion stop ends at its last motion, so the ten idle minutes never count; with no motion at all, as other automatic stops.
             // So does a switched-off scooter's: its answered polls kept the readings going after the switch-off.
             boolean still = (noMotionStop || stopSwitchedOff) && a.motionElapsed >= 0 && a.motionElapsed <= a.elapsed;
+            stopEndsAtMotion = still;
             shownEndWallMs = still ? a.motionWall : trim ? a.readingWall : a.lastWall;
             shownElapsedMs = still ? a.motionElapsed : trim ? a.readingElapsed : a.elapsed;
             shownGapCount = still ? a.motionGaps : trim ? a.readingGaps : a.gaps;

@@ -26,6 +26,8 @@ public final class ScooterOffRideEndTest {
             shownEndIsTheLastMovement();
             words();
             serviceWiring();
+            startedWhileOff();
+            noMovementNoMovementWords();
         } finally { T.install(null); }
         System.out.println("ScooterOffRideEndTest: " + checks + " checks passed");
     }
@@ -127,6 +129,29 @@ public final class ScooterOffRideEndTest {
         String auto = src.substring(a, src.indexOf("\n    }", a));
         check(auto.contains("if(policy.switchedOffCountdown())reason=RideStore.switchedOffStopReason(reason);")
                 && auto.indexOf("switchedOffStopReason") < auto.indexOf("if(stopRide(reason)){"), "the switch-off marks the stop before it is saved");
+    }
+
+    /** Council F06 on #624: a ride started while the scooter is already off (a fresh policy) still gets the marker. */
+    private static void startedWhileOff() {
+        RideAutoStopPolicy p = new RideAutoStopPolicy("ride", PROFILE, SERIAL);
+        p.scooterOff(T0, 0, T0);
+        check(p.armed() && p.switchedOffCountdown(), "The first observation already off: a switch-off countdown");
+    }
+
+    /** Council F07 on #624: with no movement in the ride, no "its last movement" wording. */
+    private static void noMovementNoMovementWords() throws IOException {
+        File dir = Files.createTempDirectory("volt-off-ride-still").toFile();
+        try {
+            RideStore rides = new RideStore(dir);
+            long now = 10_000;
+            rides.start(PROFILE, "Never moved", WALL0 + now, now);
+            for (; now < 60_000; now += 1000) sample(rides, now, null, -1);
+            String reason = RideStore.switchedOffStopReason(RideStore.quietStopReason(-1, false));
+            RideStore.Summary s = rides.stop(WALL0 + now, now, reason);
+            check(s.stopSwitchedOff && !s.stopEndsAtMotion, "Switched off, no movement recorded");
+            check("Never moved · Scooter switched off".equals(RideAutoStopText.notice(reason, s, "4:12 PM")), "the plain words, named: " + RideAutoStopText.notice(reason, s, "4:12 PM"));
+            check(!RideAutoStopText.notice(reason, s, "4:12 PM").contains("movement"), "never 'its last movement'");
+        } finally { remove(dir); }
     }
 
     private static void remove(File f) { File[] kids = f.listFiles(); if (kids != null) for (File k : kids) remove(k); f.delete(); }

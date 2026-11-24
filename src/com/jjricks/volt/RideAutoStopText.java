@@ -33,8 +33,12 @@ final class RideAutoStopText {
         return ride.label.isEmpty() ? T.serviceRideNoMotionAt(shownEnd) : T.serviceRideNoMotionLabelAt(ride.label, shownEnd);
     }
 
-    /** The scooter was switched off while still answering (ScooterPowerState); the shown end is its last movement. */
+    /**
+     * The scooter was switched off while still answering (ScooterPowerState). The shown end is its last movement when the
+     * ride recorded one; with none, the plain words, never "its last movement".
+     */
     private static String switchedOff(RideStore.Summary ride, CharSequence shownEnd) {
+        if (ride != null && !ride.stopEndsAtMotion) return ride.label.isEmpty() ? T.serviceRideSwitchedOff() : T.serviceRideSwitchedOffLabel(ride.label);
         if (ride == null || shownEnd == null || shownEnd.length() == 0) return T.serviceRideSwitchedOff();
         return ride.label.isEmpty() ? T.serviceRideSwitchedOffAt(shownEnd) : T.serviceRideSwitchedOffLabelAt(ride.label, shownEnd);
     }

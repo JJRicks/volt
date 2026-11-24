@@ -596,7 +596,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             connectionHaptics.play(getWindow().getDecorView(),event==ConnectionFeedbackState.Event.CONNECTED);
     }
     private final Runnable pulse=new Runnable(){@Override public void run(){
-        if(!resumed||destroyed||enteringMaintenance)return;maybeApplyOwnerImport();automaticRefresh();maybeLaunchSave();handler.postDelayed(this,1000);
+        if(!resumed||destroyed||enteringMaintenance)return;maybeApplyOwnerImport();automaticRefresh();maybeLaunchSave();refreshConnectionDetails();handler.postDelayed(this,1000);
     }};
     private boolean darkTheme(){String theme=preferences.getString("theme","dark");return theme.equals("dark")||(theme.equals("system")&&(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES);}
     /** Whether the shown page is Data or one of its pages (Live Stats' section memory covers them all). */
@@ -1769,6 +1769,17 @@ public final class MainActivity extends Activity implements ScreenHost {
                     else connect();
                 }).create();
         controlDialog.show();styleDialog(controlDialog,active?0:AlertDialog.BUTTON_NEGATIVE);
+        connectionDetails=controlDialog;connectionDetailsOff=ready&&ble.scooterOff();
+    }
+    /** The open connection details and whether they showed the scooter off: they are built once, so the pulse rebuilds them when that changes. */
+    private AlertDialog connectionDetails;private boolean connectionDetailsOff;
+    private void refreshConnectionDetails(){
+        if(connectionDetails==null)return;
+        if(!connectionDetails.isShowing()||connectionDetails!=controlDialog){connectionDetails=null;return;}
+        BleController ble=scooterService==null?null:scooterService.ble;
+        boolean off=ble!=null&&ble.ready()&&ble.scooterOff();
+        if(off==connectionDetailsOff)return;
+        connectionDetails.dismiss();connectionDetails=null;showConnectionDetails();
     }
     /** A label/value row in the connection dialog; returns the value view. */
     private TextView connectionRow(LinearLayout parent,String label,String value){

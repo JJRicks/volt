@@ -175,6 +175,8 @@ public final class CapabilityResolver {
         if(feature.equals("lock")&&value==0&&rt!=null&&!rt.simulation){
             // Recovery: an owner can always unlock offline. Supported layer, authenticated and ready,
             // the lock field present in a fresh status, and no pending change. No motion or warning checks.
+            // Deliberately not refused while the scooter is switched off (rt.scooterOff): unlocking is the owner's recovery
+            // path, which nothing else may close, and a switched-off scooter that still answers takes it (2.0.5 item 5).
             ModelRegistry.Resolution r=ModelRegistry.resolve(d);ModelRegistry.Rule rule=ModelRegistry.rule(feature,d,r,status);
             Reason reason=rule.support!=Support.KNOWN_ENCODING||rule.reason!=Reason.NONE?rule.reason
                 :!rt.ready?Reason.NOT_CONNECTED:rt.busy?Reason.BUSY:!status.fresh(rt.nowMs,STATUS_MAX_AGE_MS)?Reason.STATUS_STALE
