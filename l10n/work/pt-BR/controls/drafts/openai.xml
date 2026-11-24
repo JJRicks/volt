@@ -114,6 +114,7 @@
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Aguarde a alteração atual</string>
     <string name="controls_reason_moving" volt:src="b2e9ba8c346162f0f43557018788c4582205f244">Pare o patinete primeiro</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Ainda não há dados de movimento</string>
+    <string name="controls_reason_scooter_off" volt:src="9be0d0e13f941134dd3a36a4b7c59104a2c2efa0">Ligue o patinete primeiro</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Resolva o aviso do patinete primeiro</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Desbloqueie primeiro</string>
     <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Somente o proprietário</string>

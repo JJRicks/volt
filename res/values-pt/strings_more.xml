@@ -396,6 +396,8 @@
     <string name="more_got_it">Entendido</string>
     <!-- src:3485f8ced58988ac27332894343ce0ac775d9f7b -->
     <string name="more_pin_diagram">Guiador: 1 botão do pisca, 2 manete do travão, 3 botão de alimentação</string>
+    <!-- src:84a60e1062a3412e62cb7c3ac4b64f610bf21579 -->
+    <string name="more_pin_diagram_left_lever">Guiador: 1 botão do pisca, 2 manete esquerda do travão, 3 botão de alimentação</string>
     <!-- src:ccea9ff54e8269b640a7431056ad0bf00751d803 -->
     <string name="more_lab_untested">Controlos a experimentar</string>
     <!-- src:d176dc690a1b4bdbbd757d43cb22ba97bf134b3b -->
@@ -524,6 +526,10 @@
     <string name="more_lab_status_unfinished_short">Não concluída</string>
     <!-- src:f1514f8c8838e6251befb786b99e058456331ff2 -->
     <string name="more_lab_status_not_tried">Ainda não experimentado</string>
+    <!-- src:3f300893f33d87955591b60d6e9a34758d15264f -->
+    <string name="more_lab_status_tried_before">Já experimentado</string>
+    <!-- src:a7ca66e329791d35468bd4fb1e6fda5fe2b928eb -->
+    <string name="more_lab_status_tried_before_short">Experimentou</string>
     <!-- src:a94b0634c41fd88835795652cea91381b9004c7a -->
     <string name="more_lab_status_unverified">Não verificado no teu modelo</string>
     <!-- src:1e956029f1544e2359a928549a085516de057ec4 -->

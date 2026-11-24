@@ -199,6 +199,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Bij ontgrendeling bij nabijheid: houd de gekoppelde telefoon dichtbij en knijp in de remhendel. Test beide terwijl de step geparkeerd staat, voordat je erop vertrouwt.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Begrepen</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Stuur: 1 knop voor de richtingaanwijzer, 2 remhendel, 3 aan-uitknop</string>
+    <string name="more_pin_diagram_left_lever" volt:src="84a60e1062a3412e62cb7c3ac4b64f610bf21579">Stuur: 1 knop van de richtingaanwijzer, 2 linker remhendel, 3 aan-uitknop</string>
     <string name="more_lab_untested" volt:src="ccea9ff54e8269b640a7431056ad0bf00751d803">Functies om te proberen</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Help mee verifiëren</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Niets om te proberen</string>
@@ -264,6 +265,8 @@
     <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9">Onafgerond · bekijken</string>
     <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69">Onafgerond</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Nog niet geprobeerd</string>
+    <string name="more_lab_status_tried_before" volt:src="3f300893f33d87955591b60d6e9a34758d15264f">Eerder geprobeerd</string>
+    <string name="more_lab_status_tried_before_short" volt:src="a7ca66e329791d35468bd4fb1e6fda5fe2b928eb">Geprobeerd</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Niet geverifieerd op je model</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Niet geverifieerd</string>
     <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23">Niet geverifieerd</string>

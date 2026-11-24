@@ -244,6 +244,8 @@
     <string name="rides_saved_automatically_phone_bluetooth_description">Salvata automaticamente dopo che il Bluetooth del telefono è rimasto disattivato</string>
     <!-- src:7da5aa62ad1bb6a167706c771898fc1aa1bfe109 -->
     <string name="rides_saved_automatically_no_motion_description">Salvata automaticamente dopo 10 minuti senza movimento</string>
+    <!-- src:5c7ea2ad4125161a971b1f85cd219ba72d900b00 -->
+    <string name="rides_saved_automatically_switched_off_description">Salvata automaticamente dopo che il monopattino è stato spento</string>
     <!-- src:81082471638cb3bcdc725cf78f413d511f182eaa -->
     <string name="rides_notes_section">Note</string>
     <!-- src:751d2b3a49d9b5b28452341742e96f8841ccbdaf -->

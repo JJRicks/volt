@@ -335,7 +335,7 @@
     <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
     <string name="onboarding_new_unowned">Il monopattino non è nell\'app NAVEE</string>
     <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
-    <string name="onboarding_new_unowned_detail">Mai aggiunto all\'app o rimosso da essa</string>
+    <string name="onboarding_new_unowned_detail">Mai aggiunto all\'app, oppure rimosso da essa</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">L\'app NAVEE non può aggiungere questo monopattino finché ha la chiave di Volt. Per tornare all\'app NAVEE, rilascialo prima in Volt.</string>
     <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
@@ -444,6 +444,8 @@
     <string name="onboarding_done_revoke_description">Revoca Shizuku. Si aprirà Shizuku per rimuovere l\'accesso di Volt</string>
     <!-- src:3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d -->
     <string name="onboarding_done_home">Vai alla Home</string>
+    <!-- src:aee604de3c8494261aa6acb2f7b3ec40fec8cf22 -->
+    <string name="onboarding_done_home_starting">Vai alla Home, avvio in corso</string>
     <!-- src:9143450ee6fff0ac2901e55d319a846be41e6d92 -->
     <string name="onboarding_fix_not_listed">Telefono non elencato come «device»</string>
     <!-- src:278d58e30992d43cdb70badecba5d5dfa17ba857 -->

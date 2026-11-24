@@ -335,7 +335,7 @@
     <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
     <string name="onboarding_new_unowned">O patinete não está no app NAVEE</string>
     <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
-    <string name="onboarding_new_unowned_detail">Nunca adicionado ao app ou removido dele</string>
+    <string name="onboarding_new_unowned_detail">Nunca foi adicionado ao app ou foi removido dele</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">O app NAVEE não consegue adicionar este patinete enquanto ele tiver a chave do Volt. Para voltar ao app NAVEE, desassocie o patinete no Volt primeiro.</string>
     <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
@@ -444,6 +444,8 @@
     <string name="onboarding_done_revoke_description">Revogar o acesso no Shizuku. O Shizuku será aberto para remover o acesso do Volt</string>
     <!-- src:3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d -->
     <string name="onboarding_done_home">Ir para o Início</string>
+    <!-- src:aee604de3c8494261aa6acb2f7b3ec40fec8cf22 -->
+    <string name="onboarding_done_home_starting">Ir para o Início, iniciando</string>
     <!-- src:9143450ee6fff0ac2901e55d319a846be41e6d92 -->
     <string name="onboarding_fix_not_listed">Telefone não listado como “device”</string>
     <!-- src:278d58e30992d43cdb70badecba5d5dfa17ba857 -->

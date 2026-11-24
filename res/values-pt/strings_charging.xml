@@ -38,6 +38,8 @@
     <string name="charging_estimate_capacity_unknown">Capacidade desconhecida</string>
     <!-- src:778a8b81b0439fa1abd83f095fb12575c440a4db -->
     <string name="charging_estimate_waiting_battery" formatted="false">A aguardar a percentagem da bateria</string>
+    <!-- src:1402fc8d78adbf3fa078aab0ce076cfed2707bb3 -->
+    <string name="charging_estimate_estimating">A estimar</string>
     <!-- src:f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684 -->
     <string name="charging_estimate_no_estimate">Sem estimativa</string>
     <!-- src:a3bde74b0c56a42264d0d297dd097df688de820e -->

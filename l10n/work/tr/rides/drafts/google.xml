@@ -122,6 +122,7 @@
     <string name="rides_saved_automatically_quiet_description" volt:src="05090afb40fa980984bb7b031148edabeb5e4a23">Scooter kapandıktan veya menzil dışına çıktıktan sonra otomatik olarak kaydedildi</string>
     <string name="rides_saved_automatically_phone_bluetooth_description" volt:src="ad859897ef96351dc8830672be0eaeb67013805b">Telefonun Bluetooth’u kapalı kaldıktan sonra otomatik olarak kaydedildi</string>
     <string name="rides_saved_automatically_no_motion_description" volt:src="7da5aa62ad1bb6a167706c771898fc1aa1bfe109" volt:attempt="2">10 dakika boyunca hiçbir hareket olmadan otomatik olarak kaydedildi</string>
+    <string name="rides_saved_automatically_switched_off_description" volt:src="5c7ea2ad4125161a971b1f85cd219ba72d900b00">Scooter kapatıldıktan sonra otomatik olarak kaydedildi</string>
     <string name="rides_notes_section" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Notlar</string>
     <string name="rides_delete_ride" volt:src="751d2b3a49d9b5b28452341742e96f8841ccbdaf">Sürüşü sil</string>
     <string name="rides_reason_no_odometer" volt:src="d3f039e9f5a1e9deb5f3016da541a4c4e1f48622">Kilometre sayacı mesafesi yok</string>

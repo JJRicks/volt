@@ -335,7 +335,7 @@
     <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
     <string name="onboarding_new_unowned">A trotinete não está na app NAVEE</string>
     <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
-    <string name="onboarding_new_unowned_detail">Nunca adicionada à app ou removida dela</string>
+    <string name="onboarding_new_unowned_detail">Nunca foi adicionada à app ou foi removida dela</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">A app NAVEE não consegue adicionar esta trotinete enquanto tiver a chave da Volt. Para voltar à app NAVEE, liberta-a primeiro na Volt.</string>
     <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
@@ -444,6 +444,8 @@
     <string name="onboarding_done_revoke_description">Revogar acesso no Shizuku. Isto vai abrir o Shizuku para remover o acesso da Volt</string>
     <!-- src:3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d -->
     <string name="onboarding_done_home">Ir para o painel</string>
+    <!-- src:aee604de3c8494261aa6acb2f7b3ec40fec8cf22 -->
+    <string name="onboarding_done_home_starting">Ir para o painel, a iniciar</string>
     <!-- src:9143450ee6fff0ac2901e55d319a846be41e6d92 -->
     <string name="onboarding_fix_not_listed">Telemóvel não listado como «device»</string>
     <!-- src:278d58e30992d43cdb70badecba5d5dfa17ba857 -->

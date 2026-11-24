@@ -335,7 +335,7 @@
     <!-- src:b25db0c09133b077998dcceaf5e91ac4fb7d3030 -->
     <string name="onboarding_new_unowned">Scooter ist nicht in der NAVEE-App</string>
     <!-- src:a4a77a880a35967aedb23aad337239044f1c5485 -->
-    <string name="onboarding_new_unowned_detail">Nie zur NAVEE-App hinzugefügt oder daraus entfernt</string>
+    <string name="onboarding_new_unowned_detail">Wurde nie zur NAVEE-App hinzugefügt oder wurde daraus entfernt</string>
     <!-- src:6d87e3deb7df1cf9d6b122a75ea3676e12cd3221 -->
     <string name="onboarding_new_navee_note">Die NAVEE-App kann diesen Scooter nicht hinzufügen, solange er den Besitzerschlüssel von Volt hat. Um zurückzuwechseln, gib den Scooter zuerst in Volt frei.</string>
     <!-- src:3a568186f2bff90cda99c073d97fcebb09b8f01d -->
@@ -443,6 +443,8 @@
     <string name="onboarding_done_revoke_description">Zugriff in Shizuku entziehen. Öffnet Shizuku, um Volt den Zugriff zu entziehen</string>
     <!-- src:3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d -->
     <string name="onboarding_done_home">Zur Startseite</string>
+    <!-- src:aee604de3c8494261aa6acb2f7b3ec40fec8cf22 -->
+    <string name="onboarding_done_home_starting">Zur Startseite, wird gestartet</string>
     <!-- src:9143450ee6fff0ac2901e55d319a846be41e6d92 -->
     <string name="onboarding_fix_not_listed">Telefon nicht als „device“ aufgeführt</string>
     <!-- src:278d58e30992d43cdb70badecba5d5dfa17ba857 -->

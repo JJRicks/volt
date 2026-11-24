@@ -73,3 +73,4 @@
 {"back":"Descent","key":"controls_feature_hill_descent_control_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"ae8dde31911b96f4a313f7393f917525dcceb45b","target":"Descida"}
 {"back":"Excess speed","key":"controls_feature_overspeed_control_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"197de7eac4102495e8654ef24e068d5aec723bf5","target":"Excesso de vel."}
 {"back":"Unlocking by proximity","key":"controls_feature_proximity_key_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"292206d743077769324ab3de968fcbd627c6bc24","target":"Desbloqueio por proximidade"}
+{"back":"Turn on the scooter first","key":"controls_reason_scooter_off","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"9be0d0e13f941134dd3a36a4b7c59104a2c2efa0","target":"Ligue o patinete primeiro"}

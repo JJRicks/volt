@@ -509,6 +509,10 @@
     <string name="readings_chart_energy_distance">Enerji / mesafe</string>
     <!-- src:c6ec1bbdb20346e0a9dc7ccc190104f04ecbd601 -->
     <string name="readings_chart_gps_accuracy">GPS doğruluğu</string>
+    <!-- src:8bc308e584d95cb7b04f508d75f91e3992f19705 -->
+    <string name="readings_chart_distance">Mesafe</string>
+    <!-- src:223d805773db84cf33b85903488bda3471aace74 -->
+    <string name="readings_chart_gps_distance">GPS mesafesi</string>
     <!-- src:b1b01669302e998e619e58732cf9a7febe96ec96 -->
     <string name="readings_accuracy_value">±%1$s</string>
     <!-- src:c19948a14a0e989b0ca349d0fe8f7ad0c2a71486 -->

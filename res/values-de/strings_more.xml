@@ -395,6 +395,8 @@
     <string name="more_got_it">Verstanden</string>
     <!-- src:3485f8ced58988ac27332894343ce0ac775d9f7b -->
     <string name="more_pin_diagram">Lenker: 1 Blinkertaste, 2 Bremshebel, 3 Ein-/Aus-Schalter</string>
+    <!-- src:84a60e1062a3412e62cb7c3ac4b64f610bf21579 -->
+    <string name="more_pin_diagram_left_lever">Lenker: 1 Blinkertaste, 2 linker Bremshebel, 3 Ein-/Aus-Schalter</string>
     <!-- src:ccea9ff54e8269b640a7431056ad0bf00751d803 -->
     <string name="more_lab_untested">Funktionen zum Ausprobieren</string>
     <!-- src:d176dc690a1b4bdbbd757d43cb22ba97bf134b3b -->
@@ -522,6 +524,10 @@
     <string name="more_lab_status_unfinished_short">Unfertig</string>
     <!-- src:f1514f8c8838e6251befb786b99e058456331ff2 -->
     <string name="more_lab_status_not_tried">Noch nicht ausprobiert</string>
+    <!-- src:3f300893f33d87955591b60d6e9a34758d15264f -->
+    <string name="more_lab_status_tried_before">Bereits ausprobiert</string>
+    <!-- src:a7ca66e329791d35468bd4fb1e6fda5fe2b928eb -->
+    <string name="more_lab_status_tried_before_short">Ausprobiert</string>
     <!-- src:a94b0634c41fd88835795652cea91381b9004c7a -->
     <string name="more_lab_status_unverified">Bei deinem Modell nicht verifiziert</string>
     <!-- src:1e956029f1544e2359a928549a085516de057ec4 -->

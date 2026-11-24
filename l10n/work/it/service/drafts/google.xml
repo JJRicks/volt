@@ -187,6 +187,10 @@
     <string name="service_ride_no_motion" volt:src="1175746b7b50aefa314f3cc122b7ee0982a0872f">Nessun movimento per 10 minuti</string>
     <string name="service_ride_no_motion_at" volt:src="b74173fd30a4c9bafab09bfc4ba008fa67caf695">Nessun movimento per 10 minuti. Orario di fine: %1$s, ultimo movimento.</string>
     <string name="service_ride_no_motion_label_at" volt:src="07df7d4d8bed1104f4b691782f834b3cdf1ed463">%1$s · Nessun movimento per 10 minuti. Orario di fine: %2$s, ultimo movimento.</string>
+    <string name="service_ride_switched_off" volt:src="35b8571f78c3bf9b1e168e394971689eed4e85c6">Monopattino spento</string>
+    <string name="service_ride_switched_off_label" volt:src="075ff1754c68b0ec74957cdbac62105c31412db5">%1$s · Monopattino spento</string>
+    <string name="service_ride_switched_off_at" volt:src="140c15406c731deeb53385bfb51698a9dfa7b31b">Monopattino spento. Terminata alle ore %1$s, al suo ultimo movimento.</string>
+    <string name="service_ride_switched_off_label_at" volt:src="19caa3e5ef9b099bb2e1476b4f82d1f88f395416">%1$s · Monopattino spento. Terminata alle ore %2$s, al suo ultimo movimento.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Connessione e registrazione monopattino</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Misurazione in corso della ricarica per «Ricarica entro»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Test della ricarica programmata in corso</string>

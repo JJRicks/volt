@@ -73,3 +73,4 @@
 {"back":"Start charg.","key":"controls_feature_charge_start_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"03f1f88780620a29167bab73b48cd85097cfa5c8","target":"Start ład."}
 {"back":"Walking assist.","key":"controls_feature_hill_start_assist_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e186f5cd41697fa57ffb78747d01c02a538b81ec","target":"Wspom. piesze"}
 {"back":"Power assist.","key":"controls_feature_parking_assist_short","model":"gpt-6.1-sol","model_reported":"gpt-6.1-sol","provider":"openai","source_sha1":"e143dc46cc0f3d598a9d06a21319aa4063756882","target":"Wspom. mocą"}
+{"back":"First, you must turn on the scooter.","key":"controls_reason_scooter_off","model":"gpt-6.2-sol","model_reported":"gpt-6.2-sol","provider":"openai","source_sha1":"9be0d0e13f941134dd3a36a4b7c59104a2c2efa0","target":"Najpierw należy włączyć hulajnogę"}
