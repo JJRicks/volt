@@ -112,8 +112,9 @@ final class MapStyleControls {
         @Override protected void onMeasure(int widthSpec, int heightSpec) {
             boolean beside = true;
             if (style.getVisibility() != GONE && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
-                int room = (MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight() - ui.dp(GAP_DP)) / 2;
-                beside = natural(basemap) <= room && natural(style) + ui.dp(INSET_DP) <= room;
+                // The halves arrange(true) makes: Dark map's start gap and end inset come off before the split.
+                beside = MapStyle.beside(MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight(),
+                        ui.dp(GAP_DP), ui.dp(INSET_DP), natural(basemap), natural(style));
             }
             arrange(beside);
             super.onMeasure(widthSpec, heightSpec);

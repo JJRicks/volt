@@ -52,4 +52,16 @@ final class MapStyle {
      * settings also the Just back card's own), since the style changes nothing without one.
      */
     static boolean shown(boolean rideMaps, boolean card) { return rideMaps || card; }
+
+    /**
+     * Whether the ride maps' Basemap and Dark map switches share their row (MapStyleControls.RideRow): both whole labels
+     * fit the halves the row gives them. width is the row's inner width, gap the margin before Dark map and inset the one
+     * after it, basemap and style each switch's width with its whole label on one line (px).
+     */
+    static boolean beside(int width, int gap, int inset, int basemap, int style) {
+        // Each weighted half is what is left after Dark map's two margins, halved (the odd pixel goes to one child, so the
+        // floor is the half both must fit).
+        int half = (width - gap - inset) / 2;
+        return basemap <= half && style <= half;
+    }
 }

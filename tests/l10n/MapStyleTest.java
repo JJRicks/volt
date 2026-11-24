@@ -18,6 +18,7 @@ public final class MapStyleTest {
         states();
         flips();
         shown();
+        beside();
         registry();
         tiles();
         backups();
@@ -58,10 +59,38 @@ public final class MapStyleTest {
         check(MapStyle.shown(true, false) && MapStyle.shown(false, true) && MapStyle.shown(true, true), "either basemap on: the switch shows");
     }
 
+    /**
+     * The ride maps' row (MapStyleControls.RideRow.arrange) gives each switch an equal half of what is left after Dark
+     * map's margins, gap before and inset after it: (width - gap - inset) / 2. Side by side only when both whole labels
+     * fit those halves; at a label 1 px wider than its half the row stacks, or Basemap would break mid-word (#614 review).
+     */
+    private static void beside() {
+        int width = 1000, gap = 42, inset = 10, half = (width - gap - inset) / 2;
+        check(MapStyle.beside(width, gap, inset, half, half), "both labels exactly as wide as their halves: side by side");
+        check(!MapStyle.beside(width, gap, inset, half + 1, 100), "Basemap 1 px wider than its half stacks (it would break mid-word)");
+        check(!MapStyle.beside(width, gap, inset, 100, half + 1), "Dark map 1 px wider than its half stacks");
+        // The window the review found: wider than (width - gap - inset) / 2 but within (width - gap) / 2.
+        int old = (width - gap) / 2;
+        check(old > half && !MapStyle.beside(width, gap, inset, old, 100), "a Basemap label between the two measures stacks");
+        check(MapStyle.beside(width, gap, inset, 0, 0) && !MapStyle.beside(0, gap, inset, 1, 1), "short labels share; no room, no sharing");
+        // An odd width: LinearLayout hands the odd pixel to one child, so the floor half is the one both must fit.
+        check(MapStyle.beside(width + 1, gap, inset, half, half) && !MapStyle.beside(width + 1, gap, inset, half + 1, half), "an odd width keeps the floor half");
+    }
+
     private static void registry() {
         BackupRegistry.Rule rule = BackupRegistry.rule("app_settings", MapStyle.KEY);
         check(rule != null && BackupRegistry.PREFERENCES.equals(rule.category) && rule.type == String.class && !rule.perProfile,
                 "it travels in backups with App preferences, as a string for the whole app");
+        int ours = DiagnosticsSettings.KEYS.indexOf(MapStyle.KEY), card = DiagnosticsSettings.KEYS.indexOf(JustBackBasemap.KEY);
+        check(ours >= 0 && ours == card + 1, "the diagnostics settings list it after the Just back basemap");
+        for (String pick : new String[]{MapStyle.DARK, MapStyle.LIGHT}) {
+            Map<String, Object> stored = new HashMap<>();
+            stored.put(MapStyle.KEY, pick);
+            Object listed = ((Map<?, ?>) DiagnosticsSettings.section(stored, null).get("app")).get(MapStyle.KEY);
+            check(pick.equals(listed), "the diagnostics settings show the pick as it is: " + listed);
+        }
+        Object never = ((Map<?, ?>) DiagnosticsSettings.section(new HashMap<String, Object>(), null).get("app")).get(MapStyle.KEY);
+        check(never == null, "never picked shows as no value: " + never);
     }
 
     /** One tile treatment for both maps: the one the Just back card was tuned with (Nov 19 2026). */
