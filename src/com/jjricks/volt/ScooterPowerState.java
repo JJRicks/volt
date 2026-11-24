@@ -107,6 +107,17 @@ final class ScooterPowerState {
         return new Result(State.OFF, Why.SILENT);
     }
 
+    /**
+     * Connected, but not yet shown to be on: no push on this connection (before the link is ready, in the grace, or with
+     * its status stale), on a judged scooter ({@code armed}), not charging, not the simulator, and not already off. A
+     * switched-off scooter that keeps answering looks exactly like this until its verdict; a ride's auto-end does not take
+     * such a link as a reconnect (RideAutoStopPolicy.Link), only its first push.
+     */
+    boolean awaitingPush(Result verdict, boolean armed) {
+        if (!armed || lastPush > 0 || verdict == null || verdict.off()) return false;
+        return verdict.why != Why.SIMULATION && verdict.why != Why.CHARGING && verdict.why != Why.PUSHING;
+    }
+
     /** What BleController's event log records for a verdict, given whether it last logged off. */
     enum Logged { NONE, SWITCHED_OFF, SWITCHED_ON, CLEARED }
 

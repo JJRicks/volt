@@ -67,7 +67,7 @@ public final class BleController {
     /** Status values already flagged this session (once per control), and the last frame checked. */
     private final HashSet<String> flaggedStatus=new HashSet<>();private byte[] statusChecked;private long statusCheckedMs;
     private Listener listener;private BluetoothGatt gatt;private BluetoothGattCharacteristic writer;private BluetoothLeScanner scanner;private ScooterProfiles.Profile profile;
-    private State state=State.DISCONNECTED;private CharSequence message=M.bleStatusNotConnected();private String serial="";private boolean invalidFrameNoted,checksumNoted;private boolean authenticated,wanted,scanning,writing,mtuRequested,discovered,subscribing,subscribed,challengePending,visible,recording;
+    private State state=State.DISCONNECTED;private CharSequence message=notConnected();private String serial="";private boolean invalidFrameNoted,checksumNoted;private boolean authenticated,wanted,scanning,writing,mtuRequested,discovered,subscribing,subscribed,challengePending,visible,recording;
     private long generationStartMs;private int generation,writeOperation,authRounds,retries,pollTicks,mtu=23;private long statusMs,lastFrameMs,motionMs,warningMs;
     /** Switched off but answering (ScooterPowerState, 2.0.5 item 5): this session's pushes, the latest one's time (now()), and the state last logged. */
     private final ScooterPowerState power=new ScooterPowerState();private long pushMs;private boolean offLogged;private int speedRaw=-1,driving=-1,warning;
@@ -319,6 +319,28 @@ public final class BleController {
     private long readingAge(String key){for(Telemetry.Metric m:telemetry.metrics())if(m.key.equals(key))return m.updatedMs>0&&now()>=m.updatedMs?now()-m.updatedMs:-1;return -1;}
     /** Judged at all: the UT5 MAX layer, or a scooter that has pushed on an earlier connection. */
     private boolean powerArmed(){ScooterProfiles.Profile p=profile();return ScooterPowerState.armed(ModelRegistry.resolve(descriptor()).layer==ModelRegistry.Layer.UT5_MAX,p!=null&&p.pushesSeen);}
+    /**
+     * Up, but no push yet on this connection to a scooter that is judged (ScooterPowerState.awaitingPush): a ride's
+     * auto-end keeps its countdown until the first push or the off verdict.
+     */
+    public boolean awaitingPush(){return !simulating()&&connected()&&power.awaitingPush(powerVerdict(),powerArmed());}
+    /** Judged by ScooterPowerState: the UT5 MAX layer, or this scooter pushed before (never the simulator). */
+    public boolean powerJudged(String profileId){ScooterProfiles.Profile p=profile();return !simulating()&&p!=null&&p.id.equals(profileId)&&powerArmed();}
+    /** Automatic reconnects to the active scooter are paused after its ride ended with it switched off or gone (OffReconnectHold). */
+    public boolean reconnectPaused(){ScooterProfiles.Profile p=profile();return p!=null&&offHold.held(p.id);}
+    /**
+     * A ride on this scooter just ended automatically (stopReason, RideStore's token): when OffReconnectHold.pauses says so,
+     * Volt stops reconnecting to it by itself. A waiting reconnect is dropped; a link that is still up stays.
+     */
+    public void rideEndedAutomatically(String profileId,String stopReason){
+        if(!OffReconnectHold.pauses(stopReason,powerJudged(profileId)))return;
+        offHold.hold(profileId);event("Ride ended with the scooter off or gone: reconnects paused until you connect or open Volt");
+        if(gatt==null&&state==State.WAITING){state=State.DISCONNECTED;message=notConnected();changed();}
+    }
+    /** The idle state's words, at start and when a paused reconnect is dropped. */
+    private static CharSequence notConnected(){return M.bleStatusNotConnected();}
+    /** The rider connects (connectLast, a scan pick) or the scooter pushed: automatic reconnects resume. */
+    private void resumeReconnects(String profileId){if(offHold.release(profileId))event("Reconnects resume");}
     /** The latest push this connection (now() time), 0 for none: a ride's auto-end times a switch-off from it. */
     public long lastPushMs(){return simulating()?0:pushMs;}
     /** The diagnostics file's push_frames section. */
@@ -329,6 +351,7 @@ public final class BleController {
     private void pushed(){
         pushMs=now();
         ScooterProfiles.Profile p=profile;
+        if(p!=null&&offHold.release(p.id))event("Scooter pushing again: reconnects resume");
         if(p!=null&&!p.pushesSeen){p.pushesSeen=true;profiles.update(p);}
         observePower();
     }
@@ -487,7 +510,7 @@ public final class BleController {
     public boolean bluetoothEnabled(){try{return adapter!=null&&permissions()&&adapter.isEnabled();}catch(SecurityException denied){return false;}}
     public boolean bonded(){return !simulating()&&permissions()&&gatt!=null&&gatt.getDevice().getBondState()==BluetoothDevice.BOND_BONDED;}
     public void bond(){if(simulating()){simulationUnavailable("Bluetooth pairing");return;}if(!gate(new MutationGate.Request(MutationGate.Kind.BOND,"proximity_key",1,MutationGate.Origin.USER)))return;if(pinStateMs==0||now()-pinStateMs>10000){readPin();notice(M.blePairReadPin());return;}if(pinState==null||pinState.status!=0||!pinState.configured||!Boolean.TRUE.equals(pinState.enabled)){notice(M.blePairNeedsPin());return;}if(bonded()){notice(M.blePairAlready());return;}try{if(gatt.getDevice().createBond()){bondAttemptMac=gatt.getDevice().getAddress();pairingEndedMac="";notice(M.blePairApprove());}else notice(M.blePairNotStarted());}catch(Exception e){notice(M.blePairUnavailable());}}
-    private final BroadcastReceiver bluetoothReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent intent){if(simulating())return;if(BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())){int value=intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,-1);if(value==BluetoothAdapter.STATE_OFF){if(gatt!=null||wanted||state==State.WAITING)failed(BLUETOOTH_OFF,false,ConnectionEventLog.Reason.ADAPTER_OFF,value);else recordDiagnostic(ConnectionEventLog.Reason.ADAPTER_OFF,value);}else if(value==BluetoothAdapter.STATE_ON&&wanted&&gatt==null&&workAllowed())connectLast();return;}BluetoothDevice device=intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);if(device==null)return;String mac=device.getAddress();
+    private final BroadcastReceiver bluetoothReceiver=new BroadcastReceiver(){@Override public void onReceive(Context c,Intent intent){if(simulating())return;if(BluetoothAdapter.ACTION_STATE_CHANGED.equals(intent.getAction())){int value=intent.getIntExtra(BluetoothAdapter.EXTRA_STATE,-1);if(value==BluetoothAdapter.STATE_OFF){if(gatt!=null||wanted||state==State.WAITING)failed(BLUETOOTH_OFF,false,ConnectionEventLog.Reason.ADAPTER_OFF,value);else recordDiagnostic(ConnectionEventLog.Reason.ADAPTER_OFF,value);}else if(value==BluetoothAdapter.STATE_ON&&wanted&&gatt==null&&workAllowed()&&!reconnectPaused())connectLast();return;}BluetoothDevice device=intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);if(device==null)return;String mac=device.getAddress();
             boolean ours=gatt!=null&&mac.equals(gatt.getDevice().getAddress()),attempted=mac.equals(bondAttemptMac);if(!ours&&!attempted)return;
             int value=intent.getIntExtra(BluetoothDevice.EXTRA_BOND_STATE,-1);bondCheckedMs=0;Integer near=ours?featureValue(ProximityFollowUp.KEY):null;
             if(value==BluetoothDevice.BOND_BONDED){bondAttemptMac=pairingEndedMac="";notice(ProximityFollowUp.pairedNotice(near));}
@@ -508,14 +531,18 @@ public final class BleController {
      * Moving the poll also moves its silence check, so a switch checks silence itself first: requests and switches alone
      * (Volt in and out of sight) never keep a link that stopped answering, past the limits in awake time.
      */
-    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
-    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(heldBack(p))return;if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
+    public void visibility(boolean v,boolean r,long deadline){if(simulating()){visible=v;recording=false;backgroundDeadlineMs=0;cadence.cadence(v);if(v)tickSimulation();return;}boolean resumed=v&&!visible,started=r&&!recording;if(resumed&&offHold.releaseAll())event("Volt opened: reconnects resume");visible=v;recording=r;backgroundDeadlineMs=deadline;boolean switched=cadence.cadence(v||r);if(started&&discovering)stopDiscovery();if(!workAllowed())suspend();else if(switched&&authenticated&&gatt!=null&&lostToSilence())return;else if(resumed&&authenticated)refresh(false);if(switched)cadence.retime();}
+    /**
+     * Connects to the active scooter. Every automatic caller checks reconnectPaused() first (OffReconnectHold), so a call
+     * that gets here is the rider's own (or a recording's) and ends that pause.
+     */
+    public void connectLast(){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}if(heldBack(p))return;resumeReconnects(p.id);if(gatt!=null&&(state==State.CONNECTING||state==State.AUTHENTICATING||connected())&&profile!=null&&p.id.equals(profile.id))return;wanted=true;retries=0;identifying=false;if(p.mac.isEmpty())scan();else connect(p,p.mac);}
     public void connectDiscovered(ScanResult result){if(simulating()){connectSimulation();return;}if(!workAllowed()){suspend();return;}ScooterProfiles.Profile p=profiles.active();if(p==null||!p.configured()){notice(NO_PROFILE);return;}
         if(heldBack(p))return;
         // Never a saved scooter's owner key to another address without a confirmed find (FindNearby.mayConnect): the
         // ordinary scan sheet routes such a pick through find mode, and this refuses anything else.
         if(!FindNearby.mayConnect(p.mac,result.getDevice().getAddress(),pendingFindMac))return;
-        wanted=true;retries=0;
+        resumeReconnects(p.id);wanted=true;retries=0;
         // Remember this device's advertised model ID; remember() commits it only after authentication and a serial match.
         String mac=result.getDevice().getAddress();AdvertisedIdentity.Result id=advertised.get(mac);if(id==null&&result.getScanRecord()!=null)id=AdvertisedIdentity.parse(result.getScanRecord().getBytes());
         pendingAdvertised=id;pendingAdvertisedMac=id==null?"":mac;connect(p,mac);}
@@ -701,6 +728,8 @@ public final class BleController {
         // onboarding waiting for a retry that cannot be scheduled: let it offer Try again.
         boolean reconnect=retry&&wanted&&workAllowed()&&profile!=null&&!profile.mac.isEmpty();
         if(releaseHold)reconnect=false;
+        // A ride that ended with this scooter switched off or gone pauses automatic reconnects (OffReconnectHold).
+        if(profile!=null&&offHold.held(profile.id))reconnect=false;
         // A sent proximity change is not cancelled by a drop: some scooters restart Bluetooth after taking it. Its expected
         // value (and completion) waits for the automatic reconnect's first status read (confirmRecheck).
         ProximityFollowUp.Recheck next=!dropped||recheck!=null?null:ProximityFollowUp.afterDrop(mutation.key,mutation.sent,guided(mutation),reconnect,
@@ -718,7 +747,7 @@ public final class BleController {
         notice(shown,code==-1?shown:shown+" ("+code+")");
         if(reconnect){
             int session=generation;long delay=Math.min(60000,1000L<<Math.min(6,retries++));event("Reconnect in "+delay/1000+"s");
-            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed())connect(profile,profile.mac);},delay);
+            handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed()&&!offHold.held(profile.id))connect(profile,profile.mac);},delay);
         }
     }
     private void notice(CharSequence text){notice(text,ConnectionText.english(text));}
@@ -1136,6 +1165,8 @@ public final class BleController {
      * background connection and failed()'s retry all reach heldBack or retries before connecting.
      */
     private ReleaseHolds releaseHolds;
+    /** Automatic reconnects paused after a ride ended with its scooter switched off or gone (in this process only). */
+    private final OffReconnectHold offHold=new OffReconnectHold();
     private ReleaseHolds releaseHolds(){
         if(releaseHolds==null){SharedPreferences saved=context.getSharedPreferences(ReleaseHolds.PREFERENCES,Context.MODE_PRIVATE);
             releaseHolds=new ReleaseHolds(saved.getStringSet(ReleaseHolds.HELD,null),saved.getStringSet(ReleaseHolds.OWED,null),

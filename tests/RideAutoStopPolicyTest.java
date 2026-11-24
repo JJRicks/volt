@@ -39,6 +39,7 @@ public final class RideAutoStopPolicyTest {
         scooterOffWhileAnswering();
         switchedOffRideEndsWhileLinked();
         statusGapKeepsOffCountdown();
+        pushlessReconnectKeepsCountdown();
         System.out.println("RideAutoStopPolicyTest: " + checks + " assertions passed");
     }
 
@@ -562,5 +563,48 @@ public final class RideAutoStopPolicyTest {
                 if (at >= last + ScooterPowerState.SILENCE_MS) check(r.off() && p.quietSince() == last, "Off and counting from the last push at " + (at - last));
             } else check(stop == RideAutoStopPolicy.Stop.QUIET, "Ends a minute after the last push, the gap notwithstanding");
         }
+    }
+    private static RideAutoStopPolicy.Link reconnected(long frame, boolean off, boolean awaiting) {
+        return RideAutoStopPolicy.Link.up(PROFILE, SERIAL, 2, frame, 0, -1, -1, off, awaiting, 0);
+    }
+
+    /**
+     * 2.0.5 item 5 follow-up (owner's 17:34 ride): the scooter switched off, the link dropped, and Volt reconnected four
+     * minutes later to a scooter that answered but never pushed. That reconnect cancelled the countdown. Now a reconnect
+     * that brings no push (awaiting its first push, then switched off) keeps the countdown, which ends on time; a
+     * reconnect with a push cancels it as before; a scooter that is never judged keeps today's behaviour.
+     */
+    private static void pushlessReconnectKeepsCountdown() {
+        RideAutoStopPolicy p = policy();
+        push(p, T, 250, 1); push(p, T + 1000, 250, 1);
+        long last = T + 1000;
+        check(tick(p, last + 3000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE)) == RideAutoStopPolicy.Stop.NONE
+                && p.quiet() == RideAutoStopPolicy.Quiet.LONG && p.quietSince() == last, "Dropped at riding speed: five minutes");
+        long back = last + 240_000, at = back;
+        for (; at < back + 10_000; at += 1000)
+            check(tick(p, at, reconnected(at, false, true)) == RideAutoStopPolicy.Stop.NONE && p.quietArmed() && p.quietSince() == last, "Reconnected, no push yet: the countdown keeps running at " + (at - back));
+        for (; at < last + RideAutoStopPolicy.QUIET_LONG_MS; at += 1000)
+            check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.NONE && p.quietSince() == last, "Off but answering: still counting at " + (at - last));
+        check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.QUIET, "Ends on time, five minutes after the last frame before the drop");
+
+        // The deadline passes while the reconnect still awaits its first push: nothing ends during that grace...
+        p = policy(); push(p, T, 250, 1); last = T;
+        tick(p, last + 3000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE));
+        long late = last + RideAutoStopPolicy.QUIET_LONG_MS - 2000;
+        for (at = late; at < late + 10_000; at += 1000)
+            check(tick(p, at, reconnected(at, false, true)) == RideAutoStopPolicy.Stop.NONE, "Awaiting its first push: no end yet at " + (at - late));
+        check(tick(p, at, reconnected(at, true, false)) == RideAutoStopPolicy.Stop.QUIET, "...then off: it ends at once");
+        // ...and a push in that grace cancels it, as any authenticated reconnect does.
+        p = policy(); push(p, T, 250, 1); last = T;
+        tick(p, last + 3000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE));
+        tick(p, late, reconnected(late, false, true)); tick(p, late + 1000, reconnected(late + 1000, false, true));
+        check(tick(p, late + 1500, up(late + 1500, late + 1500, 0, 0, false, late + 1500)) == RideAutoStopPolicy.Stop.NONE && !p.armed(), "A push cancels it");
+        for (at = late + 2000; at < late + 60_000; at += 1000) check(tick(p, at, up(at, at, 0, 0, false, at)) == RideAutoStopPolicy.Stop.NONE, "And it rides on");
+
+        // A scooter that is never judged: a reconnect without a push cancels the countdown, as today.
+        p = policy(); push(p, T, 250, 1); last = T;
+        tick(p, last + 3000, RideAutoStopPolicy.Link.down(RideAutoStopPolicy.Loss.RECOVERABLE));
+        tick(p, last + 240_000, reconnected(last + 240_000, false, false));
+        check(!p.armed(), "Never judged: today's behaviour");
     }
 }

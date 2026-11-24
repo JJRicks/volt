@@ -316,31 +316,52 @@ public final class RideAutoStopPolicy {
      */
     public static final class Link {
         public final boolean connected, switchedOff;
+        /** Up, but no push yet on a scooter that is judged (ScooterPowerState.awaitingPush): not yet a reconnect. */
+        public final boolean awaitingPush;
         final String profile, serial;
         final int transport, speedRaw, driving;
         final long frameMono, motionMono, pushMono;
         final Loss loss;
-        private Link(boolean connected, boolean switchedOff, String profile, String serial, int transport, long frameMono, long motionMono,
+        private Link(boolean connected, boolean switchedOff, boolean awaitingPush, String profile, String serial, int transport, long frameMono, long motionMono,
                 int speedRaw, int driving, long pushMono, Loss loss) {
-            this.connected = connected; this.switchedOff = switchedOff; this.profile = profile; this.serial = serial; this.transport = transport;
+            this.connected = connected; this.switchedOff = switchedOff; this.awaitingPush = awaitingPush; this.profile = profile; this.serial = serial; this.transport = transport;
             this.frameMono = frameMono; this.motionMono = motionMono; this.speedRaw = speedRaw; this.driving = driving; this.pushMono = pushMono; this.loss = loss;
         }
         /** An authenticated link, as {@link #connected} takes it; pushMono is its latest push (0 for none). */
         public static Link up(String boundProfile, String transportSerial, int transport, long frameMono, long motionMono, int speedRaw, int driving,
                 boolean switchedOff, long pushMono) {
-            return new Link(true, switchedOff, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, pushMono, null);
+            return up(boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, switchedOff, false, pushMono);
+        }
+        /** As above; awaitingPush: no push yet on this connection to a judged scooter ({@link #awaitingPush}). */
+        public static Link up(String boundProfile, String transportSerial, int transport, long frameMono, long motionMono, int speedRaw, int driving,
+                boolean switchedOff, boolean awaitingPush, long pushMono) {
+            return new Link(true, switchedOff, awaitingPush && !switchedOff, boundProfile, transportSerial, transport, frameMono, motionMono, speedRaw, driving, pushMono, null);
         }
         /** No authenticated link: the loss as {@link #loss} classifies it. */
-        public static Link down(Loss loss) { return new Link(false, false, "", "", 0, 0, 0, -1, -1, 0, loss); }
+        public static Link down(Loss loss) { return new Link(false, false, false, "", "", 0, 0, 0, -1, -1, 0, loss); }
     }
 
-    /** One observation of the link: a loss, a switched-off scooter still answering, or an authenticated connection. */
+    /**
+     * One observation of the link: a loss, a switched-off scooter still answering, a connection still awaiting its first
+     * push, or an authenticated connection.
+     */
     public void observe(long now, Link link) {
         if (link == null) return;
         if (!link.connected) disconnected(now, link.loss);
         else if (link.switchedOff) scooterOff(now, link.pushMono, link.frameMono);
+        else if (link.awaitingPush) awaitingPush(now);
         else connected(now, link.profile, link.serial, link.transport, link.frameMono, link.motionMono, link.speedRaw, link.driving);
     }
+
+    /**
+     * Connected again, but the scooter has not pushed yet on this connection and is judged by ScooterPowerState (2.0.5 item
+     * 5 follow-up): a switched-off scooter that keeps answering reads looks exactly like this. It is not a reconnect, so a
+     * running countdown keeps its deadline: the owner's 23 November ride ran on because a reconnect four minutes after the
+     * switch-off, to a scooter that never pushed, cancelled it. The first push is the reconnect ({@link #connected}); the off
+     * verdict, 10 s later at most, is {@link #scooterOff}. Meanwhile {@link #mayEnd} is false, so a deadline passing in
+     * that grace waits for the verdict instead of cutting off a scooter that is about to push.
+     */
+    public void awaitingPush(long now) { clock(now); }
 
     /** Whether rules 1 and 2 may end the ride with this link: gone, or up to a scooter switched off; never one that is on. */
     public static boolean mayEnd(Link link) { return link == null || !link.connected || link.switchedOff; }

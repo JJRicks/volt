@@ -2483,7 +2483,8 @@ public final class ScooterService extends Service {
         else if (connect
                 && (visible || backgroundConnection())
                 && settings.getBoolean("auto_connect", true)
-                && ble.state() == BleController.State.DISCONNECTED) ble.connectLast();
+                && ble.state() == BleController.State.DISCONNECTED
+                && !ble.reconnectPaused()) ble.connectLast();
         changed();
     }
     private void stopIdleWork(){
@@ -2612,7 +2613,7 @@ public final class ScooterService extends Service {
     private RideAutoStopPolicy.Link autoStopLink(){
         if(!ble.connected())return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
         ScooterProfiles.Profile bound=ble.profile();
-        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.lastPushMs());
+        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());
     }
     /** Called from the tick only, after this tick's observation: ends the ride when one of the three rules is due (RideAutoStopPolicy.due). */
     private void autoStopDue(RideAutoStopPolicy policy,long now){
@@ -2658,6 +2659,8 @@ public final class ScooterService extends Service {
         if(destroyed||policy==null||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId())||!RideAutoStopPolicy.mayEnd(autoStopLink()))return;
         String id=policy.rideId;
         if(stopRide(reason)){
+            // Switched off or gone: stop reconnecting to it by itself until the rider connects, Volt opens or it pushes (OffReconnectHold).
+            ble.rideEndedAutomatically(policy.profile,reason);
             if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
             showAutoStopNotice(id,reason);
         }

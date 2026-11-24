@@ -35,9 +35,11 @@ public final class RideAutoStopWireTest {
             bluetoothBackOnBeforeTheScooter();
             parkedRuleStillWins();
             switchedOffWhileAnsweringEndsWithTheLinkUp();
+            pushlessReconnectKeepsTheCountdown();
             settingOffCancels();
             text();
             serviceWiring();
+            reconnectHoldWiring();
         } finally {
             T.install(null);
             for (File f : folders) remove(f);
@@ -141,8 +143,9 @@ public final class RideAutoStopWireTest {
             if (!autoStop) { policy.reset(); return; }
             syncPower();
             boolean fresh = connected && lastFrame > 0 && now - lastFrame <= CapabilityResolver.STATUS_MAX_AGE_MS;
-            boolean off = connected && power.verdict(now, false, fresh, armed, fresh, false).off();
-            link = connected ? RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving, off, lastPush)
+            ScooterPowerState.Result verdict = power.verdict(now, false, fresh, armed, fresh, false);
+            boolean off = connected && verdict.off(), awaiting = connected && power.awaitingPush(verdict, armed);
+            link = connected ? RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving, off, awaiting, lastPush)
                     : RideAutoStopPolicy.Link.down(loss());
             policy.observe(now, link);
         }
@@ -300,6 +303,26 @@ public final class RideAutoStopWireTest {
         check(other.stoppedAt < 0 && !other.policy.armed(), "a scooter that is never judged keeps main's behaviour: polls answered, nothing ends before rule 3");
     }
 
+    /**
+     * The owner's 17:34 ride: switched off at riding speed, the link dropped, and Volt reconnected four minutes later to a
+     * scooter that answered but never pushed. That reconnect no longer cancels the countdown: the ride ends five minutes
+     * after the last frame, the new link still up. A scooter that is never judged keeps today's behaviour.
+     */
+    private static void pushlessReconnectKeepsTheCountdown() throws IOException {
+        for (boolean judged : new boolean[]{true, false}) {
+            Service s = new Service(judged ? "Off, then reconnected" : "Never judged", 10000); s.armed = judged;
+            s.ride(250, 1, 200000);
+            long last = s.lastPush;
+            s.run(last + 240000);
+            check(!s.connected && s.policy.quiet() == RideAutoStopPolicy.Quiet.LONG && s.policy.quietSince() == last, "dropped at riding speed: five minutes");
+            s.connected = true; s.transport = 2;
+            while (s.now < last + 302000) { if (s.now % 2000 == 0) s.poll(); s.tick(); }
+            if (judged) check(s.stoppedAt == last + 300000 && s.connected && RideStore.STOP_AUTO_QUIET.equals(s.saved.stopReason),
+                    "a reconnect without a push keeps the countdown: ends five minutes after the last frame, the link up: " + (s.stoppedAt - last));
+            else check(s.stoppedAt < 0 && !s.policy.armed(), "never judged: the reconnect cancels it, as today");
+        }
+    }
+
     private static void settingOffCancels() throws IOException {
         Service s = new Service("Setting off", 10000);
         s.ride(30, 1, 100000);
@@ -342,7 +365,7 @@ public final class RideAutoStopWireTest {
         String link = between(src, "private RideAutoStopPolicy.Link autoStopLink(){", "\n    }");
         check(link.contains("return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));"),
                 "the service reports Bluetooth off as its own loss");
-        check(link.contains("ble.scooterOff(),ble.lastPushMs());"), "and a scooter switched off but answering, with its last push");
+        check(link.contains("ble.scooterOff(),ble.awaitingPush(),ble.lastPushMs());"), "and a scooter switched off but answering, or still awaiting its first push, with its last push");
         String auto = between(src, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
         check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("!RideAutoStopPolicy.mayEnd(autoStopLink()))return;"),
                 "an automatic end goes through stopRide(reason) after the ownership checks, with the scooter gone or switched off");
@@ -351,6 +374,26 @@ public final class RideAutoStopWireTest {
         check(stop.contains("stopPhoneRecording();"), "stopRide finishes the phone journal");
         check(between(src, "private void stopPhoneRecording(){", "phoneLocationForeground=false;}").contains("rideFullySaved();"), "the finished phone journal reaches rideFullySaved");
         check(between(src, "private void rideFullySaved(){", "}").contains("startRideAutoExport();"), "rideFullySaved starts the automatic ride copy");
+    }
+    /**
+     * The reconnect hold after a switched-off or gone scooter's ride ended (OffReconnectHold), read from source: set by
+     * the automatic stop, asked by every automatic reconnect, released by the rider's connect, Volt opening, or a push.
+     */
+    private static void reconnectHoldWiring() throws IOException {
+        String svc = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
+        String ble = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/BleController.java")), StandardCharsets.UTF_8).replace("\r", "");
+        String auto = between(svc, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
+        check(auto.indexOf("ble.rideEndedAutomatically(policy.profile,reason);") > auto.indexOf("if(stopRide(reason)){"), "a saved automatic end of rules 1 and 2 may pause reconnects");
+        check(!between(svc, "private void autoStopNoMotion(RideAutoStopPolicy policy){", "\n    }").contains("rideEndedAutomatically"), "rule 3 (connected and on) never does");
+        check(svc.contains("&& ble.state() == BleController.State.DISCONNECTED\n                && !ble.reconnectPaused()) ble.connectLast();"), "auto-connect asks first");
+        String failed = between(ble, "private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){", "\n    }");
+        check(failed.contains("if(profile!=null&&offHold.held(profile.id))reconnect=false;") && failed.contains("workAllowed()&&!offHold.held(profile.id))connect(profile,profile.mac);"),
+                "the retry loop neither schedules nor runs a reconnect while paused");
+        check(ble.contains("STATE_ON&&wanted&&gatt==null&&workAllowed()&&!reconnectPaused())connectLast();"), "Bluetooth back on asks first");
+        check(ble.contains("if(resumed&&offHold.releaseAll())"), "Volt opening again releases every pause");
+        check(between(ble, "private void pushed(){", "\n    }").contains("offHold.release(p.id)"), "a push releases its scooter");
+        check(between(ble, "public void connectLast(){", "\n").contains("if(heldBack(p))return;resumeReconnects(p.id);"), "the rider's connect releases it");
+        check(ble.contains("resumeReconnects(p.id);wanted=true;retries=0;"), "so does a scan pick");
     }
     private static String between(String text, String start, String end) {
         int a = text.indexOf(start); check(a >= 0, "found " + start);
