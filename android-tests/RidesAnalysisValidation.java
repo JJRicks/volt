@@ -626,10 +626,21 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
         int casing=(int)invoke(map,"routeCasingColor",new Class[0]);check(casing==(activity.ui().dark?android.graphics.Color.WHITE:0xff20242c),"Map canvas chooses contrasting route casing");
         setField(map,"streets",true);int tileCasing=(int)invoke(map,"routeCasingColor",new Class[0]);setField(map,"streets",false);
         // A basemap's casing follows the map style (MapStyle): dark on light tiles, white on dark ones, in either theme.
-        check(tileCasing==((boolean)invoke(map,"darkTiles",new Class[0])?android.graphics.Color.WHITE:0xff20242c),"Basemap casing contrasts with the map style's tiles");
-        check((android.graphics.Color.luminance(0xffe2e2e2)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Neutral route has at least 3:1 against casing");
-        check((android.graphics.Color.luminance(0xffffd246)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Yellow route endpoint has at least 3:1 against casing");
+        boolean darkMap=(boolean)invoke(map,"darkTiles",new Class[0]);
+        check(tileCasing==(darkMap?android.graphics.Color.WHITE:0xff20242c),"Basemap casing contrasts with the map style's tiles");
+        if(darkMap){
+            // A dark map (MapStyle) takes the dark theme's trade: the white casing keeps the ramps' dark blue end clear, and
+            // their light end (neutral, yellow) reads against the dark map itself, its paper under loading tiles included.
+            // 0xff23499b is RouteSpeedScale.LOW, the speed and power ramps' dark end.
+            check(contrast(0xff23499b,tileCasing)>=3,"Dark route end has at least 3:1 against casing on a dark map");
+            check(contrast(0xffe2e2e2,0xff2a2b28)>=3&&contrast(0xffffd246,0xff2a2b28)>=3,"Light route ends have at least 3:1 against a dark map's paper");
+        }else{
+            check((android.graphics.Color.luminance(0xffe2e2e2)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Neutral route has at least 3:1 against casing");
+            check((android.graphics.Color.luminance(0xffffd246)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Yellow route endpoint has at least 3:1 against casing");
+        }
     }
+    /** The WCAG contrast ratio of two colours. */
+    static double contrast(int a,int b){double la=android.graphics.Color.luminance(a)+.05,lb=android.graphics.Color.luminance(b)+.05;return Math.max(la,lb)/Math.min(la,lb);}
     void verifySavingAndEmptyPhone() throws Exception{
         main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();setField(activity.service(),"phoneSavingCount",1);invoke(screen,"showDetails",new Class[]{String.class},id);});settle();
         View pending=root();check(byDescription(pending,"Finishing the sensor files")!=null&&find(pending,RouteMapView.class)==null,"Open ride shows a map skeleton while the sensor save finishes");
