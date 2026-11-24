@@ -244,6 +244,8 @@
     <string name="rides_saved_automatically_phone_bluetooth_description">Automatisch opgeslagen nadat Bluetooth op de telefoon uit bleef</string>
     <!-- src:7da5aa62ad1bb6a167706c771898fc1aa1bfe109 -->
     <string name="rides_saved_automatically_no_motion_description">Automatisch opgeslagen na 10 minuten zonder beweging</string>
+    <!-- src:5c7ea2ad4125161a971b1f85cd219ba72d900b00 -->
+    <string name="rides_saved_automatically_switched_off_description">Automatisch opgeslagen nadat de step is uitgezet</string>
     <!-- src:81082471638cb3bcdc725cf78f413d511f182eaa -->
     <string name="rides_notes_section">Notities</string>
     <!-- src:751d2b3a49d9b5b28452341742e96f8841ccbdaf -->

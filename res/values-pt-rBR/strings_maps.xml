@@ -58,6 +58,8 @@
     <string name="maps_provider_custom">Personalizado</string>
     <!-- src:d0d93ea5afdae3b1f404207bc8e998cff59ef71f -->
     <string name="maps_just_back_switch">Mapa na última viagem do Início</string>
+    <!-- src:3ff80fb68c2337e8edf6dcc3082847abd0f7dc51 -->
+    <string name="maps_dark_map">Mapa escuro</string>
     <!-- src:0e876123d50c77be6abbefd934edd5dcda5eddcf -->
     <string name="maps_edit_custom">Editar provedor personalizado</string>
     <!-- src:ef02bba94248d90f01e5e9e252d0709686928b0c -->

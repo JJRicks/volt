@@ -694,6 +694,10 @@
     <string name="dashboard_status_connected">Conectado</string>
     <!-- src:67ce2814b0e0b0c18a94426aa3efd96eec4fc80b -->
     <string name="dashboard_status_connected_mode">Conectado · %1$s</string>
+    <!-- src:ba9a5a9ab2dbe65b292a21027cb942ef536c314f -->
+    <string name="dashboard_status_scooter_off">Patinete apagado · Enciende el patinete para usarlo</string>
+    <!-- src:f39e1a01330aee799a733ee8ee90532ce1371f22 -->
+    <string name="dashboard_status_scooter_off_short">Patinete apagado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
     <string name="dashboard_status_disconnected">Desconectado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
@@ -706,6 +710,8 @@
     <string name="dashboard_status_spoken_connected">Conectado. Detalles de la conexión</string>
     <!-- src:8365501f95a72a9d7455b9f4c5f9d96f88cb3c14 -->
     <string name="dashboard_status_spoken_connected_mode">Conectado, modo %1$s. Detalles de la conexión</string>
+    <!-- src:ce0ef1fb91ac5f10860d23a23f685b189ac9528f -->
+    <string name="dashboard_status_spoken_scooter_off">Patinete apagado. Enciende el patinete para usarlo. Detalles de la conexión</string>
     <!-- src:773e46b6e066dce56c5e9185607ec18f94fea8db -->
     <string name="dashboard_status_spoken_connecting">Conectando. Detalles de la conexión</string>
     <!-- src:d9c881d1fc3f830173a5c611c2644b7d768a47a3 -->

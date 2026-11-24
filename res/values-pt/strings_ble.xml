@@ -12,6 +12,10 @@
     <string name="ble_status_checking_owner">A verificar o proprietário…</string>
     <!-- src:daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e -->
     <string name="ble_status_connected">Conectado</string>
+    <!-- src:f39e1a01330aee799a733ee8ee90532ce1371f22 -->
+    <string name="ble_status_scooter_off">Trotinete desligada</string>
+    <!-- src:7dd664d276d1853dae0c468ffe58e81d677e1990 -->
+    <string name="ble_scooter_off_detail">Liga a trotinete para a usares</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
     <string name="ble_status_disconnected">Desconectado</string>
     <!-- src:4da5dcb5c386921855dc71ae2e6731c61443f203 -->
@@ -124,6 +128,8 @@
     <string name="ble_resolve_warning">Resolve o aviso %1$d da trotinete antes de bloquear.</string>
     <!-- src:b2e9ba8c346162f0f43557018788c4582205f244 -->
     <string name="ble_stop_scooter_first">Tens de parar a trotinete primeiro</string>
+    <!-- src:500fdd63113d2e040c8bfe503af2df48eca2edc1 -->
+    <string name="ble_waiting_speed_report">A aguardar que a trotinete indique a velocidade</string>
     <!-- src:6c9df4e71ecc71e079b6f5d8555721a04d4e55ed -->
     <string name="ble_not_available_now">Não disponível neste momento</string>
     <!-- src:83ccb0307f7518bc4a90026bca28b92ed5084d52 -->

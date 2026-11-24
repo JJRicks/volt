@@ -224,6 +224,8 @@
     <string name="controls_reason_moving">Tens de parar a trotinete primeiro</string>
     <!-- src:7d366b04fb98f47fcd6a9cada29fe29179322594 -->
     <string name="controls_reason_no_motion_report">Ainda sem dados de movimento</string>
+    <!-- src:9be0d0e13f941134dd3a36a4b7c59104a2c2efa0 -->
+    <string name="controls_reason_scooter_off">Liga a trotinete primeiro</string>
     <!-- src:2e0006ecc188f50540cd0247a5ebe0556793e978 -->
     <string name="controls_reason_warning_active">Resolve primeiro o aviso da trotinete</string>
     <!-- src:795bbc89d1d18c92e23c446213a51b3aec14efb8 -->

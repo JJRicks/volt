@@ -224,6 +224,8 @@
     <string name="controls_reason_moving">Detén el patinete primero</string>
     <!-- src:7d366b04fb98f47fcd6a9cada29fe29179322594 -->
     <string name="controls_reason_no_motion_report">Aún sin datos de movimiento</string>
+    <!-- src:9be0d0e13f941134dd3a36a4b7c59104a2c2efa0 -->
+    <string name="controls_reason_scooter_off">Enciende el patinete primero</string>
     <!-- src:2e0006ecc188f50540cd0247a5ebe0556793e978 -->
     <string name="controls_reason_warning_active">Resuelve primero la advertencia del patinete</string>
     <!-- src:795bbc89d1d18c92e23c446213a51b3aec14efb8 -->

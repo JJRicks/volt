@@ -444,6 +444,8 @@
     <string name="onboarding_done_revoke_description">Revocar acceso en Shizuku. Se abrirá Shizuku para quitar el acceso de Volt</string>
     <!-- src:3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d -->
     <string name="onboarding_done_home">Ir a «Inicio»</string>
+    <!-- src:aee604de3c8494261aa6acb2f7b3ec40fec8cf22 -->
+    <string name="onboarding_done_home_starting">Ir a «Inicio», iniciando</string>
     <!-- src:9143450ee6fff0ac2901e55d319a846be41e6d92 -->
     <string name="onboarding_fix_not_listed">El teléfono no aparece como «device»</string>
     <!-- src:278d58e30992d43cdb70badecba5d5dfa17ba857 -->
