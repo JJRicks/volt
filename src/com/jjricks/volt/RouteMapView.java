@@ -62,6 +62,15 @@ public final class RouteMapView extends View {
     private String metric = "power";
     private boolean fitted, preserveViewportOnFirstSize;
     private volatile boolean streets, attached;
+    /**
+     * Whether the tiles are drawn dark (MapStyle, shared with the Just back card), through MapStyle.darkTiles. The paper
+     * under the tiles follows it while the basemap is on, so a tile still loading never shows a light gap on a dark map.
+     */
+    private boolean darkTiles;
+    private final Paint tilePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private android.graphics.ColorFilter darkFilter;
+    /** The dark and light themes' raised paper and grid lines (Ui.raised, Ui.outline), for the map style's paper. */
+    private static final int DARK_PAPER = 0xff2a2b28, DARK_GRID = 0xff3a3b37, LIGHT_PAPER = 0xffecece8, LIGHT_GRID = 0xffdadad5;
     private volatile boolean closed;
     private volatile long generation;
     private static final double MAX_LATITUDE = 85.05112878;
@@ -120,6 +129,18 @@ public final class RouteMapView extends View {
         notifyStatus();
         invalidate();
     }
+
+    /** Draws the tiles dark or as sent (MapStyle): the cached tiles stay as they are, only how they are drawn changes. */
+    public void setDarkTiles(boolean value) {
+        if (darkTiles == value) return;
+        darkTiles = value;
+        invalidate();
+    }
+
+    boolean darkTiles() { return darkTiles; }
+
+    /** Whether the map's paper, grid and casing are drawn for a dark map: the map style with a basemap, else the theme. */
+    private boolean darkPaper() { return streets ? darkTiles : ui.dark; }
 
     public void setSource(String tileUrl) {
         generation++;
@@ -247,10 +268,13 @@ public final class RouteMapView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         if (!fitted) fit();
-        canvas.drawColor(ui.raised);
+        // With a basemap the paper is the map style's (a dark map's while its tiles load, never the light theme's),
+        // without one the theme's, as before.
+        boolean darkPaper = darkPaper();
+        canvas.drawColor(streets ? (darkPaper ? DARK_PAPER : LIGHT_PAPER) : ui.raised);
         paint.setStyle(Paint.Style.STROKE);
         paint.setStrokeWidth(1);
-        paint.setColor(ui.outline);
+        paint.setColor(streets ? (darkPaper ? DARK_GRID : LIGHT_GRID) : ui.outline);
         for (int px = 0; px < getWidth(); px += ui.dp(40))
             canvas.drawLine(px, 0, px, getHeight(), paint);
         for (int py = 0; py < getHeight(); py += ui.dp(40))
@@ -572,6 +596,8 @@ public final class RouteMapView extends View {
                 endY = (int) Math.floor((top + getHeight()) / size);
         long now = android.os.SystemClock.uptimeMillis();
         boolean fading = false;
+        if (darkTiles && darkFilter == null) darkFilter = new android.graphics.ColorMatrixColorFilter(MapStyle.darkTiles());
+        tilePaint.setColorFilter(darkTiles ? darkFilter : null);
         for (int ty = startY; ty <= endY; ty++)
             for (int tx = startX; tx <= endX; tx++) {
                 if (ty < 0 || ty >= n) continue;
@@ -581,8 +607,7 @@ public final class RouteMapView extends View {
                 if (tile != null) {
                     int alpha = tileAlpha(key, now);
                     fading |= alpha < 255;
-                    paint.setStyle(Paint.Style.FILL);
-                    paint.setAlpha(alpha);
+                    tilePaint.setAlpha(alpha);
                     canvas.drawBitmap(
                             tile,
                             null,
@@ -591,10 +616,9 @@ public final class RouteMapView extends View {
                                     (float) (ty * size - top),
                                     (float) ((tx + 1) * size - left),
                                     (float) ((ty + 1) * size - top)),
-                            paint);
+                            tilePaint);
                 } else request(key, tileZoom, wrapX, ty);
             }
-        paint.setAlpha(255);
         if (fading) postInvalidateOnAnimation();
     }
 
