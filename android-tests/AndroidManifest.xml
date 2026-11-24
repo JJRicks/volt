@@ -62,6 +62,7 @@
   <instrumentation android:name="com.jjricks.volt.ChargePictureValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging pictures on Widgets and Clean Home validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.FoldPlaceValidation" android:targetPackage="com.jjricks.volt" android:label="Folding and unfolding keep the owner's place (simulator)" />
   <instrumentation android:name="com.jjricks.volt.JustBackBasemapValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Clean Home Just back basemap switch validation (simulator)" />
+  <instrumentation android:name="com.jjricks.volt.RecordingMomentValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Clean Home recording moment validation (simulator and cached readings)" />
   <instrumentation android:name="com.jjricks.volt.MapStyleValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shared map style (dark/light) validation: ride maps and Just back (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimateValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge estimate history validation" />
   <instrumentation android:name="com.jjricks.volt.tests.ShortcutPickerValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated shortcut picker and Charge alerts shortcut validation" />
