@@ -2535,7 +2535,17 @@ public final class ResponsiveDashboardValidation extends ValidationInstrumentati
             // targets rather than assuming four fit across every card; the 36dp floor stays.
             int inlineTarget = grip.getWidth();
             require(inlineTarget >= activity.ui().dp(36) - 1, "Inline controls fell below the compact target floor");
-            require(gripBounds.left == 0 && gripBounds.top == 0, "Move handle left its top-left anchor");
+            // Where all four fit on one row with room before them for a title, they sit together at the card's end
+            // (DashboardLayout.editorAtEnd; README #613: they covered short cards' titles). The lock cards' words are
+            // centred, so theirs stay at the start; so does every narrower editor.
+            int lane = card.getHeight() < activity.ui().dp(96) ? activity.ui().dp(48) : 0;
+            boolean atEnd = controls.size() == 5 && !widget.type.equals("lock") && !widget.type.equals("lockbar")
+                    && DashboardLayout.editorAtEnd(card.getWidth() - lane, inlineTarget, 4, activity.ui().dp(96));
+            if (atEnd) require(gripBounds.top == 0 && optionBounds.left == gripBounds.right && duplicateBounds.left == optionBounds.right
+                            && removeBounds.left == duplicateBounds.right && removeBounds.right == card.getWidth() - lane
+                            && optionBounds.top == 0 && duplicateBounds.top == 0 && removeBounds.top == 0,
+                    "Move/Edit/Duplicate/Remove must sit together at the end where a title fits before them (" + widget.title + ")");
+            else require(gripBounds.left == 0 && gripBounds.top == 0, "Move handle left its top-left anchor");
             boolean wrapped = compactActions || duplicateBounds.top > 0;
             if (singleAction) {
                 require(inlineTarget == activity.ui().dp(48) && options.getVisibility() == View.GONE
@@ -2555,6 +2565,9 @@ public final class ResponsiveDashboardValidation extends ValidationInstrumentati
                                     && removeBounds.top == duplicateBounds.top && removeBounds.right == card.getWidth(),
                             "Compact editor must keep Move/Edit above Duplicate/Remove, with Remove at the right");
                 }
+            } else if (atEnd) {
+                require(inlineTarget == Math.min(activity.ui().dp(52), (card.getWidth() - lane) / 4),
+                        "Inline controls lost their equal available-width targets");
             } else {
                 int resizeLane = card.getHeight() < activity.ui().dp(96) ? activity.ui().dp(48) : 0;
                 require(inlineTarget == Math.min(activity.ui().dp(52), (card.getWidth() - resizeLane) / 4),
