@@ -26,6 +26,9 @@ public final class ChargeEstimateHoldTest {
         standardCharger();
         joinedMidway();
         chargerPause();
+        chargerSwitched();
+        staleReading();
+        reportTransitions();
         scope();
         shownForm();
         replay(Paths.get(args[0]));
@@ -188,6 +191,72 @@ public final class ChargeEstimateHoldTest {
         check(!hold.holding("b", t + 76 * MIN), "Reset forgets the charge");
     }
 
+    /**
+     * Standard chosen at plug-in, High-speed chosen during the fast charger's soft start (review of #619): the Standard
+     * readiness doesn't carry over, so the soft start is held again until its bulk current and settling minute.
+     */
+    private static void chargerSwitched() {
+        long t = T0;
+        ChargeEstimateHold hold = plugIn(t);
+        hold.observe("a", UT5, true, STOCK, 49.1, -1.28, t);
+        hold.observe("a", UT5, true, FAST, 49.1, -1.28, t + 30 * SEC);
+        check(hold.holding("a", t + 61 * SEC), "Switched to High-speed in the soft start: still held after Standard's settling minute");
+        hold.observe("a", UT5, true, FAST, 50.1, -10.06, t + 90 * SEC);
+        check(hold.holding("a", t + 149 * SEC) && !hold.holding("a", t + 150 * SEC), "Shown a settling minute after the bulk current");
+        // Switched after the time showed, still within the cap: held again until ready, or at the cap.
+        ChargeEstimateHold late = plugIn(t);
+        late.observe("a", UT5, true, STOCK, 49.1, -1.28, t);
+        check(!late.holding("a", t + 60 * SEC), "Standard: shown after its settling minute");
+        late.observe("a", UT5, true, FAST, 49.1, -1.28, t + 70 * SEC);
+        check(late.holding("a", t + 70 * SEC) && !late.holding("a", t + ChargeEstimateHold.MAX_HOLD_MS), "High-speed in its soft start: held again, to the cap");
+        // Detection losing the charger for a moment (null) is not another charger: the time stays.
+        ChargeEstimateHold flicker = plugIn(t);
+        flicker.observe("a", UT5, true, FAST, 50.0, -10.09, t);
+        flicker.observe("a", UT5, true, null, 50.0, -10.09, t + 70 * SEC);
+        flicker.observe("a", UT5, true, FAST, 50.0, -10.09, t + 75 * SEC);
+        check(!flicker.holding("a", t + 75 * SEC), "The same charger again: still shown");
+    }
+
+    /**
+     * A charging report that omits voltage and current keeps the last values (Telemetry): a 10 A reading from before a
+     * pause must not make the resumed charge ready while it is in its soft start (review of #619).
+     */
+    private static void staleReading() {
+        long t = T0;
+        ChargeEstimateHold hold = plugIn(t);
+        hold.observe("a", UT5, true, FAST, 50.0, -10.09, t, t);
+        check(!hold.holding("a", t + 2 * MIN), "Shown");
+        long paused = t + 10 * MIN, resumed = paused + 20 * SEC;
+        hold.observe("a", UT5, false, FAST, null, null, paused, paused);
+        // The resumed charge's first reports carry the 10 A taken before the pause.
+        hold.observe("a", UT5, true, FAST, 50.0, -10.09, paused - 5 * SEC, resumed);
+        hold.observe("a", UT5, true, FAST, 50.0, -10.09, paused - 5 * SEC, resumed + 30 * SEC);
+        check(hold.holding("a", resumed + 90 * SEC), "A reading from before the pause doesn't make the resumed charge ready");
+        hold.observe("a", UT5, true, FAST, 49.2, -1.28, resumed + 95 * SEC, resumed + 95 * SEC);
+        check(hold.holding("a", resumed + 95 * SEC), "Its own soft start: held");
+        hold.observe("a", UT5, true, FAST, 50.1, -10.06, resumed + 100 * SEC, resumed + 100 * SEC);
+        check(hold.holding("a", resumed + 159 * SEC) && !hold.holding("a", resumed + 160 * SEC), "Its own bulk current: a settling minute, then shown");
+    }
+
+    /**
+     * The charging state alone, as the live card's reports give it between background status reads (review of #619): a
+     * pause and resume seen only there starts a new hold, and the charge's own readings make it ready.
+     */
+    private static void reportTransitions() {
+        long t = T0;
+        ChargeEstimateHold hold = plugIn(t);
+        hold.observe("a", UT5, true, FAST, 50.0, -10.09, t);
+        check(!hold.holding("a", t + 2 * MIN), "Shown");
+        hold.observe("a", UT5, false, FAST, null, null, t + 10 * MIN);
+        hold.observe("a", UT5, true, FAST, null, null, t + 10 * MIN + 15 * SEC);
+        check(hold.holding("a", t + 10 * MIN + 15 * SEC), "Resumed (seen only in the reports): held again");
+        hold.observe("a", UT5, true, FAST, null, null, t + 10 * MIN + 30 * SEC);
+        check(hold.holding("a", t + 10 * MIN + 30 * SEC), "A charging report without readings changes nothing else");
+        hold.observe("a", UT5, true, FAST, 50.1, -10.06, t + 10 * MIN + 40 * SEC);
+        check(hold.holding("a", t + 10 * MIN + 45 * SEC), "Settling");
+        check(!hold.holding("a", t + 11 * MIN + 40 * SEC), "Its own bulk reading: shown a settling minute later");
+    }
+
     /** Only models with charger detection: elsewhere the charger is never identified and the hold would only delay. */
     private static void scope() {
         long t = T0;
@@ -209,8 +278,10 @@ public final class ChargeEstimateHoldTest {
         check(shown.remainingMinutesToLimit == null && shown.remainingMinutesToFull == null
                 && shown.planningMinutesToLimit == null && shown.planningMinutesToFull == null, "No time and nothing for Charge done by to plan with");
         check(!shown.learnedToFull && !shown.referenceToFull && shown.learnedSessions == 0 && shown.referenceCharger == null, "Claims no source");
-        check(shown.labelMsg.render().equals("Estimating time left") && shown.status.equals("Estimating time left"), "The state and its tooltip: the live card's words");
-        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && ChargingEstimate.statusBesideLimit(shown, 58d).equals(shown.status),
+        check(shown.labelMsg.render().equals("Estimating time left"), "The state is the live card's words");
+        // The time tiles speak the state, then the status: no status, so TalkBack says the words once (review of #619).
+        check(shown.status == null, "No status beside the state: " + shown.status);
+        check(ChargingEstimate.minutesToFullBesideLimit(shown, 58d) == null && ChargingEstimate.statusBesideLimit(shown, 58d) == null,
                 "The 100% reading beside a limit is held too");
         check(ChargingEstimate.minutesToAlert(ChargingEstimate.estimating(rate), shown) == null, "So is the charge alert's countdown");
         ChargeSessionStore.Estimate recorded = ChargingEstimate.recordingSnapshot(rate);
