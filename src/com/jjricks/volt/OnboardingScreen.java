@@ -1786,7 +1786,7 @@ public final class OnboardingScreen implements AppScreen {
                 if (owedSaved(generated)) { finish(false); return; }
                 homeFor = null; homeWaitStart = 0;
                 if (homeSpinner != null) homeSpinner.setVisibility(View.GONE);
-                if (homeButton != null) { homeButton.setEnabled(true); homeButton.setContentDescription(null); }
+                if (homeButton != null) homeButton.setEnabled(true);
                 return;
             default:
                 finish(false);
