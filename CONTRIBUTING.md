@@ -70,6 +70,7 @@ GitHub CI runs these on every pull request. They need JDK 17 or newer and Python
 ```sh
 bash tests/run.sh
 python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
+python3 docs/validation/data/stock-finish-v9/fit_stock_finish.py --check
 python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
 python3 tests/hardware-sweep-test.py

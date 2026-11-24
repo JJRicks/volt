@@ -56,7 +56,7 @@ Replace the path with that SDK's folder; skip the `export` line if you already e
 
 **A fresh clone creates its own local signing key.** It cannot update a project release signed with a different key. Export a backup before uninstalling or replacing an existing installation. Keep the same private key for future local updates; the project release key is not needed to contribute.
 
-Your build's version name marks it as a development build of the release it's based on, with its commit, such as `1.13.1-dev+55c14f3`, plus `-dirty` when you have uncommitted changes. Don't set `VOLT_RELEASE=1`: that is the maintainers' release build, which refuses uncommitted changes and refuses any shipped language that still shows English.
+Your build's version name marks it as a development build of the release it's based on, with its commit, such as `2.0.5-dev+9934885`, plus `-dirty` when you have uncommitted changes. Don't set `VOLT_RELEASE=1`: that is the maintainers' release build, which refuses uncommitted changes and refuses any shipped language that still shows English.
 
 ## Build configuration
 
@@ -133,7 +133,7 @@ What the runner does to the emulator:
 - It disables the Play Store on that emulator to keep pop-ups out of the checks.
 - Evidence goes to `--out`; keep it under `.local/`, which Git ignores.
 
-A step takes a minute or two. The full list has over 150 steps, which is why the maintainers run it. Read the [development and validation notes](development-notes.md#device-checks) and the selected runner before running anything else. Some parked validation modes deliberately change real scooter settings; never run them on someone else's device or an unattended scooter.
+A step takes a minute or two. The full list has over 300 steps, which is why the maintainers run it. Read the [development and validation notes](development-notes.md#device-checks) and the selected runner before running anything else. Some parked validation modes deliberately change real scooter settings; never run them on someone else's device or an unattended scooter.
 
 ## Optional browser helper
 

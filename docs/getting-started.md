@@ -7,8 +7,8 @@
 | You need | Supported setup |
 | --- | --- |
 | Phone | Android 8.0 or newer, with Bluetooth LE |
-| Scooter | Already activated, owner-bound NAVEE scooter. **US NAVEE UT5 MAX (model/PID 2538)**: full support. Other NAVEE scooters: lock and readings, with other controls only where evidence maps them |
-| NAVEE app | Signed into your account and able to connect to your scooter |
+| Scooter | Already activated, owner-bound NAVEE scooter, or one that isn't in the NAVEE app (never added there, or removed from it). **US NAVEE UT5 MAX (model/PID 2538)**: full support. Other NAVEE scooters: lock and readings, with other controls only where evidence maps them |
+| NAVEE app | Signed into your account and able to connect to your scooter. Not needed for a scooter that isn't in the NAVEE app |
 
 Only the US UT5 MAX has been physically verified with Volt. On other models, controls mapped from the official app are not tested by Volt, and golf carts, e-bikes and other non-scooter products get no scooter commands. See [Other NAVEE models](user-guide.md#other-navee-models). Firmware changes can affect both setup and available controls. Volt does not activate a new scooter, bypass ownership, transfer cloud ownership or recover a NAVEE account.
 
@@ -33,6 +33,7 @@ The one-time capture retrieves your scooter's Bluetooth owner identity from your
 | **Chrome/USB — recommended** | Desktop Chrome or Edge and a USB data cable; no installed ADB or Python | Selected by default for first setup and **My scooters → Add a scooter**. Open [pairscooter.jjricks.com](https://pairscooter.jjricks.com/). [Consent, cleanup and recovery](../setup/web/README.md). |
 | **Computer ADB** | Computer, USB data cable, Android Platform-Tools and Python 3 | Established capture route. [Full instructions](../SETUP.txt). |
 | **Shizuku on this phone** | Android 11+ and shell-backed Shizuku 13+ | Real-device validation is limited. Choose **Use Shizuku on this phone** in onboarding. [Setup and recovery](../setup/SHIZUKU.md). |
+| **Make a new owner key** | A scooter that isn't in the NAVEE app; no computer | Choose **Make a new owner key** in onboarding. Volt makes a key and keeps it only on this phone, so back up once it connects. [Details](user-guide.md#first-setup-and-everyday-use). |
 | **Existing setup or full backup** | Your own previously exported file | Choose the corresponding import/restore option in onboarding. [Backup guide](user-guide.md#back-up-and-restore). |
 
 The browser, Shizuku and computer ADB helpers currently support only the main personal Android user, not work profiles or secondary users; they also reject NAVEE installations in another profile. All three accept only log lines Android records as written by NAVEE's own app, so another app using NAVEE's log name can't supply an identity. Controlled phone checks of the browser and Shizuku helpers exercised timeout and cleanup with the scooter out of range. A tester later reported successful onboarding without identifying the helper used, so successful real-scooter capture has not been confirmed separately for each new path.
