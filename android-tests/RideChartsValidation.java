@@ -360,7 +360,12 @@ public final class RideChartsValidation extends ValidationInstrumentation {
                 Dialog expanded = (Dialog) field(viewer(), "expanded");
                 require(expanded != null && expanded.isShowing(), "the expanded charge graph didn't open");
                 View decor = expanded.getWindow().getDecorView();
-                inspect((RideChartView) decor.findViewWithTag("charge-history-fullscreen-chart"), 180_000);
+                RideChartView expandedChart = (RideChartView) decor.findViewWithTag("charge-history-fullscreen-chart");
+                // Past the last sample the cells show no estimate detail: the plot keeps its height either way.
+                inspect(expandedChart, 10_000_000);
+                int plain = expandedChart.getHeight();
+                inspect(expandedChart, 180_000);
+                require(expandedChart.getHeight() == plain, label + ": the plot changed height with the cursor: " + plain + " then " + expandedChart.getHeight() + " px");
                 details(decor.findViewWithTag("charge-history-fullscreen-trace"), "expanded " + label);
                 shot("charge-expanded-" + label);
                 main(expanded::dismiss);

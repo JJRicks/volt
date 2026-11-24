@@ -19,6 +19,15 @@ public final class ChargeTraceDetailTest {
         check(ChargeTraceDetail.pick(620, 500, 400, 360) == ChargeTraceDetail.Rung.NO_VERSION, "a short version wider than the room: no version");
         check(ChargeTraceDetail.pick(620, Float.NaN, Float.NaN, 360) == ChargeTraceDetail.Rung.NO_VERSION, "no version: no version");
         check(ChargeTraceDetail.pick(100, 50, 50, 0) == ChargeTraceDetail.Rung.NO_VERSION && ChargeTraceDetail.pick(100, 50, 50, Float.NaN) == ChargeTraceDetail.Rung.NO_VERSION, "no room measured: the shortest rung");
+        // The version as each rung shows it: a wrapped line never breaks inside the version (an older Volt's
+        // "ut5-stock-finish-v9" must not split as "ut5-" / "stock-finish-v9").
+        String older = "ut5-stock-finish-v9";
+        check(ChargeTraceDetail.shown(older, ChargeTraceDetail.Rung.FULL).equals(older), "on one line the version is as saved");
+        String wrapped = ChargeTraceDetail.shown(older, ChargeTraceDetail.Rung.WRAPPED);
+        check(wrapped.replace("\u2060", "").equals(older), "wrapped, it reads as saved: " + wrapped);
+        for (int i = 0; i < wrapped.length(); i++) if (wrapped.charAt(i) == '-') check(i + 1 < wrapped.length() && wrapped.charAt(i + 1) == '\u2060', "wrapped: no break after the hyphen at " + i);
+        check(ChargeTraceDetail.shown(older, ChargeTraceDetail.Rung.SHORT_VERSION).equals(ChargeTraceDetail.shortVersion(older)), "short: the first part");
+        check(ChargeTraceDetail.shown(older, ChargeTraceDetail.Rung.NO_VERSION) == null, "none: no version");
         System.out.println("ChargeTraceDetailTest: " + checks + " assertions passed");
     }
 }
