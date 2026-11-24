@@ -283,7 +283,7 @@ final class HubBatterySummary implements AppScreen {
      * The range left in the rider's units ("mi", "km" or "dual"), or null when there is none. Each number keeps its unit
      * on its line (Fmt.unitsJoined): the line wraps at large text, and "about 38 / km left" split the pair (#452).
      */
-    static CharSequence range(TelemetryHistory.Reading range, String units) {
+    private static CharSequence range(TelemetryHistory.Reading range, String units) {
         if (range == null || range.number == null || !Double.isFinite(range.number) || range.number < 0) return null;
         Formatted km = Fmt.quantity(Fmt.decimalNumber(Locale.US, range.number, 0), Fmt.unit(UnitCode.KM));
         Formatted miles = Fmt.quantity(Fmt.decimalNumber(Locale.US, range.number / KM_PER_MILE, 0), Fmt.unit(UnitCode.MI));
