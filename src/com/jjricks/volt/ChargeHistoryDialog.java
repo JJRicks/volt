@@ -374,9 +374,10 @@ final class ChargeHistoryDialog {
                 // Controls and raw readings remain scrollable even in short landscape windows.
                 // Half the available height is always reserved for the plot.
                 controlsScroll.getLayoutParams().height = Math.min(ui.dp(150), Math.round(available * .25f));
-                // The readings take what their tallest cell needs (a wrapped estimate detail, large text) up to a quarter.
-                trace.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                traceScroll.getLayoutParams().height = Math.min(Math.max(ui.dp(120), trace.getMeasuredHeight()), Math.round(available * .25f));
+                // The readings take what the tallest cell they can show needs (a wrapped estimate detail, large text), up to
+                // a quarter; worked out for the chosen lines, not the cells under the cursor, so dragging never moves the plot.
+                if (traceTallest < 0 || traceTallestWidth != MeasureSpec.getSize(width)) { traceTallest = tallestCell(); traceTallestWidth = MeasureSpec.getSize(width); }
+                traceScroll.getLayoutParams().height = Math.min(Math.max(ui.dp(120), traceTallest), Math.round(available * .25f));
             }
             super.onMeasure(width, height);
         }
@@ -399,6 +400,7 @@ final class ChargeHistoryDialog {
             plot();
         }
         void plot() {
+            traceTallest = -1;
             for (RideChartData.Series series : data) chart.setAxisWidthDp(series.key,
                     UnitCode.TIME.matches(series.unit) ? crossesDay(series) || series.max - series.min < 240_000 ? 96 : 84 : 48);
             chart.set(data, chosen);
@@ -424,17 +426,47 @@ final class ChargeHistoryDialog {
                 TextView stamp = ui.caption(value == null || value.value == null ? "—" : T.statsChargeSampleAt(RideChartView.sampleTime(value.time))); stamp.setSingleLine(true); cell.addView(stamp);
                 if (value != null && (series.key.startsWith("estimated_") || series.key.startsWith("limit_"))) {
                     ChargeSessionStore.Estimate estimate = estimateAt(value.time);
-                    if (estimate != null) {
-                        boolean limit = series.key.startsWith("limit_");
-                        String from = source(limit ? estimate.limitSource : estimate.fullSource), more = "";
-                        if (estimate.learnedSessions > 0) more += T.statsChargeLearned(estimate.learnedSessions, estimate.learnedSessions);
-                        if (limit && estimate.targetPercent != null) more += T.statsChargeTarget(Fmt.decimal(Locale.getDefault(), estimate.targetPercent, 0));
-                        String after = more;
-                        cell.addView(provenance(version -> T.statsChargeEstimator(from, version) + after, from + more, estimate.version));
-                    }
+                    if (estimate != null) cell.addView(detail(estimate, series.key.startsWith("limit_")));
                 }
                 cell.setContentDescription(T.statsChargeCellDescription(series.displayLabel(), reading.getText(), stamp.getText())); trace.addView(cell);
             }
+        }
+        /** The detail line under an estimate's reading: where it came from, the estimator, what it learned, its target. */
+        TextView detail(ChargeSessionStore.Estimate estimate, boolean limit) {
+            String from = source(limit ? estimate.limitSource : estimate.fullSource), more = "";
+            if (estimate.learnedSessions > 0) more += T.statsChargeLearned(estimate.learnedSessions, estimate.learnedSessions);
+            if (limit && estimate.targetPercent != null) more += T.statsChargeTarget(Fmt.decimal(Locale.getDefault(), estimate.targetPercent, 0));
+            String after = more;
+            return provenance(version -> T.statsChargeEstimator(from, version) + after, from + more, estimate.version);
+        }
+        /** traceTallest's width: the readings row's height is worked out again only when the panel's width changes. */
+        int traceTallest = -1, traceTallestWidth = -1;
+        /**
+         * The tallest cell the readings row can show for the chosen lines: a label, a reading and its time, and the
+         * tallest estimate detail any saved estimate gives. The row is sized for it once, so the plot never changes
+         * height as the cursor moves between samples with and without a detail.
+         */
+        int tallestCell() {
+            if (data.isEmpty()) return 0;
+            LinearLayout probe = column(); probe.setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6));
+            String name = data.get(0).displayLabel();
+            TextView label = ui.text(name, 12, false), reading = ui.text(name, 17, true), stamp = ui.caption(name);
+            for (TextView line : new TextView[]{label, reading, stamp}) { line.setSingleLine(true); probe.addView(line); }
+            int tallestDetail = 0;
+            java.util.Set<List<Object>> seen = new java.util.HashSet<>();
+            for (RideChartData.Series series : data) {
+                boolean limit = series.key.startsWith("limit_");
+                if (!chosen.contains(series.key) || !(limit || series.key.startsWith("estimated_"))) continue;
+                for (ChargeEstimateHistory.Point point : history) {
+                    ChargeSessionStore.Estimate e = point.estimate;
+                    if (e == null || !seen.add(java.util.Arrays.<Object>asList(limit, e.version, e.fullSource, e.limitSource, e.learnedSessions, e.targetPercent))) continue;
+                    TextView line = detail(e, limit);
+                    line.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                    tallestDetail = Math.max(tallestDetail, line.getMeasuredHeight());
+                }
+            }
+            probe.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            return probe.getMeasuredHeight() + tallestDetail;
         }
         /**
          * The estimate's detail line, at most 260 dp wide and never wider than the readings row shows (ChargeTraceDetail):
@@ -453,8 +485,10 @@ final class ChargeHistoryDialog {
             String shortVersion = ChargeTraceDetail.shortVersion(version);
             ChargeTraceDetail.Rung rung = ChargeTraceDetail.pick(line.getPaint().measureText(detail), line.getPaint().measureText(version),
                     shortVersion == null ? Float.NaN : line.getPaint().measureText(shortVersion), room);
-            if (rung == ChargeTraceDetail.Rung.SHORT_VERSION) line.setText(withVersion.apply(shortVersion));
-            else if (rung == ChargeTraceDetail.Rung.NO_VERSION) line.setText(noVersion);
+            String shownVersion = ChargeTraceDetail.shown(version, rung);
+            if (rung != ChargeTraceDetail.Rung.FULL) line.setText(shownVersion == null ? noVersion : withVersion.apply(shownVersion));
+            // Its own width, not the cell's: beside a wider reading, a cell-wide (exact) width would ignore the cap.
+            line.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT));
             line.setMaxWidth(room); line.setContentDescription(detail);
             return line;
         }

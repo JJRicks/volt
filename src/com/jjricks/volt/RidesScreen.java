@@ -1052,7 +1052,7 @@ public final class RidesScreen implements AppScreen {
     private void buildOverview(LinearLayout body, RideStore.Summary ride, List<RideStore.Point> measured, Runnable afterDelete) throws IOException {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
-        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
+        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent(), ride); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
         // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
@@ -1159,8 +1159,10 @@ public final class RidesScreen implements AppScreen {
         Runnable fullLoadRetry;
         int loadGeneration; boolean fullDataLoaded;
         int overlayLimit = ui.dp(112); ScrollView overlayScroll;
-        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen) {
-            super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
+        /** The ride's summary: its first odometer reading is the distance line's zero (RideChartData.distance). */
+        final RideStore.Summary ride;
+        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen, RideStore.Summary ride) {
+            super(host.activity()); this.ride = ride; this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
             this.inferRegen = inferRegen;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
             LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1234,7 +1236,7 @@ public final class RidesScreen implements AppScreen {
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
+            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen, ride));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
@@ -1257,7 +1259,7 @@ public final class RidesScreen implements AppScreen {
         }
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
-            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen);
+            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen, ride);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
             expandedDialog = dialog;
@@ -1304,7 +1306,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen);
+                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen, ride);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;

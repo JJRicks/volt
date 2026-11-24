@@ -277,6 +277,40 @@ public final class RideChartDataTest {
         near(g29.value, g30.value, "no distance is counted across the GPS gap");
         near(gappedTrack.distanceMeters / 1000, gpsBroken.values.get(gpsBroken.values.size() - 1).value, "and the line ends at the ride's GPS distance");
 
+        // A track with no GPS distance (fixes too slow to count as moving, or a single fix) is no data, never a flat zero.
+        String still = odometerRide(store, "Still", 10000000, 61, i -> null, -1);
+        phones.start(still, 10000000, 1000);
+        StringBuilder slow = new StringBuilder();
+        for (int t = 1; t <= 59; t++) slow.append(PhoneRideStore.row("GPS", 10000000 + t * 1000L, 1000 + t * 1000L, 43.82 + t * 1e-6, -111.78, 3, 0.2, .2, 1500, 4));
+        phones.appendBatch(still, slow.toString(), "");
+        phones.stop(still, 10060000, 61000);
+        PhoneRideStore.Track stillTrack = phones.load(still);
+        check(stillTrack.distanceMeters == null && !stillTrack.fullPoints().isEmpty(), "the fixture's track has fixes but no distance");
+        RideChartData.Series noDistance = RideChartData.distance(store.fullTrend(still), stillTrack, false, true, 101, 202);
+        check(!noDistance.available() && noDistance.values.isEmpty(), "a track without a distance draws no GPS distance line: " + noDistance.values.size() + " values");
+        String oneFix = odometerRide(store, "One fix", 11000000, 61, i -> null, -1);
+        phones.start(oneFix, 11000000, 1000);
+        phones.appendBatch(oneFix, PhoneRideStore.row("GPS", 11010000, 11000, 43.82, -111.78, 3, 5, .2, 1500, 4), "");
+        phones.stop(oneFix, 11060000, 61000);
+        check(!RideChartData.distance(store.fullTrend(oneFix), phones.load(oneFix), false, true, 101, 202).available(), "one fix: no GPS distance line");
+
+        // The preview's thinned points can drop the ride's first odometer reading (past 600 samples the journal keeps 0, 1,
+        // then every other one, so sample 2 goes): it still counts from the ride's start.
+        String thinned = odometerRide(store, "Thinned", 12000000, 1300, i -> i < 2 ? null : i == 2 ? 700.0 : 700.1 + (i / 100) * 0.1, -1);
+        RideStore.Summary thinnedRide = store.get(thinned);
+        List<RideStore.Point> previewPoints = store.trend(thinned, 600), allPoints = store.fullTrend(thinned);
+        Double previewFirst = null; for (RideStore.Point p : previewPoints) if (p.odometerKm != null) { previewFirst = p.odometerKm; break; }
+        check(previewFirst != null && previewFirst > 700.0 + 1e-6 && thinnedRide.startOdometerKm == 700.0, "the fixture's preview drops the first reading: " + previewFirst + " vs " + thinnedRide.startOdometerKm);
+        RideChartData.Series fullLine = RideChartData.distance(allPoints, null, false, true, thinnedRide, 101, 202),
+                previewLine = RideChartData.distance(previewPoints, null, false, false, thinnedRide, 101, 202);
+        near(thinnedRide.distanceKm, fullLine.values.get(fullLine.values.size() - 1).value, "the full line ends at the ride's distance");
+        near(thinnedRide.distanceKm, previewLine.values.get(previewLine.values.size() - 1).value, "the preview ends at the ride's distance too");
+        // A ride whose odometer went backwards anywhere is GPS's, even when the points passed in don't show the step.
+        String hiddenReset = odometerRide(store, "Hidden reset", 13000000, 61, i -> i == 30 ? 5.0 : 300.0 + i * 0.01, -1);
+        RideStore.Summary hidden = store.get(hiddenReset);
+        List<RideStore.Point> withoutStep = new ArrayList<>(); for (RideStore.Point p : store.fullTrend(hiddenReset)) if (p.odometerKm == null || p.odometerKm > 100) withoutStep.add(p);
+        check(hidden.odometerReset && RideChartData.distance(withoutStep, null, false, true, hidden, 101, 202).label.equals(RideChartData.GPS_DISTANCE_LABEL), "the ride's own reset rules the source");
+
         // An old ride (no odometer, no phone journal) opens with the line offered and empty.
         String old = odometerRide(store, "Old", 1000000, 10, i -> null, -1);
         RideChartData.Series none = RideChartData.distance(store.trend(old, 600), null, false, false, 101, 202);

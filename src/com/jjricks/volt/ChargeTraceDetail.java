@@ -4,8 +4,8 @@ package com.jjricks.volt;
  * The charge chart's estimate detail under a cursor reading ("Personal curve · Estimator … · 4 learned charges"), kept
  * inside the width its row shows (ChargeHistoryDialog). It steps down the narrow-label ladder rather than running off the
  * edge or breaking a word: the whole line with the estimator's full version when it fits on one line; else the same,
- * wrapped, when the version fits a line of its own; else the version's first part; else no version. The full detail
- * stays the line's spoken text.
+ * wrapped, when the version fits a line of its own; else the version's first part; else no version. A shown version
+ * never breaks inside (its hyphens are joined when it may wrap). The full detail stays the line's spoken text.
  * Pure: no Android, so tests/ChargeTraceDetailTest checks it.
  */
 final class ChargeTraceDetail {
@@ -24,8 +24,17 @@ final class ChargeTraceDetail {
         if (version == null || version.trim().isEmpty()) return null;
         version = version.trim();
         int dot = version.indexOf('.');
-        String head = dot > 0 ? version.substring(0, dot) + "\u2026" : version;
-        return head.replace("-", "-" + JOIN);
+        return joined(dot > 0 ? version.substring(0, dot) + "\u2026" : version);
+    }
+
+    /** The version with every hyphen joined to what follows, so a wrapped line never breaks inside it. */
+    static String joined(String version) { return version.replace("-", "-" + JOIN); }
+
+    /** The version as a rung shows it: whole on one line, joined when wrapped, its first part, or none (null). */
+    static String shown(String version, Rung rung) {
+        if (version == null || rung == Rung.NO_VERSION) return null;
+        if (rung == Rung.SHORT_VERSION) return shortVersion(version);
+        return rung == Rung.WRAPPED ? joined(version) : version;
     }
 
     /**

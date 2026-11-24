@@ -257,6 +257,11 @@ public final class RideChartData {
     }
     /** The lines Ride details' Ride readings graph offers: build()'s eight, then GPS accuracy (off unless chosen). */
     public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen) {
+        return forRide(scooter, phone, miles, fullDetail, inferRegen, null);
+    }
+    /** The same, given the ride's summary (null without one), which the distance line counts from (distance()). */
+    public static List<Series> forRide(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail, boolean inferRegen,
+                                       RideStore.Summary ride) {
         List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
         lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
         return Collections.unmodifiableList(lines);
@@ -300,10 +305,19 @@ public final class RideChartData {
      */
     static Series distance(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail,
                            int scooterLabelId, int gpsLabelId) {
+        return distance(scooter, phone, miles, fullDetail, null, scooterLabelId, gpsLabelId);
+    }
+    /**
+     * As above, with the ride's own summary (null when there's none): its first odometer reading is the line's zero
+     * (the preview's thinned points can drop it), and an odometer it saw go backwards anywhere hands the line to GPS.
+     */
+    static Series distance(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail,
+                           RideStore.Summary ride, int scooterLabelId, int gpsLabelId) {
         double perKm = miles ? 1 / RideStore.KM_PER_MILE : 1;
         String unit = miles ? UnitCode.MI.code : UnitCode.KM.code;
         List<Value> values = new ArrayList<>();
-        Double first = null, previous = null; int readings = 0; boolean backwards = false;
+        Double first = ride == null ? null : ride.startOdometerKm, previous = null; int readings = 0;
+        boolean backwards = ride != null && ride.odometerReset;
         for (RideStore.Point p : scooter) {
             checkCanceled(); if (fullDetail) RideStore.checkDetailMemory();
             if (p.odometerKm == null || !Double.isFinite(p.odometerKm)) continue;
@@ -316,7 +330,9 @@ public final class RideChartData {
         boolean gps = readings < 2 || backwards;
         if (gps) {
             values = new ArrayList<>();
-            List<PhoneRideStore.Point> points = phone == null ? Collections.<PhoneRideStore.Point>emptyList() : fullDetail ? phone.fullPoints() : phone.points;
+            // A track with no distance (no moving step between two fixes) has none to draw: no data, not a flat zero.
+            List<PhoneRideStore.Point> points = phone == null || phone.distanceMeters == null ? Collections.<PhoneRideStore.Point>emptyList()
+                    : fullDetail ? phone.fullPoints() : phone.points;
             ClockIndex clocks = new ClockIndex(scooter);
             for (PhoneRideStore.Point p : points) {
                 checkCanceled(); if (fullDetail) RideStore.checkDetailMemory();
