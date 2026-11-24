@@ -424,6 +424,7 @@ public final class MapPreferences {
         body.addView(ui.text(T.mapsSettingsTitle(), 22, true));
         body.addView(new ProviderControl(host));
         body.addView(new JustBackControl(host));
+        body.addView(MapStyleControls.settingsRow(host));
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton(T.commonDone(), null).create();
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();
