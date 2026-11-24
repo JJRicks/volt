@@ -1305,6 +1305,14 @@ public final class DashboardScreen implements AppScreen {
                     ? DisplayTime.recent(host.activity(), preferences, lastConnected, System.currentTimeMillis()) : null));
         status.setContentDescription(DashboardWords.statusSpoken(ready, connecting, mode, seen && !connecting
                 ? DisplayTime.dateTime(host.activity(), preferences, lastConnected) : null));
+        // Connected, but the scooter is switched off and only answering (ScooterPowerState): say so, and what to do,
+        // instead of Connected. Narrow, the line keeps Scooter off.
+        // (ScooterOffWords: the words come with their catalog strings; until then Home keeps Connected.)
+        String off = ready && ble.scooterOff() ? ScooterOffWords.status() : null;
+        if (off != null) {
+            ui.statusRungs(status, off, ScooterOffWords.statusShort());
+            status.setContentDescription(ScooterOffWords.spoken());
+        }
         // A held release (BleController.releaseHeld): why Volt isn't reconnecting. The short form, since the full line
         // reaches the Ride button beside it; Disconnected when even that doesn't fit. Spoken in full.
         if (!ready && !connecting && profile != null && ble != null && ble.releaseHeld(profile.id)) {

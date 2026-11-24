@@ -8,7 +8,7 @@ public final class CapabilityResolverTest {
     private static int assertions;
     private static final long SEEN=100000,NOW=SEEN+1000;
     public static void main(String[] args) {
-        goldenUt5(); unknownModels(); unsupported(); presence(); runtime(); lockContract(); roles(); admission(); simulation(); copy(); oemHomeScreen();
+        goldenUt5(); unknownModels(); unsupported(); presence(); runtime(); lockContract(); roles(); admission(); simulation(); copy(); oemHomeScreen(); scooterOff(); motionNotices();
         System.out.println("CapabilityResolver tests passed: "+assertions+" assertions");
     }
 
@@ -300,4 +300,86 @@ public final class CapabilityResolverTest {
     }
 
     private static void check(boolean condition,String message){assertions++;if(!condition)throw new AssertionError(message);}
+
+    /**
+     * 2.0.5 item 5: a scooter switched off but answering. Ride, lock and every other change are refused with "Turn the
+     * scooter on first"; the charging settings stay usable; unlocking keeps its recovery contract; it wins over the
+     * motion reasons it would otherwise get (no motion report, or a stale old push read as moving).
+     */
+    private static void scooterOff() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.scooterOff=true;
+        for(String key:new String[]{"cruise_control","headlight","auto_sensor","range_algorithm","maximum_speed","speed_limit","traction_control","display_units","turn_sound"}){
+            CapabilityResolver.Decision d=decide(key,ut5,s,rt);
+            check(d.reason==CapabilityResolver.OFF_REASON&&!d.reasonText().isEmpty(),"Refused while off: "+key+" "+d);
+            check(d.blockedByRide(),"Kept tappable so the tap says why: "+key);
+        }
+        check(CapabilityResolver.admit("lock",1,ut5,s,rt).reason==CapabilityResolver.OFF_REASON,"Locking is refused while off");
+        check(CapabilityResolver.admit("lock",0,ut5,s,rt).available(),"Unlocking keeps its recovery contract");
+        for(String key:new String[]{"charge_limit","timed_charging","clock_sync"})check(decide(key,ut5,s,rt).available(),"Charging setting usable while off, with no motion report: "+key+" "+decide(key,ut5,s,rt));
+        CapabilityResolver.Runtime on=parked();on.stationary=false;on.motionSeen=false;
+        check(decide("charge_limit",ut5,s,on).reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"Not off: the charge limit keeps the parked rule");
+        on.motionSeen=true;check(decide("timed_charging",ut5,s,on).reason==CapabilityResolver.Reason.MOVING,"Not off and moving: refused as before");
+        check(CapabilityResolver.decideTry("charge_limit",ut5,s,rt).reason!=CapabilityResolver.Reason.NONE||CapabilityResolver.decideTry("charge_limit",ut5,s,rt).support!=CapabilityResolver.Support.KNOWN_ENCODING,"Tries keep the parked rule");
+        check(MutationGate.check(new MutationGate.Request(MutationGate.Kind.CHARGE_START,"charge_start",0,MutationGate.Origin.USER),ut5,s,rt).available(),"The scheduled charge start goes out while off");
+        check(MutationGate.check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER),ut5,s,rt).available(),"Reading the PIN state changes nothing: allowed");
+        rt.motionSeen=true;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.OFF_REASON,"An old push no longer reads as moving");
+        rt=parked();rt.scooterOff=true;rt.owner=true;
+        check(CapabilityResolver.decideRelease(ut5,s,rt).reason==CapabilityResolver.OFF_REASON,"Release this scooter waits for it to be on");
+        check(CapabilityResolver.decideTry("headlight",ut5,s,rt).reason!=CapabilityResolver.Reason.NONE,"No experimental try while off");
+        rt=parked();rt.scooterOff=true;rt.nowMs=SEEN+8000;
+        check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.STATUS_STALE,"A stale status still says stale");
+        rt=parked();rt.scooterOff=true;rt.busy=true;
+        check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.BUSY,"Busy still says busy");
+        // The simulator honours the flag only through the validations' hook (ScooterPowerState.heldOff).
+        CapabilityResolver.Runtime sim=new CapabilityResolver.Runtime();sim.simulation=true;sim.ready=true;sim.nowMs=NOW;sim.scooterOff=true;
+        DeviceDescriptor simulated=DeviceDescriptor.simulated("",0);
+        check(decide("cruise_control",simulated,StatusFields.NONE,sim).reason==CapabilityResolver.OFF_REASON&&decide("charge_limit",simulated,StatusFields.NONE,sim).available(),"Simulated off refuses the same way");
+        rt=parked();check(!rt.scooterOff,"Off by default");
+        offRows();
+    }
+
+    /**
+     * Review of #623: a row refused because the scooter is switched off says that, never "Stop to change": the row's
+     * words, its spoken state and its tap's toast follow parkedOnly() and rowRefusal() (MainActivity.ControlRow). Lock
+     * carries the off mark too, so its waiting tap is refused (LockTapQueue.gate).
+     */
+    private static void offRows() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.scooterOff=true;
+        for(String key:new String[]{"headlight","cruise_control","turn_sound","maximum_speed"}){
+            CapabilityResolver.Decision d=decide(key,ut5,s,rt);
+            check(d.switchedOff&&!d.parkedOnly(),"Off is not a ride's refusal: "+key);
+            String note=d.rowRefusal();
+            check(note!=null&&note.equals(d.reasonText())&&!note.toLowerCase(java.util.Locale.ROOT).contains("stop"),"The row says the off reason, not stop: "+key+" "+note);
+        }
+        check(CapabilityResolver.admit("lock",1,ut5,s,rt).switchedOff,"Locking while off carries the off mark");
+        check(!decide("charge_limit",ut5,s,rt).switchedOff&&decide("charge_limit",ut5,s,rt).rowRefusal()==null,"A charging setting usable while off has no refusal");
+        // Not off: moving and no motion report keep "Stop to change".
+        CapabilityResolver.Runtime on=parked();on.stationary=false;on.motionSeen=true;
+        CapabilityResolver.Decision moving=decide("timed_charging",ut5,s,on);
+        check(!moving.switchedOff&&moving.parkedOnly()&&moving.rowRefusal()==null,"Moving: Stop to change, as before");
+        on.motionSeen=false;
+        CapabilityResolver.Decision waiting=decide("timed_charging",ut5,s,on);
+        check(!waiting.switchedOff&&waiting.parkedOnly()&&waiting.reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"No motion report while on: as before");
+    }
+
+    /**
+     * BleController.refused's notice before a motion report (also the switched-off refusal until its own reason): the
+     * UT5 MAX said "Bring the scooter to a stop first" here, which the owner of a parked, switched-off scooter read as
+     * wrong (2.0.5 item 5). Moving keeps it (BleController, unchanged).
+     */
+    private static void motionNotices() {
+        DeviceDescriptor ut5=serial("Q2538ZZ9US7777777");StatusFields s=status(full(),SEEN);
+        CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;
+        CapabilityResolver.Decision none=decide("cruise_control",ut5,s,rt);
+        check(none.reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"No motion report yet");
+        for(boolean isUt5:new boolean[]{true,false}){
+            String notice=CapabilityResolver.noMotionNotice(none,isUt5).toString();
+            check(!notice.isEmpty()&&!notice.equals("Bring the scooter to a stop first"),"No motion report is never 'stop first' (UT5 MAX "+isUt5+"): "+notice);
+        }
+        check(CapabilityResolver.noMotionNotice(none,false).toString().equals("No motion report yet"),"Other models keep their text");
+        rt.scooterOff=true;CapabilityResolver.Decision off=decide("headlight",ut5,s,rt);
+        check(off.reason==CapabilityResolver.OFF_REASON&&!CapabilityResolver.noMotionNotice(off,true).toString().equals("Bring the scooter to a stop first"),"Switched off: never 'stop first'");
+    }
 }

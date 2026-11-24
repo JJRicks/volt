@@ -712,6 +712,15 @@ final class DiagnosticsBundle {
         return this;
     }
 
+    /**
+     * This connection's live frames (ScooterPowerState.diagnostics, 2.0.5 item 5): per push (0x90, 0x91, 0x92) the count
+     * and the last one's age, and whether Volt judges the scooter switched off but answering, and why. Counts and times only.
+     */
+    DiagnosticsBundle pushFrames(Map<String, Object> frames) {
+        guard("push_frames", () -> frames == null ? null : new LinkedHashMap<>(frames));
+        return this;
+    }
+
     /** Puts a section, or null when building it failed: one bad source never costs the file. */
     private void guard(String section, java.util.function.Supplier<Object> build) {
         Object value;

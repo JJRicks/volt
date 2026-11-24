@@ -7,7 +7,6 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
-import android.provider.OpenableColumns;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -171,16 +170,13 @@ public final class DiagnosticsProvider extends ContentProvider {
         if (file == null || !file.isFile()) throw new FileNotFoundException("No diagnostics file");
         return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
     }
-    /** Name and size only, as email apps ask before attaching. */
+    /** Name, size and the file's modified time (SnapshotColumns), as email and sharing apps ask before attaching. */
     @Override public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
         File file = file(uri);
         if (file == null || !file.isFile()) return null;
-        String[] columns = projection == null ? new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE} : projection;
+        String[] columns = SnapshotColumns.columns(projection);
         MatrixCursor cursor = new MatrixCursor(columns, 1);
-        Object[] row = new Object[columns.length];
-        for (int i = 0; i < columns.length; i++)
-            row[i] = OpenableColumns.DISPLAY_NAME.equals(columns[i]) ? uri.getLastPathSegment() : OpenableColumns.SIZE.equals(columns[i]) ? (Object) file.length() : null;
-        cursor.addRow(row);
+        cursor.addRow(SnapshotColumns.row(columns, uri.getLastPathSegment(), file.length(), file.lastModified()));
         return cursor;
     }
     @Override public Uri insert(Uri uri, ContentValues values) { throw new UnsupportedOperationException("Read-only"); }

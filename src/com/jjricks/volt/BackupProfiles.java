@@ -56,6 +56,7 @@ final class BackupProfiles {
         Object owner=p.get("owner_model");if(p.containsKey("owner_model")&&!(owner instanceof String&&((String)owner).matches("[\\x20-\\x7e]{0,40}")))return false;
         Object route=p.get("key_route");if(p.containsKey("key_route")&&!(route instanceof String&&((String)route).matches(KeyRoute.SHAPE)))return false;
         for(String field:new String[]{"pid_advertised_wall","fw_wall"})if(p.containsKey(field)&&!(p.get(field) instanceof Number))return false;
+        if(p.containsKey("pushes_seen")&&!(p.get("pushes_seen") instanceof Boolean))return false;
         return !p.containsKey("name_default")||p.get("name_default") instanceof Boolean;
     }
     /** Local items followed by the additions, each element's text unchanged. */

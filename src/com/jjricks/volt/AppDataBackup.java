@@ -138,6 +138,7 @@ public final class AppDataBackup {
         Object owner=p.opt("owner_model");if(owner!=null&&!(owner instanceof String&&((String)owner).matches("[\\x20-\\x7e]{0,40}")))return false;
         Object route=p.opt("key_route");if(route!=null&&!(route instanceof String&&((String)route).matches(KeyRoute.SHAPE)))return false;
         for(String field:new String[]{"pid_advertised_wall","fw_wall"})if(p.has(field)&&!(p.opt(field) instanceof Number))return false;
+        if(p.has("pushes_seen")&&!(p.opt("pushes_seen") instanceof Boolean))return false;
         return !p.has("name_default")||p.opt("name_default") instanceof Boolean;
     }
 

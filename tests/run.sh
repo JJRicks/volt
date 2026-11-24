@@ -139,9 +139,13 @@ sources+=("$APP_DIR/src/com/jjricks/volt/ChargeEvidence.java" "$TEST_DIR/ChargeE
 sources+=("$APP_DIR/src/com/jjricks/volt/DiagnosticsSettings.java" "$APP_DIR/src/com/jjricks/volt/DiagnosticsTally.java")
 # Report diagnostics' scooter setup: how the selected scooter's owner key reached Volt (KeyRoute) and a made key's state
 # (NewOwnerKey's record); BackupProfiles checks a backup's route word by KeyRoute's shape.
+# Diagnostics provider columns: a snapshot's modified time (2.0.5 item 5).
+sources+=("$APP_DIR/src/com/jjricks/volt/SnapshotColumns.java" "$TEST_DIR/SnapshotColumnsTest.java")
+# A scooter switched off but answering: its words seam (ScooterPowerState runs with the compat suites).
+sources+=("$APP_DIR/src/com/jjricks/volt/ScooterOffWords.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/KeyRoute.java" "$APP_DIR/src/com/jjricks/volt/NewOwnerKey.java" "$TEST_DIR/KeyRouteTest.java")
 # Model compatibility suites (separate block to limit merge conflicts with sibling branches).
-COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
+COMPAT_TESTS=(DeviceDescriptor AdvertisedIdentity StatusFields WireCommands ModelRegistry ScooterPowerState CapabilityResolver MutationGate ReadPolicy DiscoveryCoordinator CompatibilityReport TestJournal GuidedTest ReportInvite ConnectionReport UpdateCheck VersionName DriveModeSurvey NaveeModels IssueReport ModelTiles CommandLog DiagnosticsBundle CrashRecord ProximityFollowUp)
 for name in "${COMPAT_TESTS[@]}"; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/FeatureVariant.java" "$APP_DIR/src/com/jjricks/volt/KickStartTry.java" "$TEST_DIR/OemControlsTest.java" "$APP_DIR/src/com/jjricks/volt/OwnerNotes.java" "$TEST_DIR/ExperimentalControlsTest.java")
 # Standard-charger pack model (ut5-stock-pack-v6), its generated parity table, charge-age tracking and the averaged current.
@@ -262,6 +266,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRoutesTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShortcutPickerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.HubRideDataTest "$APP_DIR/src/com/jjricks/volt/MoreScreen.java" "$APP_DIR/src/com/jjricks/volt/RidesScreen.java"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeSendTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.SnapshotColumnsTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ReorderDragTest
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"; done
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RidingChipFitTest

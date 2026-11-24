@@ -57,6 +57,14 @@ final class LockTapQueue {
      * go out once the rider stops.
      */
     static Gate gate(boolean availableOnceIdle, CapabilityResolver.Reason reasonOnceIdle, boolean otherWritePending) {
+        return gate(availableOnceIdle, reasonOnceIdle, false, otherWritePending);
+    }
+    /**
+     * As above, with whether that refusal is a scooter switched off but answering (Decision.switchedOff): a hard refusal,
+     * so a tap made while off is never held to go out once the scooter is switched on, whatever reason carries it.
+     */
+    static Gate gate(boolean availableOnceIdle, CapabilityResolver.Reason reasonOnceIdle, boolean switchedOff, boolean otherWritePending) {
+        if (!availableOnceIdle && switchedOff) return Gate.REFUSE;
         if (availableOnceIdle) return otherWritePending ? Gate.WAIT : Gate.OPEN;
         return reasonOnceIdle == CapabilityResolver.Reason.STATUS_STALE || reasonOnceIdle == CapabilityResolver.Reason.NO_MOTION_REPORT ? Gate.WAIT : Gate.REFUSE;
     }

@@ -1797,6 +1797,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String word;int tone;
         if(!permission){word=T.mainConnectionNoPermission();tone=design.dim;}
         else if(ble==null){word=T.mainConnectionStarting();tone=design.muted;}
+        else if(ready&&ble.scooterOff()&&ScooterOffWords.state()!=null){word=ScooterOffWords.state();tone=design.orange;}
         else if(ready){word=simulated?T.mainConnectionSimulated():T.bleStatusConnected();tone=design.ok;}
         else if(state==BleController.State.WAITING){word=T.mainConnectionRetrying();tone=design.orange;}
         else if(state==BleController.State.SCANNING){word=T.bleStatusSearching();tone=design.orange;}
@@ -1810,9 +1811,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(state==BleController.State.WAITING&&ble!=null&&!PLAIN_CONNECTION_STATES.contains(message))error=message;
         LinearLayout body=column();body.setPadding(design.dp(24),design.dp(4),design.dp(24),design.dp(4));
         TextView stateValue=connectionRow(body,T.mainConnectionState(),word);
-        View dot=design.icon(ready?"check":"bluetooth",16,tone);
+        // Switched off (its words shown above): no check mark, as for a scooter that isn't connected.
+        View dot=design.icon(ready&&!(ble.scooterOff()&&ScooterOffWords.state()!=null)?"check":"bluetooth",16,tone);
         stateValue.setTextColor(ready?design.text:design.muted);
         ((LinearLayout)stateValue.getParent()).addView(dot,((LinearLayout)stateValue.getParent()).indexOfChild(stateValue),connectionIcon());
+        // Switched off but answering: what to do (ScooterPowerState).
+        String offDetail=ready&&ble.scooterOff()?ScooterOffWords.detail():null;
+        if(offDetail!=null){TextView off=design.caption(offDetail);off.setPadding(0,design.dp(4),0,design.dp(6));body.addView(off);}
         if(profile!=null&&profile.lastConnected>0)connectionRow(body,T.mainConnectionLastConnected(),DisplayTime.dateTime(this,preferences,profile.lastConnected));
         if(error!=null){
             TextView line=design.text(ble.displayMessage(),14,false);line.setTextColor(design.danger);line.setPadding(0,design.dp(10),0,design.dp(2));body.addView(line);
@@ -2161,7 +2166,9 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
-            String state=ready?T.bleStatusConnected():connecting?T.mainLockConnecting():T.bleStatusDisconnected();
+            // Switched off but answering (ScooterPowerState): Scooter off, not Connected.
+            String offWord=ready&&ble.scooterOff()?ScooterOffWords.state():null;
+            String state=ready?(offWord!=null?offWord:T.bleStatusConnected()):connecting?T.mainLockConnecting():T.bleStatusDisconnected();
             String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,simulatedName!=null?simulatedName:active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             if(connecting)design.statusRungs(connectionTitle,connectingLabel(connectionTitle));else design.statusRungs(connectionTitle,connectionRungs(ready&&active!=null,!ready&&last>0,ready,state,shown,last));
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
@@ -2207,7 +2214,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(still==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());return;}}
         LockTapQueue.Gate gate=LockTapQueue.Gate.WAIT;
         if(ble!=null){CapabilityResolver.Decision d=ble.decisionOnceIdle("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
-            boolean otherWrite=pending!=null&&!"lock".equals(pending);gate=LockTapQueue.gate(d.available(),d.reason,otherWrite);
+            boolean otherWrite=pending!=null&&!"lock".equals(pending);gate=LockTapQueue.gate(d.available(),d.reason,d.switchedOff,otherWrite);
             // Behind another write the BLE gate would only say "busy"; give the real refusal now instead of holding the tap.
             if(gate==LockTapQueue.Gate.REFUSE&&otherWrite&&lockQueue.reject(d.reasonMessage())==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailureMessage());return;}}
         LockTapQueue.Action action=lockQueue.step(SystemClock.elapsedRealtime(),ready&&ble!=null,shownLock,"lock".equals(pending),gate);
@@ -2838,8 +2845,8 @@ public final class MainActivity extends Activity implements ScreenHost {
      */
     static String controlNote(BleController ble,CapabilityResolver.Decision d,boolean parked,String key){
         if(ble==null||d==null||!ble.ready())return null;
-        if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
-                &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
+        // The refusal's own words (Decision.rowRefusal), a switched-off scooter's included; a ride's refusal says "Stop to change" elsewhere.
+        if(!parked&&d.rowRefusal()!=null)return d.reasonText();
         return ModelRegistry.unconfirmed(ble.descriptor(),key)?rowUnconfirmed():null;
     }
     /** A row's detail and note joined ("85% · Unconfirmed here"); either alone when the other is missing. */
@@ -2851,7 +2858,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public String name(boolean alert){ScooterCommands.Feature f=ScooterCommands.find(ChargeBar.KEY);return alert?chargeAlertName():f==null?"":shortLabel(f);}
         @Override public String note(ScooterService service){
             BleController ble=service==null?null:service.ble;CapabilityResolver.Decision d=ble==null?null:ble.decision(ChargeBar.KEY);
-            return controlNote(ble,d,d!=null&&d.blockedByRide(),ChargeBar.KEY);
+            return controlNote(ble,d,d!=null&&d.parkedOnly(),ChargeBar.KEY);
         }
         @Override public String withNote(String value,String note){return joinNote(value,note);}
         @Override public String confirming(){return rowConfirmingPart();}
@@ -4541,8 +4548,9 @@ public final class MainActivity extends Activity implements ScreenHost {
                 action.setContentDescription(T.mainRowRangeDescription(source));return;
             }
             BleController ble=scooterService==null?null:scooterService.ble;Integer liveActual=ble==null?null:ble.featureValue(feature.key);Integer actual=liveActual!=null?liveActual:scooterService==null?null:scooterService.displayFeatures().get(feature.key);
-            // The same decision admits the write; riding keeps a parked-only row tappable to say "Stop to change".
-            CapabilityResolver.Decision decision=ble==null?null:ble.decision(feature.key);boolean parked=decision!=null&&decision.blockedByRide();
+            // The same decision admits the write; riding keeps a parked-only row tappable to say "Stop to change". A scooter
+            // switched off is not a ride: its row says the off reason instead (Decision.parkedOnly, rowRefusal).
+            CapabilityResolver.Decision decision=ble==null?null:ble.decision(feature.key);boolean parked=decision!=null&&decision.parkedOnly();
             boolean decided=decision!=null&&(decision.available()||parked);
             boolean available=decided&&liveActual!=null&&scooterService.featureFresh(feature.key);
             String shown;
@@ -4587,7 +4595,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
             BleController ble=scooterService==null?null:scooterService.ble;
             CapabilityResolver.Decision decision=ble==null?null:ble.decision(feature.key);
-            String note=rowNote(ble,decision,decision!=null&&decision.blockedByRide());
+            String note=rowNote(ble,decision,decision!=null&&decision.parkedOnly());
             String blocked=charge==null?T.mainScheduleConnectYourScooter():toggle==null?charge.manualTimeBlockedReason:charge.manualBlockedReason;
             boolean pending=charge!=null&&charge.busy,on=charge!=null&&charge.manualEnabled;
             // The schedule's writes go one after another: the spinner counts from the operation's start, its backstop from the latest write.

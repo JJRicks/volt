@@ -70,6 +70,16 @@ public final class LockTapQueueTest {
                 "Riding or a warning behind a busy write is refused, not held");
         require(LockTapQueue.gate(false, moving, false) == refuse, "Riding with nothing pending: the gate refuses and says why");
 
+        // Review of #623: a Lock tap while the scooter is switched off is refused at once, never held until it is switched on.
+        CapabilityResolver.Reason off = CapabilityResolver.OFF_REASON;
+        require(LockTapQueue.gate(false, off, true, false) == refuse && LockTapQueue.gate(false, off, true, true) == refuse, "Switched off: refused, never waiting");
+        require(LockTapQueue.gate(false, CapabilityResolver.Reason.NO_MOTION_REPORT, false, false) == wait, "On, first motion report pending: still waits");
+        require(LockTapQueue.gate(true, CapabilityResolver.Reason.NONE, false, false) == open, "On and writable: open");
+        q = new LockTapQueue(); q.request(false, true, 0);
+        require(q.step(10, true, false, false, LockTapQueue.gate(false, off, true, false)) == send, "The refused send goes to the gate, which says why");
+        q.refused();
+        require(!q.waiting() && q.step(1000, true, false, false, open) == none, "Nothing is left to send once it is switched on");
+
         // Riding while another write is in flight: rejected at once, so stopping later can't send it.
         q = new LockTapQueue(); q.request(false, true, 0);
         require(q.reject("Stop before locking") == revert && !q.waiting() && q.takeFailure().equals("Stop before locking"), "A hard refusal drops the tap now");
