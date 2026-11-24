@@ -244,6 +244,12 @@ STEPS += [
     inst('just-back-basemap-412', PKG + '.JustBackBasemapValidation', '-e', 'size_label', '412', size='412x915'),
     inst('just-back-basemap-fold-folded', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold-folded', size='411x900'),
     inst('just-back-basemap-fold', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Folding and unfolding keep the owner's place (2.0.5): the validation switches the size itself (wm size 2074x2153, the
+    # Fold unfolded, and 1080x2400, at density 420) at each depth: Rides' details, expanded map and chart, a charge
+    # recording and its chart, Battery & charging's sheet, a Settings page, Search and riding mode. Both Home styles: the
+    # wide Clean Home hosts pages beside the scooter pane; the wide Widgets layout shows All rides in two panes.
+    inst('fold-keeps-place-clean', PKG + '.FoldPlaceValidation', '-e', 'home', 'clean', '-e', 'theme', 'dark'),
+    inst('fold-keeps-place-widgets', PKG + '.FoldPlaceValidation', '-e', 'home', 'widgets', '-e', 'theme', 'light'),
     # Every model's photo framed like the UT5 MAX's (owner, Nov 17 2026): the whole set side by side, and Home (Widgets and Clean)
     # as the UT5 MAX, GT3 Max, GT5 Max and N65i, at 412 dp in light and dark and on the Fold unfolded.
     inst('model-photos-412-light', T + 'ModelPhotosValidation', '-e', 'theme', 'light', '-e', 'size_label', '412', size='412x915'),
