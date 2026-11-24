@@ -62,7 +62,7 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
     private boolean report;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), misses = new ArrayList<>(), screenshots = new ArrayList<>();
-    private String rideA, rideB, chargeA, immersivePrevious;
+    private String rideA, rideB, rideC, chargeA, immersivePrevious;
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
     @Override public void onStart() {
@@ -92,15 +92,16 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
             simulate();
             rideA = seedRide("Fold check ride A", loop(), 3 * 3600_000L);
             rideB = seedRide("Fold check ride B", line(), 3600_000L);
+            rideC = seedRide("Fold check ride C", null, 2 * 3600_000L);
             chargeA = seedCharges();
             // Argument only: one case by name (a comma list), for a quick look; the sweep runs them all.
             Set<String> only = new HashSet<>(Arrays.asList(args.getString("only", "").split(",")));
             only.remove("");
             String[] names = {"home", "ride", "map", "chart", "pane", "charge", "battery", "settings", "search", "riding", "wide-page",
-                    "twice", "search-ride", "compare"};
+                    "twice", "search-ride", "compare", "kept-view", "compare-front"};
             ThrowingRunnable[] cases = {this::homeStays, this::rideDetails, this::expandedMap, this::expandedChartCase, this::widePaneRide,
                     this::chargeRecording, this::batterySheet, this::settingsSubpage, this::search, this::ridingMode, this::widePageFolds,
-                    this::twoRebuilds, this::searchRideFolds, this::comparisonUnder};
+                    this::twoRebuilds, this::searchRideFolds, this::comparisonUnder, this::keptViewYields, this::comparisonInFront};
             for (int i = 0; i < names.length; i++) if (only.isEmpty() || only.contains(names[i])) { if (unfolded()) fold(); cases[i].run(); }
             if (!misses.isEmpty()) throw new IllegalStateException(misses.size() + " check(s) missed: " + String.join(" | ", misses));
             result.putString("result", "PASS");
@@ -428,12 +429,98 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
         expect(waitFor(() -> comparisonWindow() != null, 8000), "unfolded: the comparison is still open");
         fold();
         expect(waitFor(() -> detailsWindow() != null && comparisonWindow() != null, 8000), "folded: the ride's details over the comparison");
+        expect(onMain(() -> inFront(detailsWindow(), comparisonWindow())), "folded: the ride's details in front of the comparison (round 2)");
         back();
         expect(waitFor(() -> detailsWindow() == null && comparisonWindow() != null, 5000), "Back from the ride: the comparison under it");
         back();
         expect(waitFor(() -> comparisonWindow() == null && page().equals(HubPages.RIDE_RIDES), 5000), "Back again: All rides");
         checks.add(label + " a ride opened from Compare two rides keeps the comparison under it, both ways");
     }
+    /**
+     * A ride without phone files (no phone readings will come): its chart zoomed, folded; then zoomed further, its chart
+     * expanded and closed: the newer zoom stays, and the next fold brings back the newer zoom, not the first (round 2).
+     */
+    private void keptViewYields() throws Exception {
+        open(HubPages.RIDE_RIDES);
+        openRide(rideC);
+        await(() -> rideShown("Fold check ride C") && inlineChart() != null, 10000, "Ride C's details did not open");
+        main(() -> require(byDescription(detailsWindow(), T.ridesChartZoomIn()).performClick(), "Zoom in took no tap"));
+        settle();
+        double first = onMain(() -> span(inlineChart()));
+        unfold();
+        await(() -> rideShown("Fold check ride C") && inlineChart() != null, 8000, "Ride C did not show unfolded");
+        fold();
+        await(() -> detailsWindow() != null && inlineChart() != null, 8000, "Ride C's details did not come back folded");
+        settle();
+        double back = onMain(() -> span(inlineChart()));
+        expect(Math.abs(back - first) <= first * 0.02 + 1, "folded: the chart kept its zoom (" + first + " → " + back + ")");
+        main(() -> require(byDescription(detailsWindow(), T.ridesChartZoomIn()).performClick(), "Zoom in took no tap"));
+        settle();
+        double newer = onMain(() -> span(inlineChart()));
+        require(newer < first * 0.75, "The second zoom did not zoom in (" + first + " → " + newer + ")");
+        main(() -> require(byText(detailsWindow(), T.ridesExpand()).performClick(), "Expand chart took no tap"));
+        await(() -> expandedChart() != null, 8000, "The expanded chart did not open");
+        SystemClock.sleep(1000); settle();
+        back();
+        await(() -> expandedChart() == null, 5000, "Back did not close the expanded chart");
+        settle();
+        double closed = onMain(() -> span(inlineChart()));
+        expect(Math.abs(closed - newer) <= newer * 0.02 + 1, "closing the expanded chart keeps the rider's newer zoom (" + newer + " → " + closed + ")");
+        unfold();
+        await(() -> rideShown("Fold check ride C") && inlineChart() != null, 8000, "Ride C did not show unfolded again");
+        settle();
+        double later = onMain(() -> span(inlineChart()));
+        expect(Math.abs(later - newer) <= newer * 0.02 + 1, "the next unfold brings back the newer zoom, not the first (" + newer + " → " + later + ")");
+        fold();
+        back();
+        checks.add(label + " a ride without phone files: a fold's kept zoom gives way to the rider's own, through the expanded chart and the next fold");
+    }
+    /** The ride's own readings chart (not the expanded one), wherever it shows. */
+    private RideChartView inlineChart() {
+        for (View window : allWindows()) {
+            if (!window.isShown()) continue;
+            for (View v : find(window, x -> x.getClass().getName().endsWith("RidesScreen$ChartPanel") && x.isShown()))
+                if (!Boolean.TRUE.equals(field(v, "full"))) return (RideChartView) field(v, "chart");
+        }
+        return null;
+    }
+
+    /**
+     * Wide Widgets All rides: a ride picked in the pane, then Compare two rides over it, scrolled; folded: the ride's
+     * details with the comparison in front, at its scroll (round 2). Clean's wide All rides has no pane.
+     */
+    private void comparisonInFront() throws Exception {
+        if (!"widgets".equals(home)) { checks.add(label + " comparison over a pane ride: no panes on this Home style"); return; }
+        require(settings().edit().putStringSet("ride_comparison", new LinkedHashSet<>(Arrays.asList(rideA, rideB))).commit(), "Could not choose two rides");
+        unfold();
+        open(HubPages.RIDE_RIDES);
+        openRide(rideA);
+        await(() -> rideShown("Fold check ride A"), 8000, "Ride A did not show in the pane");
+        main(() -> invoke(field(activity, "screen"), "showComparison", new Class<?>[]{}));
+        await(() -> comparisonWindow() != null, 8000, "Compare two rides did not open");
+        SystemClock.sleep(800); settle();
+        main(() -> { List<View> scrolls = find(comparisonWindow(), x -> x instanceof ScrollView); ((ScrollView) scrolls.get(0)).scrollTo(0, 240); });
+        settle();
+        int scrolled = onMain(() -> ((ScrollView) find(comparisonWindow(), x -> x instanceof ScrollView).get(0)).getScrollY());
+        fold();
+        expect(waitFor(() -> detailsWindow() != null && comparisonWindow() != null, 8000), "folded: the picked ride's details and the comparison");
+        expect(onMain(() -> inFront(comparisonWindow(), detailsWindow())), "folded: the comparison in front of the ride, as it was");
+        SystemClock.sleep(600); settle();
+        int after = onMain(() -> ((ScrollView) find(comparisonWindow(), x -> x instanceof ScrollView).get(0)).getScrollY());
+        expect(scrolled == 0 || after > 0, "folded: the comparison kept its scroll (" + scrolled + " → " + after + " px)");
+        back();
+        expect(waitFor(() -> comparisonWindow() == null && detailsWindow() != null, 5000), "Back closes the comparison onto the ride's details");
+        back();
+        expect(waitFor(() -> detailsWindow() == null, 5000), "Back again: All rides");
+        checks.add(label + " a comparison over a picked pane ride stays in front, at its scroll, after a fold");
+    }
+    /** Whether front's window is above behind's (later in the window list). */
+    private boolean inFront(View front, View behind) {
+        if (front == null || behind == null) return false;
+        List<View> windows = allWindows();
+        return windows.indexOf(front) > windows.indexOf(behind);
+    }
+
     /** Compare two rides' window: one holding its View first button. */
     private View comparisonWindow() {
         View main = activity.getWindow().getDecorView();
@@ -607,6 +694,8 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
                 rides.sample(start + i * step, at, s);
             }
             rides.stop(end, monoEnd);
+            // No fixes: a ride recorded without the phone's sensors (no phone files at all).
+            if (fixes == null) { require(!service.isRecording(), "The synthetic ride is still recording"); return id; }
             PhoneRideStore phone = service.phoneRides;
             require(phone != null, "The service has no phone ride store");
             phone.start(id, start, mono);
