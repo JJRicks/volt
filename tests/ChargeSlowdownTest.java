@@ -110,6 +110,7 @@ public final class ChargeSlowdownTest {
         neverShorter();
         otherPack();
         historyLabels();
+        ownWarming();
         if (args.length > 0) committedReplay(Paths.get(args[0]));
         System.out.println("ChargeSlowdown: " + checks + " checks passed");
     }
@@ -500,6 +501,60 @@ public final class ChargeSlowdownTest {
         q.observe("other", UT5, (Double) RATED, FAST, true, 40d, 49.2, 8.74, 15d, 100d, NEXT);
         check(q.state(P, NEXT) == ChargeSlowdown.State.NONE && !q.state("other", NEXT).slowed, "A profile switch starts over");
         check(new ChargeSlowdown.State(false, ChargeSlowdown.Cause.HOT, 40d, false).cause == null, "A cause only while slowed");
+    }
+
+    /** The same states with today's fixed warming assumption (State's four-argument form). */
+    private static Watch fixedWarming(List<Sample> samples) {
+        Watch w = new Watch(samples);
+        for (int i = 0; i < w.states.size(); i++) {
+            ChargeSlowdown.State s = w.states.get(i);
+            w.states.set(i, s == ChargeSlowdown.State.NONE ? s : new ChargeSlowdown.State(s.slowed, s.cause, s.batteryTempC, s.coldTail));
+        }
+        return w;
+    }
+
+    /** A BMS that holds the cold levels while the pack warms 0.13 C a minute throughout (Nov 24 2026's cold charge). */
+    private static final Bms SLOW_WARMING = new Bms() {
+        public double amps(Sim s) { return Math.min(s.temp < 15 ? 5.5 : s.temp < 20 ? 8.5 : 10.05, s.reading() < 80 ? 10.05 : 8.0); }
+        public double warm(Sim s) { return .13; }
+    };
+
+    /**
+     * 13. This charge's own warming rate: a cold charge from 46% and 8 C warming 0.13 C a minute is shown too short by
+     * the fixed 0.25 C a minute, and closer once 10 minutes of temperatures give its own rate; the first 10 minutes,
+     * and a warm or hot charge throughout, are exactly as before.
+     */
+    private static void ownWarming() {
+        Sim sim = new Sim(46, 8).run(SLOW_WARMING, 101);
+        check(sim.complete > 0, "The slow-warming cold charge completes");
+        Watch w = new Watch(sim.samples), fixed = fixedWarming(sim.samples);
+        Estimates now = new Estimates(sim.samples, w), before = new Estimates(sim.samples, fixed);
+        planningAtLeastShown(now, "Slow-warming cold charge");
+        for (int i = 0; i < sim.samples.size(); i++) {
+            long t = sim.samples.get(i).t - T0;
+            if (t < 10 * MIN) check(identical(before.v10.get(i), now.v10.get(i)), "Before 10 minutes of temperatures, sample " + i + " is as before");
+        }
+        for (long at : new long[] {12 * MIN, 20 * MIN, 30 * MIN, 40 * MIN}) {
+            int i = (int) (at / STEP);
+            check(w.states.get(i).slowed && w.states.get(i).cause == ChargeSlowdown.Cause.COLD, "Slowed cold at " + at / MIN + " min");
+            double actual = (sim.complete - sim.samples.get(i).t) / 60000d;
+            double was = before.v10.get(i).remainingMinutesToFull - actual, is = now.v10.get(i).remainingMinutesToFull - actual;
+            check(was < -5, "The fixed 0.25 C a minute is too short at " + at / MIN + " min: " + was);
+            check(is > was + 3 && Math.abs(is) < Math.abs(was), "Its own warming rate is closer at " + at / MIN + " min: " + is + " vs " + was);
+            check(now.v10.get(i).planningMinutesToFull >= before.v10.get(i).planningMinutesToFull, "Charge done by is never earlier at " + at / MIN + " min");
+        }
+        // No temperature-limited stage, nothing changes: a warm top-up, a deep warm charge through the 80% step, a hot one.
+        List<List<Sample>> others = new ArrayList<>();
+        others.add(new Sim(55, 24).run(WARM, 101).samples);
+        others.add(new Sim(16, 25).run(WARM, 101).samples);
+        Sim hot = new Sim(44, 47.5);
+        while (hot.temp > 41) hot.bulk(4.0, -.1);
+        hot.bulkFor(4.0, 0, 15 * MIN);
+        others.add(hot.samples);
+        for (List<Sample> samples : others) {
+            Estimates a = new Estimates(samples, fixedWarming(samples)), b = new Estimates(samples, new Watch(samples));
+            for (int i = 0; i < samples.size(); i++) check(identical(a.v10.get(i), b.v10.get(i)), "No cold stage: sample " + i + " is as before");
+        }
     }
 
     private static ChargeSlowdown slowedNow() {
