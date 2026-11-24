@@ -3,13 +3,14 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /**
-     * Bump whenever the prediction algorithm/reference changes; independent of app versions. It names every layer since
+     * Bump whenever the prediction algorithm/reference changes; independent of app versions. The base estimator is v12
+     * (ut5-fast-warming-v12: v11, with the cold estimate warming at the charge's own measured rate). It names every layer since
      * v11: stitched estimates (stitch-v1), normal-temperature learning (temps-v1), learned usable capacity (ucap-v1), the
      * learned charger match (match-v1) and the averaged charging current (iavg-v1, ChargeCurrentAverage). At most 64
      * characters: every recording sample stores it (Estimate). Only the whole string is ever compared, never its parts;
      * a part shortened to make room keeps its meaning (docs/validation/charge-estimate-history.md lists every version).
      */
-    public static final String ESTIMATOR_VERSION = "ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-warming-v12.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -383,8 +384,8 @@ public final class ChargingEstimate {
      *
      * While slowed, the time shown is the estimate at the expected current plus the extra minutes the rest of the
      * bulk stage (to the 80% step, to 85% inside the 8 A stage, or to a lower limit) takes at the current predicted
-     * for it (extraBulkMinutes): for a cold battery the BMS's cold levels as it warms at WARM_SHOWN, never below
-     * the live current; for a hot or unexplained slowdown the live current, with no recovery assumed. The estimate
+     * for it (extraBulkMinutes): for a cold battery the BMS's cold levels as it warms at State.warmRate (WARM_SHOWN
+     * until this charge has measured its own), never below the live current; for a hot or unexplained slowdown the live current, with no recovery assumed. The estimate
      * at the expected current is FastChargeTaper's voltage model with the pack voltage moved by PACK_OHMS for the
      * change in current (the v9 estimate re-run at that current where the model has no answer); a lower limit
      * keeps the re-run's time there, up to the time to 100%. Charge done by plans with the longer of that and the
@@ -431,15 +432,18 @@ public final class ChargingEstimate {
         // current; any other slowdown, cold or not, is assumed to last (review of #561).
         boolean cold=ChargeSlowdown.coldExplains(slowdown.batteryTempC,amps,expected);
         Double temperature=cold?slowdown.batteryTempC:null;
-        double fullShown=nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_SHOWN,.5,rated);
-        double fullPlan=Math.max(fullShown,nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)
+        // The battery warms at this charge's own measured rate once it has one (State.warmRate, never faster than
+        // WARM_SHOWN); Charge done by never warms faster than that either.
+        double planWarm=Math.min(ChargeSlowdown.WARM_PLAN,slowdown.warmRate);
+        double fullShown=nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,slowdown.warmRate,.5,rated);
+        double fullPlan=Math.max(fullShown,nominalFull+extraBulkMinutes(level,end,amps,expected,temperature,planWarm,0,rated)
                 +(slowdown.coldTail?ChargeSlowdown.COLD_TAIL_MINUTES:0));
         Double limitShown=shown.remainingMinutesToLimit,limitPlan=shown.planningMinutesToLimit;
         if(nominalLimit!=null){
             double limitEnd=Math.min(end,target);
-            limitShown=Math.min(fullShown,nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,ChargeSlowdown.WARM_SHOWN,.5,rated));
+            limitShown=Math.min(fullShown,nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,slowdown.warmRate,.5,rated));
             limitPlan=Math.max(limitShown,Math.min(fullPlan,
-                    nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,ChargeSlowdown.WARM_PLAN,0,rated)));
+                    nominalLimit+extraBulkMinutes(level,limitEnd,amps,expected,temperature,planWarm,0,rated)));
         }
         // A slowdown never makes Charge done by shorter than the same reading's estimate without it, nor the time shown,
         // except where the cold model applies (a BMS cold level explains the live current) and predicts it rising as the

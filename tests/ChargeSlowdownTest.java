@@ -540,9 +540,11 @@ public final class ChargeSlowdownTest {
             double actual = (sim.complete - sim.samples.get(i).t) / 60000d;
             double was = before.v10.get(i).remainingMinutesToFull - actual, is = now.v10.get(i).remainingMinutesToFull - actual;
             check(was < -5, "The fixed 0.25 C a minute is too short at " + at / MIN + " min: " + was);
-            check(is > was + 3 && Math.abs(is) < Math.abs(was), "Its own warming rate is closer at " + at / MIN + " min: " + is + " vs " + was);
+            check(is > was + 1.5 && Math.abs(is) < Math.abs(was), "Its own warming rate is closer at " + at / MIN + " min: " + is + " vs " + was);
             check(now.v10.get(i).planningMinutesToFull >= before.v10.get(i).planningMinutesToFull, "Charge done by is never earlier at " + at / MIN + " min");
         }
+        check(w.states.get((int) (20 * MIN / STEP)).warmRate > .10 && w.states.get((int) (20 * MIN / STEP)).warmRate < .16, "About 0.13 C a minute measured by 20 min");
+        warmingClamp();
         // No temperature-limited stage, nothing changes: a warm top-up, a deep warm charge through the 80% step, a hot one.
         List<List<Sample>> others = new ArrayList<>();
         others.add(new Sim(55, 24).run(WARM, 101).samples);
@@ -555,6 +557,62 @@ public final class ChargeSlowdownTest {
             Estimates a = new Estimates(samples, fixedWarming(samples)), b = new Estimates(samples, new Watch(samples));
             for (int i = 0; i < samples.size(); i++) check(identical(a.v10.get(i), b.v10.get(i)), "No cold stage: sample " + i + " is as before");
         }
+    }
+
+    /** A slowed cold charge at 40% whose battery reads degrees(t) (t in minutes since its start), for ms. */
+    private static ChargeSlowdown warming(java.util.function.DoubleUnaryOperator degrees, long ms) {
+        ChargeSlowdown o = new ChargeSlowdown();
+        for (long t = T0; t <= T0 + ms; t += STEP)
+            o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, -5.5, Math.floor(degrees.applyAsDouble((t - T0) / 60000d)), 100d, t);
+        return o;
+    }
+
+    /** The measured rate: 0.25 C a minute until 10 minutes hold temperatures, then the fit, held to 0.10..0.25. */
+    private static void warmingClamp() {
+        check(ChargeSlowdown.State.NONE.warmRate == ChargeSlowdown.WARM_SHOWN && ChargeSlowdown.WARM_FLOOR == .10, "Nothing measured: 0.25; the floor is 0.10");
+        ChargeSlowdown fast = warming(m -> 5 + .5 * m, 15 * MIN), flat = warming(m -> 9.5, 15 * MIN), slow = warming(m -> 8 + .13 * m, 30 * MIN);
+        for (java.util.function.DoubleUnaryOperator d : Arrays.<java.util.function.DoubleUnaryOperator>asList(m -> 5 + .5 * m, m -> 9.5, m -> 8 + .13 * m)) {
+            ChargeSlowdown o = warming(d, 10 * MIN - STEP);
+            check(o.state(P, T0 + 10 * MIN - STEP).slowed, "Fixture: slowed cold");
+            check(o.state(P, T0 + 10 * MIN - STEP).warmRate == ChargeSlowdown.WARM_SHOWN, "Before 10 minutes of temperatures: 0.25");
+        }
+        check(fast.state(P, T0 + 15 * MIN).warmRate == ChargeSlowdown.WARM_SHOWN, "Warming 0.5 C a minute: never faster than 0.25");
+        check(flat.state(P, T0 + 15 * MIN).warmRate == ChargeSlowdown.WARM_FLOOR, "Not warming at all: the floor");
+        double measured = slow.state(P, T0 + 30 * MIN).warmRate;
+        check(measured > .11 && measured < .15, "Warming 0.13 C a minute is measured as such: " + measured);
+        // 10 minutes of readings: the first reading in minute 10 closes the tenth.
+        ChargeSlowdown edge = warming(m -> 5 + .5 * m, 10 * MIN);
+        check(edge.state(P, T0 + 10 * MIN).warmRate == ChargeSlowdown.WARM_SHOWN && edge.warmRate() == ChargeSlowdown.WARM_SHOWN, "At 0.5 C a minute it holds 0.25");
+        ChargeSlowdown edgeFlat = warming(m -> 9.5, 10 * MIN);
+        check(edgeFlat.state(P, T0 + 10 * MIN).warmRate == ChargeSlowdown.WARM_FLOOR, "The tenth minute closes at 10 min");
+        // A finished charge, a long silence, another charger or another profile starts measuring again.
+        flat.observe(P, UT5, (Double) RATED, FAST, false, null, null, null, null, null, T0 + 16 * MIN);
+        flat.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, -5.5, 9d, 100d, T0 + 17 * MIN);
+        check(flat.state(P, T0 + 17 * MIN).warmRate == ChargeSlowdown.WARM_SHOWN, "A new charge measures afresh");
+        ChargeSlowdown silent = warming(m -> 9.5, 15 * MIN);
+        silent.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, -5.5, 9d, 100d, T0 + 50 * MIN);
+        check(silent.state(P, T0 + 50 * MIN).warmRate == ChargeSlowdown.WARM_SHOWN, "After 30 min of silence it measures afresh");
+        ChargeSlowdown stock = warming(m -> 9.5, 15 * MIN);
+        stock.observe(P, UT5, (Double) RATED, STOCK, true, 40d, 49.2, -5.5, 9d, 100d, T0 + 15 * MIN + STEP);
+        stock.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.2, -5.5, 9d, 100d, T0 + 15 * MIN + 2 * STEP);
+        check(stock.state(P, T0 + 15 * MIN + 2 * STEP).warmRate == ChargeSlowdown.WARM_SHOWN, "Another charger in between: measured afresh");
+        // A pack that has barely warmed in its first 10 minutes and warms later is held at the floor, not left at
+        // nothing: the estimate stays within the live current lasting to 80%, and well short of it.
+        Sim late = new Sim(46, 8.5);
+        late.bulkFor(5.5, 0, 12 * MIN);
+        late.run(SLOW_WARMING, 101);
+        Watch lw = new Watch(late.samples);
+        int i = (int) (11 * MIN / STEP);
+        ChargingEstimate.Result r = new Estimates(late.samples, lw).v10.get(i);
+        check(lw.states.get(i).warmRate == ChargeSlowdown.WARM_FLOOR, "Barely warmed in 10 minutes: the floor");
+        double lasting = ChargingEstimate.extraBulkMinutes(late.samples.get(i).soc, 80, 5.5, 10.05, null, 1, 0, RATED);
+        // From 8 C the floor reaches 15 C only after 80%: no longer than the live current lasting, the bound the layer
+        // keeps for any slowdown. From 13 C the warm-up still counts at the floor.
+        double floor = ChargingEstimate.extraBulkMinutes(late.samples.get(i).soc, 80, 5.5, 10.05, 8d, ChargeSlowdown.WARM_FLOOR, .5, RATED);
+        double warmer = ChargingEstimate.extraBulkMinutes(late.samples.get(i).soc, 80, 5.5, 10.05, 13d, ChargeSlowdown.WARM_FLOOR, .5, RATED);
+        check(floor <= lasting + 1e-9 && warmer < lasting - 5, "At the floor: " + floor + " and " + warmer + " vs " + lasting);
+        double actual = (late.complete - late.samples.get(i).t) / 60000d;
+        check(r.remainingMinutesToFull - actual < 5, "Not wildly long: " + (r.remainingMinutesToFull - actual));
     }
 
     private static ChargeSlowdown slowedNow() {

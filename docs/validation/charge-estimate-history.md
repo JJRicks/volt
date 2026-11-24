@@ -30,6 +30,12 @@ to make room, a later version may shorten a part's name, never reuse one for som
 else. Versions since v11 that main carried, newest first (each pull request that
 changed it, and the release that shipped it; the others never shipped):
 
+- `ut5-fast-warming-v12.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1` (2.0.5):
+  the slowed estimate's cold model warms the battery at this charge's own
+  measured rate once it has 10 minutes of temperatures, never faster than
+  before ([details](fast-charge-slowdown.md#the-charges-own-warming-rate-ut5-fast-warming-v12)).
+  The base estimator is v11 otherwise; the layers are unchanged. Charges
+  without a cold-slowed stretch give the same numbers as before.
 - `ut5-fast-cvpoint-v11.stitch-v1.temps-v1.ucap-v1.match-v1.iavg-v1` (#586,
   2.0.2): every estimate uses the last minute's averaged charging current
   (`iavg-v1`, [details](stock-pack-estimates.md#live-current-202)). `stitch-v1`
@@ -53,6 +59,7 @@ Every part name ever used, with its shorter forms:
 | Part (every name it has had) | Meaning |
 |---|---|
 | `ut5-fast-cvpoint-v11` | The base estimator: [where the voltage limit comes](fast-charge-taper.md#v11-where-the-voltage-limit-comes-ut5-fast-cvpoint-v11) |
+| `ut5-fast-warming-v12` | The base estimator, v11 with [the charge's own warming rate](fast-charge-slowdown.md#the-charges-own-warming-rate-ut5-fast-warming-v12) |
 | `stitched-estimate-v1`, `stitched-v1`, `stitch-v1` | [Provisional and joined estimates](charge-capture.md#provisional-and-joined-estimates-stitched-estimate-v1) |
 | `normal-temps-v1`, `temps-v1` | [Learning only from normal battery temperatures](charge-capture.md#learning-only-from-normal-battery-temperatures-normal-temps-v1) |
 | `usable-cap-v1`, `ucap-v1` | [Learned usable capacity](charge-capture.md#learned-usable-capacity-usable-capacity-v1) |
