@@ -264,7 +264,7 @@ public final class RideChartData {
                                        RideStore.Summary ride) {
         List<Series> lines = new ArrayList<>(build(scooter, phone, miles, fullDetail, inferRegen));
         lines.add(gpsAccuracy(scooter, phone, miles, fullDetail, T.READINGS_CHART_GPS_ACCURACY));
-        lines.add(distance(scooter, phone, miles, fullDetail, T.READINGS_CHART_DISTANCE, T.READINGS_CHART_GPS_DISTANCE));
+        lines.add(distance(scooter, phone, miles, fullDetail, ride, T.READINGS_CHART_DISTANCE, T.READINGS_CHART_GPS_DISTANCE));
         return Collections.unmodifiableList(lines);
     }
     /**

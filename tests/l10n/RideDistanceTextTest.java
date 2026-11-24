@@ -36,6 +36,9 @@ public final class RideDistanceTextTest {
         RideChartData.Series miles = last(RideChartData.forRide(points, null, true, true, false));
         RideChartData.Series km = last(RideChartData.forRide(points, null, false, true, false));
         check(miles.displayLabel().equals("Distance") && miles.notedLabel().equals("Distance"), "the odometer's name: " + miles.displayLabel());
+        RideChartData.Series withRide = last(RideChartData.forRide(points, null, false, true, false, store.get(id)));
+        check(withRide.displayLabel().equals("Distance") && Math.abs(withRide.values.get(withRide.values.size() - 1).value - store.get(id).distanceKm) < 1e-9,
+                "given the ride, the line ends at the ride's distance");
         check(miles.unit.equals("mi") && km.unit.equals("km"), "the unit follows the setting: " + miles.unit + " / " + km.unit);
         check(Math.abs(km.sampleAt(25000).value - 0.2) < 1e-9 && Math.abs(miles.sampleAt(25000).value - 0.2 / RideStore.KM_PER_MILE) < 1e-9, "the cursor's value in either unit");
         System.out.println("RideDistanceTextTest: " + checks + " checks passed (names by source, place, default, units)");
