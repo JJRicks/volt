@@ -655,9 +655,11 @@ public final class NewOwnerKeyValidation extends ValidationInstrumentation {
             main(() -> {
                 TextView home = text(root(), "Go to Home");
                 require(step() == DONE && home != null && !home.isEnabled(), "Go to Home did not wait for the service");
-                // TalkBack's "starting" words come with their catalog key; an app from before them says nothing extra.
-                require(!hasCatalogKey("onboardingDoneHomeStarting") && home.getContentDescription() == null
-                        || "Go to Home, starting".contentEquals(String.valueOf(home.getContentDescription())),
+                // TalkBack's "starting" words come with their catalog key; an app from before them reads the button's own
+                // words (no description, or the label the button set).
+                CharSequence spoken = home.getContentDescription();
+                require(!hasCatalogKey("onboardingDoneHomeStarting") && (spoken == null || "Go to Home".contentEquals(spoken))
+                        || "Go to Home, starting".contentEquals(String.valueOf(spoken)),
                         "TalkBack hears '" + home.getContentDescription() + "' while Go to Home waits");
             });
             shot("home-waiting");
