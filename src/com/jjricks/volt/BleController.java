@@ -313,8 +313,10 @@ public final class BleController {
     public ScooterPowerState.Result powerVerdict(){
         if(simulating())return power.verdict(awake(),true,ready(),false,false,false);
         return power.verdict(awake(),false,ready()&&statusFrame!=null,powerArmed(),status().fresh(now(),CapabilityResolver.STATUS_MAX_AGE_MS),
-                ScooterPowerState.charging(telemetry.number("charging_state"),telemetry.number("current_a")));
+                ScooterPowerState.charging(telemetry.number("charging_state"),readingAge("charging_state"),telemetry.number("current_a"),readingAge("current_a")));
     }
+    /** How old a reading is (now() time), -1 when it was never read. */
+    private long readingAge(String key){for(Telemetry.Metric m:telemetry.metrics())if(m.key.equals(key))return m.updatedMs>0&&now()>=m.updatedMs?now()-m.updatedMs:-1;return -1;}
     /** Judged at all: the UT5 MAX layer, or a scooter that has pushed on an earlier connection. */
     private boolean powerArmed(){ScooterProfiles.Profile p=profile();return ScooterPowerState.armed(ModelRegistry.resolve(descriptor()).layer==ModelRegistry.Layer.UT5_MAX,p!=null&&p.pushesSeen);}
     /** The latest push this connection (now() time), 0 for none: a ride's auto-end times a switch-off from it. */
@@ -330,10 +332,14 @@ public final class BleController {
         if(p!=null&&!p.pushesSeen){p.pushesSeen=true;profiles.update(p);}
         observePower();
     }
-    /** Logs a change of the switched-off verdict once, in the event log; every poll and push looks. */
+    /** Logs the switched-off verdict once, and a switch-on only when a push ends it (ScooterPowerState.logged); every poll and push looks. */
     private void observePower(){
-        boolean off=scooterOff();if(off==offLogged)return;offLogged=off;
-        event(off?"Scooter seems switched off: it answers, but no live data for 10 s":"Scooter switched on: live data again");changed();
+        ScooterPowerState.Logged logged=ScooterPowerState.logged(offLogged,powerVerdict());
+        if(logged==ScooterPowerState.Logged.NONE)return;
+        offLogged=logged==ScooterPowerState.Logged.SWITCHED_OFF;
+        if(logged==ScooterPowerState.Logged.SWITCHED_OFF)event("Scooter seems switched off: it answers, but no live data for 10 s");
+        else if(logged==ScooterPowerState.Logged.SWITCHED_ON)event("Scooter switched on: live data again");
+        changed();
     }
     public ScooterProfiles.Profile profile(){return profile==null?profiles.active():profile;}public List<ScanResult> discoveries(){return new ArrayList<>(discoveries.values());}public List<String> events(){return new ArrayList<>(events);}public Map<String,String> commandResults(){return new LinkedHashMap<>(commandResults);}
     /** Wall time of a key's latest result, or 0. */

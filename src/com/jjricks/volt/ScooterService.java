@@ -2604,12 +2604,28 @@ public final class ScooterService extends Service {
             rideAutoStop.reset();rideAutoStopDisconnects=ble.intentionalDisconnectSequence();return;
         }
         // A scooter switched off while answering (ScooterPowerState) counts as gone, timed from its last push.
-        if(ble.connected()&&ble.scooterOff()){rideAutoStop.scooterOff(mono,ble.lastPushMs());return;}
-        if(ble.connected()){ScooterProfiles.Profile bound=ble.profile();
-            rideAutoStop.connected(mono,bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus());}
-        else rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
+        RideAutoStopPolicy.Link link=autoStopLink();rideAutoStop.observe(mono,link);
         // Rule 3 also counts the odometer or trip going up as motion.
-        if(ble.connected())rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));
+        if(link.connected&&!link.switchedOff)rideAutoStop.distance(mono,rideDistance(RideStore.ODOMETER_KEY,mono),rideDistance(RideStore.TRIP_KEY,mono));
+    }
+    /** The link as the ride's auto-end sees it (RideAutoStopPolicy.Link): the transport's own facts and the switched-off verdict. */
+    private RideAutoStopPolicy.Link autoStopLink(){
+        if(!ble.connected())return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));
+        ScooterProfiles.Profile bound=ble.profile();
+        return RideAutoStopPolicy.Link.up(bound==null?"":bound.id,ble.currentTransportSerial(),ble.connectionGeneration(),ble.lastFrameMs(),ble.motionSampleMs(),ble.speedRaw(),ble.drivingStatus(),ble.scooterOff(),ble.lastPushMs());
+    }
+    /** Called from the tick only, after this tick's observation: ends the ride when one of the three rules is due (RideAutoStopPolicy.due). */
+    private void autoStopDue(RideAutoStopPolicy policy,long now){
+        if(policy==null)return;
+        // The quiet countdown's kind and start, read before due() uses it up.
+        boolean phoneOff=policy.quiet()==RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF;
+        long since=policy.quiet()==RideAutoStopPolicy.Quiet.RESTART?0:policy.quietSince();
+        switch(policy.due(now,autoStopLink())){
+            case PARKED:autoStopRide(policy);break;
+            case QUIET:autoStopRide(policy,RideStore.quietStopReason(ConnectionEventLog.firstLossCode(ble.diagnosticEvents(),since),phoneOff));break;
+            case NO_MOTION:autoStopNoMotion(policy);break;
+            default:break;
+        }
     }
     /** The transport's fresh odometer or trip reading in km for rule 3, NaN when missing or stale. */
     private double rideDistance(String key,long mono){
@@ -2618,12 +2634,12 @@ public final class ScooterService extends Service {
         return m.numericValue;
     }
     /**
-     * Called from the tick only, after the other rules: ends a ride whose connected scooter showed no
-     * motion for 10 minutes (rule 3). The policy saw this tick's connected observation, so a link lost
-     * since then has already stopped its countdown. Volt sends the scooter nothing.
+     * Called from autoStopDue only: ends a ride whose connected scooter showed no motion for 10 minutes
+     * (rule 3). The policy saw this tick's connected observation, so a link lost since then has already
+     * stopped its countdown. Volt sends the scooter nothing.
      */
-    private void autoStopNoMotion(RideAutoStopPolicy policy,long now){
-        if(policy==null||!policy.dueNoMotion(now))return;
+    private void autoStopNoMotion(RideAutoStopPolicy policy){
+        if(policy==null)return;
         if(destroyed||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId()))return;
         String id=policy.rideId;
         if(stopRide(RideStore.STOP_AUTO_NO_MOTION)){
@@ -2631,22 +2647,15 @@ public final class ScooterService extends Service {
             showAutoStopNotice(id,RideStore.STOP_AUTO_NO_MOTION);
         }
     }
-    /** Called from the tick only. The policy instance and ride id must both still be current. */
+    /** Called from autoStopDue only. The policy instance and ride id must both still be current. */
     private void autoStopRide(RideAutoStopPolicy policy){autoStopRide(policy,RideStore.STOP_AUTO_PARKED);}
     /**
-     * Called from the tick only, after the parked check: ends the ride once the went-quiet countdown
-     * runs out (the scooter switched off or out of range, or the phone's Bluetooth off).
+     * Ends the ride through the same stop path as the rider's Stop, so the save and its follow-ups match: rules 1 and 2,
+     * once their countdown runs out (the scooter switched off or out of range, or the phone's Bluetooth off). The link
+     * must be gone, or up to a scooter switched off (RideAutoStopPolicy.mayEnd).
      */
-    private void autoStopQuiet(RideAutoStopPolicy policy,long now){
-        if(policy==null)return;
-        boolean phoneOff=policy.quiet()==RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF;
-        long since=policy.quiet()==RideAutoStopPolicy.Quiet.RESTART?0:policy.quietSince();
-        if(!policy.dueQuiet(now))return;
-        autoStopRide(policy,RideStore.quietStopReason(ConnectionEventLog.firstLossCode(ble.diagnosticEvents(),since),phoneOff));
-    }
-    /** Ends the ride through the same stop path as the rider's Stop, so the save and its follow-ups match. */
     private void autoStopRide(RideAutoStopPolicy policy,String reason){
-        if(destroyed||policy==null||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId())||ble.connected())return;
+        if(destroyed||policy==null||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId())||!RideAutoStopPolicy.mayEnd(autoStopLink()))return;
         String id=policy.rideId;
         if(stopRide(reason)){
             if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
@@ -2834,10 +2843,7 @@ public final class ScooterService extends Service {
                     // Re-read the clock: a loss seen inside this tick (a failed refresh write) was fed a later time.
                     long autoNow = SystemClock.elapsedRealtime();
                     observeRideAutoStop(autoNow);
-                    RideAutoStopPolicy autoStop = rideAutoStop;
-                    if (autoStop != null && autoStop.due(autoNow)) autoStopRide(autoStop);
-                    else autoStopQuiet(autoStop, autoNow);
-                    if (autoStop != null && autoStop == rideAutoStop) autoStopNoMotion(autoStop, autoNow);
+                    autoStopDue(rideAutoStop, autoNow);
                     // The charge watch re-posts only when its whole-number battery level or wording changes.
                     if (mono - lastNotification > 5000 && !alertWatchShown() && !(chargeLiveShown() && !isChargeRecording())) {
                         lastNotification = mono;

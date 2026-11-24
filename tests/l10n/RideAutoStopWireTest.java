@@ -34,6 +34,7 @@ public final class RideAutoStopWireTest {
             phoneBluetoothOffEndsAfterFiveMinutes();
             bluetoothBackOnBeforeTheScooter();
             parkedRuleStillWins();
+            switchedOffWhileAnsweringEndsWithTheLinkUp();
             settingOffCancels();
             text();
             serviceWiring();
@@ -83,11 +84,17 @@ public final class RideAutoStopWireTest {
         check(ConnectionEventLog.firstLossCode(events, 0) == -1 && ConnectionEventLog.firstLossCode(null, 1) == -1, "restart or no events: unknown");
     }
 
-    /** A scripted ScooterService: 1 s ticks, the 12 s silent-link watchdog, the gap and heartbeats, the policy feed and the tick checks. */
+    /**
+     * A scripted ScooterService: 1 s ticks, the 12 s silent-link watchdog, the gap and heartbeats, the policy feed and the
+     * tick checks. A real ScooterPowerState gives the switched-off verdict as BleController does, judged only when
+     * {@code armed} (a UT5 MAX); status counts as fresh within its 7 s window.
+     */
     private static final class Service {
         final RideStore rides; final String id; RideAutoStopPolicy policy;
-        boolean connected = true, permissions = true, bluetooth = true, recoverable = true, gapMarked, autoStop = true;
-        long now, lastFrame, motion; int speedRaw, driving, transport = 1;
+        boolean connected = true, permissions = true, bluetooth = true, recoverable = true, gapMarked, autoStop = true, armed;
+        long now, lastFrame, motion, lastPush; int speedRaw, driving, transport = 1;
+        final ScooterPowerState power = new ScooterPowerState(); boolean powered;
+        RideAutoStopPolicy.Link link;
         String stoppedWith; long stoppedAt = -1; RideStore.Summary saved;
         /** BleController's connection event log, oldest first. */
         final List<ConnectionEventLog.Record> events = new ArrayList<>();
@@ -96,7 +103,14 @@ public final class RideAutoStopWireTest {
             rides = new RideStore(dir); now = start; id = rides.start(PROFILE, label, WALL0 + now, now);
         }
         /** One push from the scooter: fresh readings and a motion frame. */
-        void push(int raw, int drive) { lastFrame = motion = now; speedRaw = raw; driving = drive; }
+        void push(int raw, int drive) { syncPower(); lastFrame = motion = lastPush = now; speedRaw = raw; driving = drive; power.frame(0x92, now); }
+        /** An answered poll: a frame but no push (a switched-off scooter still answers these). */
+        void poll() { lastFrame = now; }
+        /** BleController starts ScooterPowerState when the link is ready and resets it, and its last push, when the link closes. */
+        void syncPower() {
+            if (connected && !powered) { power.start(now); powered = true; }
+            else if (!connected && powered) { power.reset(); powered = false; lastPush = 0; }
+        }
         void tick() throws IOException {
             if (stoppedAt >= 0) { now += 1000; return; }
             // BleController's watchdog: a recording link with no frame for 12 s is lost (checked every 2 s).
@@ -110,18 +124,27 @@ public final class RideAutoStopWireTest {
             } else if (!gapMarked) { rides.markGap(WALL0 + now, now, "Bluetooth disconnected"); gapMarked = true; }
             else rides.heartbeat(WALL0 + now, now);
             observe();
-            if (policy != null && policy.due(now)) stop(RideStore.STOP_AUTO_PARKED);
-            else if (policy != null) {
+            // ScooterService.autoStopDue (serviceWiring checks the service lines).
+            if (policy != null && autoStop) {
                 boolean phoneOff = policy.quiet() == RideAutoStopPolicy.Quiet.PHONE_BLUETOOTH_OFF;
-                if (policy.dueQuiet(now)) stop(RideStore.quietStopReason(8, phoneOff));
+                switch (policy.due(now, link)) {
+                    case PARKED: stop(RideStore.STOP_AUTO_PARKED); break;
+                    case QUIET: stop(RideStore.quietStopReason(8, phoneOff)); break;
+                    case NO_MOTION: stop(RideStore.STOP_AUTO_NO_MOTION); break;
+                    default: break;
+                }
             }
             now += 1000;
         }
         void observe() {
             if (policy == null) policy = new RideAutoStopPolicy(id, PROFILE, SERIAL);
             if (!autoStop) { policy.reset(); return; }
-            if (connected) policy.connected(now, PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving);
-            else policy.disconnected(now, loss());
+            syncPower();
+            boolean fresh = connected && lastFrame > 0 && now - lastFrame <= CapabilityResolver.STATUS_MAX_AGE_MS;
+            boolean off = connected && power.verdict(now, false, fresh, armed, fresh, false).off();
+            link = connected ? RideAutoStopPolicy.Link.up(PROFILE, SERIAL, transport, lastFrame, motion, speedRaw, driving, off, lastPush)
+                    : RideAutoStopPolicy.Link.down(loss());
+            policy.observe(now, link);
         }
         /** The loss ScooterService.observeRideAutoStop hands the policy (serviceWiring checks the service line). */
         RideAutoStopPolicy.Loss loss() { return RideAutoStopPolicy.loss(permissions, bluetooth, recoverable, ConnectionEventLog.adapterOffLast(events)); }
@@ -247,6 +270,36 @@ public final class RideAutoStopWireTest {
         check(s.stoppedAt - last <= 25000, "after the silent link and the 10 s grace: " + (s.stoppedAt - last));
     }
 
+    /**
+     * Review of #623: a UT5 MAX switched off with its button while it keeps answering polls (link up, no pushes) ends the
+     * ride a minute after its last push, with the link still up, through the same stop as a drop. Status replies lapsing
+     * past their 7 s window mid-countdown change nothing; a push before the minute (switched on again) rides on.
+     */
+    private static void switchedOffWhileAnsweringEndsWithTheLinkUp() throws IOException {
+        Service s = new Service("Off at the rack", 10000); s.armed = true;
+        s.ride(250, 1, 200000); s.ride(30, 1, 230000); // walking the scooter at 3 km/h
+        long last = s.lastPush;
+        // Switched off: no pushes; a poll answered every 2 s, except none for 10 s (status stale for 3 s of it).
+        while (s.now < last + 59000) { if (s.now % 2000 == 0 && !(s.now > last + 24000 && s.now < last + 34000)) s.poll(); s.tick(); }
+        check(s.stoppedAt < 0 && s.connected && s.policy.quiet() == RideAutoStopPolicy.Quiet.SLOW && s.policy.quietSince() == last,
+                "still recording at 59 s with the link up, the slow countdown from the last push");
+        while (s.now < last + 62000) { if (s.now % 2000 == 0) s.poll(); s.tick(); }
+        check(s.stoppedAt == last + 60000 && s.connected, "ends 60 s after the last push, the link still up: " + (s.stoppedAt - last));
+        check(RideStore.STOP_AUTO_QUIET.equals(s.saved.stopReason) && s.saved.automaticStop, "the went-quiet stop, through the rider's stop path");
+
+        Service on = new Service("Back on", 10000); on.armed = true;
+        on.ride(30, 1, 100000); long walked = on.lastPush;
+        while (on.now < walked + 30000) { if (on.now % 2000 == 0) on.poll(); on.tick(); }
+        check(on.stoppedAt < 0 && on.policy.quietArmed(), "off and counting down");
+        on.ride(30, 1, walked + 400000);
+        check(on.stoppedAt < 0 && !on.policy.armed(), "switched on again: its first push cancels the countdown and the ride goes on");
+
+        Service other = new Service("Another model", 10000);
+        other.ride(30, 1, 100000); long quiet = other.lastPush;
+        while (other.now < quiet + 400000) { if (other.now % 2000 == 0) other.poll(); other.tick(); }
+        check(other.stoppedAt < 0 && !other.policy.armed(), "a scooter that is never judged keeps main's behaviour: polls answered, nothing ends before rule 3");
+    }
+
     private static void settingOffCancels() throws IOException {
         Service s = new Service("Setting off", 10000);
         s.ride(30, 1, 100000);
@@ -279,13 +332,20 @@ public final class RideAutoStopWireTest {
     /** The service hooks, read from source: the tick order and one stop path shared with the rider's Stop and the auto-export hook. */
     private static void serviceWiring() throws IOException {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
-        check(src.contains("if (autoStop != null && autoStop.due(autoNow)) autoStopRide(autoStop);\n                    else autoStopQuiet(autoStop, autoNow);"),
-                "the tick checks the parked rule, then the quiet countdown");
-        check(src.contains("rideAutoStop.disconnected(mono,RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));"),
+        check(src.contains("observeRideAutoStop(autoNow);\n                    autoStopDue(rideAutoStop, autoNow);"), "the tick observes, then checks the rules");
+        String due = between(src, "private void autoStopDue(RideAutoStopPolicy policy,long now){", "\n    }");
+        check(due.contains("switch(policy.due(now,autoStopLink())){") && due.contains("case PARKED:autoStopRide(policy);break;")
+                && due.contains("case QUIET:autoStopRide(policy,RideStore.quietStopReason(") && due.contains("case NO_MOTION:autoStopNoMotion(policy);break;"),
+                "the tick ends the ride by the rule that is due: parked, then the quiet countdown, then no motion");
+        String observe = between(src, "private void observeRideAutoStop(long mono){", "\n    }");
+        check(observe.contains("RideAutoStopPolicy.Link link=autoStopLink();rideAutoStop.observe(mono,link);"), "the service feeds the policy one Link per observation");
+        String link = between(src, "private RideAutoStopPolicy.Link autoStopLink(){", "\n    }");
+        check(link.contains("return RideAutoStopPolicy.Link.down(RideAutoStopPolicy.loss(ble.permissions(),ble.bluetoothEnabled(),ble.recoverableConnectionLoss(),ConnectionEventLog.adapterOffLast(ble.diagnosticEvents())));"),
                 "the service reports Bluetooth off as its own loss");
+        check(link.contains("ble.scooterOff(),ble.lastPushMs());"), "and a scooter switched off but answering, with its last push");
         String auto = between(src, "private void autoStopRide(RideAutoStopPolicy policy,String reason){", "\n    }");
-        check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("ble.connected())return;"),
-                "an automatic end goes through stopRide(reason) after the ownership checks");
+        check(auto.contains("if(stopRide(reason)){") && auto.contains("policy!=rideAutoStop") && auto.contains("policy.owns(rides.activeId())") && auto.contains("!RideAutoStopPolicy.mayEnd(autoStopLink()))return;"),
+                "an automatic end goes through stopRide(reason) after the ownership checks, with the scooter gone or switched off");
         check(src.contains("public void stopRide(){stopRide(\"\");}"), "the rider's Stop uses the same stopRide(reason)");
         String stop = between(src, "private boolean stopRide(String reason){", "\n    /**");
         check(stop.contains("stopPhoneRecording();"), "stopRide finishes the phone journal");

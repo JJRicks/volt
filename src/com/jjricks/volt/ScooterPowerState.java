@@ -19,12 +19,15 @@ import java.util.Map;
  *   <li>{@link #SILENCE_MS}: off once no 0x90, 0x91 or 0x92 has arrived for this long.</li>
  *   <li>{@link #armed}: only on the UT5 MAX layer or a scooter that has pushed before; a model that never pushes is
  *       never judged off.</li>
- *   <li>{@link #charging}: never off while the scooter reports charging (its charging state or a current).</li>
+ *   <li>{@link #charging}: never off while the scooter reports charging (its charging state or a current, read within
+ *       the status window).</li>
  *   <li>Fresh status: never off unless the scooter is answering status reads (a silent link is the loss watchdog's).</li>
  *   <li>Never in the simulator (only a validation's hook, {@link #heldOff}, can show the state there).</li>
  *   <li>All times are awake time (SystemClock.uptimeMillis): a phone in deep sleep never counts its sleep as silence.</li>
  * </ul>
- * The first push clears the verdict at once.
+ * Once off, only a push ends it (the first one clears the verdict at once), or the link closing: a stale or missing
+ * status, the link not ready for a moment, or a charging reading afterwards all leave it off, so neither a ride's
+ * countdown nor Home's state flickers with background polling or a short radio gap.
  */
 final class ScooterPowerState {
     /** No verdict this soon after the link became ready. */
@@ -63,6 +66,8 @@ final class ScooterPowerState {
 
     private long readyAt;
     private long lastPush;
+    /** Judged off since the last push on this connection: sticky until a push or the link closes. */
+    private boolean off;
     private final long[] counts = new long[PUSHES.length];
     private final long[] lastAt = new long[PUSHES.length];
 
@@ -70,14 +75,14 @@ final class ScooterPowerState {
     void start(long awakeMs) { reset(); readyAt = awakeMs; }
     /** The link closed. */
     void reset() {
-        readyAt = 0; lastPush = 0;
+        readyAt = 0; lastPush = 0; off = false;
         for (int i = 0; i < PUSHES.length; i++) { counts[i] = 0; lastAt[i] = 0; }
     }
     /** A frame from the scooter while ready; only the pushes count. True when it was one. */
     boolean frame(int cmd, long awakeMs) {
         int i = index(cmd);
         if (i < 0 || readyAt <= 0) return false;
-        counts[i]++; lastAt[i] = awakeMs; lastPush = Math.max(lastPush, awakeMs);
+        counts[i]++; lastAt[i] = awakeMs; lastPush = Math.max(lastPush, awakeMs); off = false;
         return true;
     }
     /** Any push this session. */
@@ -87,27 +92,47 @@ final class ScooterPowerState {
 
     /**
      * This session's verdict. ready: an authenticated, ready link; statusFresh: the latest status read is fresh;
-     * charging: {@link #charging}; armed: {@link #armed}.
+     * charging: {@link #charging}; armed: {@link #armed}. Once off, it stays off until a push or {@link #reset}.
      */
     Result verdict(long nowAwake, boolean simulation, boolean ready, boolean armed, boolean statusFresh, boolean charging) {
         if (simulation) return heldOff && ready ? new Result(State.OFF, Why.SIMULATION) : new Result(State.NOT_JUDGED, Why.SIMULATION);
+        if (off && readyAt > 0) return new Result(State.OFF, Why.SILENT);
         if (!ready || readyAt <= 0) return new Result(State.NOT_JUDGED, Why.NOT_READY);
         if (lastPush > 0 && nowAwake - lastPush < SILENCE_MS) return new Result(State.LIVE, Why.PUSHING);
         if (!armed) return new Result(State.NOT_JUDGED, Why.NOT_ARMED);
         if (charging) return new Result(State.NOT_JUDGED, Why.CHARGING);
         if (!statusFresh) return new Result(State.NOT_JUDGED, Why.STATUS_STALE);
         if (lastPush <= 0 && nowAwake - readyAt < GRACE_MS) return new Result(State.WAITING, Why.GRACE);
+        off = true;
         return new Result(State.OFF, Why.SILENT);
+    }
+
+    /** What BleController's event log records for a verdict, given whether it last logged off. */
+    enum Logged { NONE, SWITCHED_OFF, SWITCHED_ON, CLEARED }
+
+    /**
+     * The event-log line for this verdict: "switched off" once when it turns off, "switched on" only when a push ends
+     * it (LIVE). Anything else away from off (the simulator's hook cleared) only clears the mark, with no line.
+     */
+    static Logged logged(boolean loggedOff, Result r) {
+        if (r.off()) return loggedOff ? Logged.NONE : Logged.SWITCHED_OFF;
+        if (!loggedOff) return Logged.NONE;
+        return r.state == State.LIVE ? Logged.SWITCHED_ON : Logged.CLEARED;
     }
 
     /** Which scooters are judged: the UT5 MAX layer, or one that has pushed on an earlier connection. */
     static boolean armed(boolean ut5Max, boolean pushedBefore) { return ut5Max || pushedBefore; }
 
-    /** Charging: a charging state other than 0, or a current of at least {@link #CHARGING_CURRENT_A}. Unknown is not charging. */
-    static boolean charging(Double chargingState, Double currentA) {
-        if (chargingState != null && chargingState != 0) return true;
-        return currentA != null && Math.abs(currentA) >= CHARGING_CURRENT_A;
+    /**
+     * Charging: a charging state other than 0, or a current of at least {@link #CHARGING_CURRENT_A}, each read within the
+     * status window (CapabilityResolver.STATUS_MAX_AGE_MS; ages in ms, negative when never read). Unknown or older
+     * readings are not charging: with battery reads paused, an old charging current says nothing about now.
+     */
+    static boolean charging(Double chargingState, long stateAgeMs, Double currentA, long currentAgeMs) {
+        if (chargingState != null && fresh(stateAgeMs) && chargingState != 0) return true;
+        return currentA != null && fresh(currentAgeMs) && Math.abs(currentA) >= CHARGING_CURRENT_A;
     }
+    private static boolean fresh(long ageMs) { return ageMs >= 0 && ageMs <= CapabilityResolver.STATUS_MAX_AGE_MS; }
 
     /**
      * What stays usable while the scooter is off: the charging settings, which the owner sets with the scooter switched
