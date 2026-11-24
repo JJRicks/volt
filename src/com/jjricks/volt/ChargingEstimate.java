@@ -1065,13 +1065,13 @@ public final class ChargingEstimate {
      * The shown form of an estimate while ChargeEstimateHold holds it at plug-in: still charging, with its power, current
      * and limit, but no time to the limit or to 100% and no planning minutes, so neither the screens nor Charge done by
      * use the guess; the state is the live card's "Estimating time left" (ChargeLiveState.estimatingText, in the language
-     * of the moment: the estimate is made afresh at every refresh). It has no status: the time tiles speak the state and
-     * then the status, and the same words twice is noise. Only the display holds it: recordings keep the estimate itself.
+     * of the moment: the estimate is made afresh at every refresh). Its status is empty, never null (readers take a
+     * status as text): the time tiles speak the state and then any status, and the same words twice is noise. Only the display holds it: recordings keep the estimate itself.
      * A result that is not charging or has no time is returned unchanged.
      */
     public static Result estimating(Result shown) {
         if (shown == null || !shown.charging || shown.remainingMinutesToFull == null && shown.remainingMinutesToLimit == null) return shown;
-        return new Result(true, shown.inputWatts, shown.inputAmps, null, null, shown.targetPercent, ChargeLiveState.estimatingText(), null,
+        return new Result(true, shown.inputWatts, shown.inputAmps, null, null, shown.targetPercent, ChargeLiveState.estimatingText(), "",
                 false, false, 0, false, false, null, null, null, null, shown.stockPackModel, null, false, null, false);
     }
 }

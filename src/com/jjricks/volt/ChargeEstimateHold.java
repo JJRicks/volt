@@ -47,6 +47,8 @@ public final class ChargeEstimateHold {
     private long firstSeen, lastSeen, lastNotCharging, readyAt;
     /** The charger in effect when the charge became ready; another one chosen or detected makes it unready again. */
     private ChargeSessionStore.Charger readyCharger;
+    /** readyCharger was an explicit choice (the setting, or the recording's label), not detection's. */
+    private boolean readyChosen;
 
     /** Whether this model's estimate is held at plug-in: the models whose charger Volt identifies. */
     public static boolean applies(int productId) { return ChargerDetection.supports(productId); }
@@ -83,6 +85,16 @@ public final class ChargeEstimateHold {
      */
     public void observe(String profile, int productId, Boolean charging, ChargeSessionStore.Charger charger,
             Double volts, Double amps, long sampleMs, long nowMs) {
+        observe(profile, productId, charging, charger, false, volts, amps, sampleMs, nowMs);
+    }
+
+    /**
+     * As above; chosen says the charger in effect is an explicit choice (the charger setting, or a running recording's
+     * label) rather than detection's. Going from a chosen charger to none in effect (Standard, then Auto, still
+     * identifying the charger) is a change too; detection losing its charger for a moment is not.
+     */
+    public void observe(String profile, int productId, Boolean charging, ChargeSessionStore.Charger charger, boolean chosen,
+            Double volts, Double amps, long sampleMs, long nowMs) {
         if (profile == null || profile.isEmpty() || charging == null || nowMs <= 0) return;
         if (!profile.equals(this.profile)) { reset(); this.profile = profile; }
         if (!applies(productId)) { clearCharge(); return; }
@@ -93,10 +105,12 @@ public final class ChargeEstimateHold {
             startObserved = lastNotCharging > 0 && nowMs - lastNotCharging <= START_GRACE_MS;
         }
         lastSeen = nowMs;
-        if (readyCharger != null && charger != null && charger != readyCharger) { readyAt = 0; readyCharger = null; released = false; }
+        if (readyCharger != null && charger != readyCharger && (charger != null || readyChosen)) {
+            readyAt = 0; readyCharger = null; readyChosen = false; released = false;
+        }
         if (released || readyAt > 0) return;
         boolean thisCharge = lastNotCharging <= 0 || sampleMs > lastNotCharging;
-        if (thisCharge && volts != null && amps != null && ready(charger, volts, amps)) { readyAt = nowMs; readyCharger = charger; }
+        if (thisCharge && volts != null && amps != null && ready(charger, volts, amps)) { readyAt = nowMs; readyCharger = charger; readyChosen = chosen; }
     }
 
     /** Whether this profile's charge shows "Estimating time left" now instead of a time. */
@@ -108,7 +122,7 @@ public final class ChargeEstimateHold {
         return true;
     }
 
-    private void clearCharge() { active = startObserved = released = false; firstSeen = lastSeen = readyAt = 0; readyCharger = null; }
+    private void clearCharge() { active = startObserved = released = false; firstSeen = lastSeen = readyAt = 0; readyCharger = null; readyChosen = false; }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
 }

@@ -23,7 +23,8 @@ Right after plugging in, the first time a UT5 MAX charge showed was often far of
 It is fed once per fresh frame in `ScooterService.updateChargerDetection()`, after detection, beside the other charge
 observers. That runs only while status is under about 7 s old, and out of sight status comes every 15 s, so the hold is
 also fed the charging state alone from `updateChargeLive()`, the reports the live card follows. A pause and resume
-between background status reads then still starts a new hold.
+between background status reads then still starts a new hold. A not-charging state seen there also ends charger
+detection's charge, so a charger swapped in the pause isn't taken for the old one.
 
 - **Scope:** models with charger detection (`ChargerDetection.supports`: the UT5 MAX).
   - On other models the charger is never identified. The hold would be a flat three minutes on every charge, followed
@@ -44,8 +45,9 @@ between background status reads then still starts a new hold.
   the readings say. This covers a charger stuck in its soft start, a standard charger read as the fast one, a charger
   never identified, and readings stopping after plug-in.
 - **Another charger:** a different charger chosen or detected than the one in effect when the charge became ready (Standard,
-  then High-speed during the soft start) makes it unready again, within the cap. Detection losing the charger for a moment
-  (none in effect) doesn't.
+  then High-speed during the soft start) makes it unready again, within the cap. So does going from a chosen charger to
+  none in effect (Standard, then Auto while it identifies the charger). Detection losing its own charger for a moment
+  doesn't.
 - **Ends for the charge:** once shown, the time is not held again in that charge, except after another charger. A charger pause (not charging) or
   30 minutes without readings begins a new charge, as in `ChargeProgressTracker`.
 - **Simulation:** never held. The emulator validation sets the service's test-only `testEstimateHold` instead.
@@ -57,7 +59,7 @@ That is the same charging state, power, current and limit, with:
 
 - no time to the limit or to 100%;
 - no planning minutes;
-- the state "Estimating time left", with no status (the time tiles speak the state and then the status, so TalkBack would say it twice).
+- the state "Estimating time left", with an empty status (the time tiles speak the state and then any status, so TalkBack would say it twice; empty rather than null because the widgets' descriptions take the status as text).
 
 The words are the live card's existing string, through `ChargeLiveState.estimatingText()`, so the change adds no new
 text and no new catalog reference.
@@ -66,7 +68,7 @@ Every reader of the estimate gets it:
 
 - Widgets' and Clean Home's charging view and time tile, including the 100% reading beside a limit and the charge
   alert's countdown;
-- the Charging widget;
+- the Battery overview's charging rows and the Charging widget;
 - the live charging card and its lock-screen version (no minutes: "Estimating time left");
 - Charge done by. With no minutes it refuses to plan ("Wait for a charging time estimate"), so it can't plan from the
   guess. The measuring step still sees the stock pack model flag.
@@ -104,6 +106,7 @@ what the estimator computed.
   - session 6's 82-minute ramp reading is no longer the first time shown.
 - **`android-tests/ChargeEstimatingFirstValidation.java`** (sweep steps `charge-estimating-first-412` and
   `charge-estimating-first-fold`), on Widgets and Clean, dark and light:
-  - the tile says "Estimating time left" in the muted colour while held, and a time after;
+  - the tile says "Estimating time left" in the muted colour while held, and a time after, and TalkBack reads it once;
+  - on Widgets Home, the Battery overview's and the Charging widget's time rows say the same, read once;
   - the live card says the same;
   - Charge done by has no minutes while held.

@@ -5824,7 +5824,7 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = detail.isEmpty() ? readingSpoken(label, fullText(value))
+            String description = detail == null || detail.isEmpty() ? readingSpoken(label, fullText(value))
                     : T.dashboardChargingDescriptionDetail(label, fullText(value), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.

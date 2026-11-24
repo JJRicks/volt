@@ -482,6 +482,8 @@ public final class ScooterService extends Service {
         if(chargeCharger()!=null)return ChargerBasis.MANUAL;
         return detectedCharger()!=null?ChargerBasis.DETECTED:ChargerBasis.UNKNOWN;
     }
+    /** The charger in effect is an explicit choice (the setting, or a running recording's label), not detection's. */
+    private boolean chargerChosen(){ChargerBasis basis=chargerBasis();return basis==ChargerBasis.MANUAL||basis==ChargerBasis.RECORDING;}
     public ChargeSessionStore.Charger effectiveChargeCharger(){
         switch(chargerBasis()){
             case RECORDING:return chargeStore.charger();
@@ -1701,8 +1703,13 @@ public final class ScooterService extends Service {
             // The charging state the card follows (status every 15 s out of sight, and the reports between), so a pause and
             // resume that updateChargerDetection's 7 s window misses still starts a new plug-in hold (ChargeEstimateHold).
             ScooterProfiles.Profile active=profiles.active();
-            if(facts.connected&&active!=null&&active.id.equals(facts.profile))
-                chargeEstimateHold.observe(active.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(active)),facts.charging,effectiveChargeCharger(),null,null,now);
+            if(facts.connected&&active!=null&&active.id.equals(facts.profile)){
+                int product=ModelRegistry.chargeReferenceProduct(modelDescriptor(active));
+                // A pause seen only here ends detection's charge too, so a charger swapped in the pause isn't taken for the
+                // old one (ChargerDetection forgets its choice when charging stops).
+                if(Boolean.FALSE.equals(facts.charging))chargerDetection.observe(active.id,product,false,null,null,null,0,now);
+                chargeEstimateHold.observe(active.id,product,facts.charging,effectiveChargeCharger(),chargerChosen(),null,null,now,now);
+            }
             if(!facts.profile.equals(chargeLiveCacheProfile)){chargeLiveCacheProfile=facts.profile;chargeLivePercent=chargeLiveLimit=null;}
             if(facts.percent!=null)chargeLivePercent=facts.percent;
             if(facts.connected)chargeLiveLimit=facts.limit;
@@ -2373,7 +2380,7 @@ public final class ScooterService extends Service {
                 liveCharge(frame.temperature,"temperature_c",now)?frame.temperature.value:null,ble.liveNumber("charge_limit_percent"),paired?frame.current.mono:0);
         // After detection, so the charger in effect is this frame's.
         chargeEstimateHold.observe(profile.id,ModelRegistry.chargeReferenceProduct(modelDescriptor(profile)),frame.state.value==1d,effectiveChargeCharger(),
-                paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
+                chargerChosen(),paired?frame.voltage.value:null,paired?frame.current.value:null,paired?frame.current.mono:0,now);
     }
     private static boolean liveCharge(ChargeSessionStore.Value value,String key,long now){
         return value!=null&&value.value!=null&&Double.isFinite(value.value)&&value.mono>0&&now>=value.mono
