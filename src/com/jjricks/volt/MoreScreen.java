@@ -1983,6 +1983,8 @@ public final class MoreScreen implements AppScreen {
         if (handlebar != null) {
             HandlebarDiagram diagram = new HandlebarDiagram(host.activity(), ui, handlebar);
             diagram.setContentDescription(T.morePinDiagram());
+            // The NT3 has a lever ahead of each grip: step 2 means the left one (#541 review).
+            if (ModelRegistry.twoBrakeLevers(handlebar)) diagram.setContentDescription(T.morePinDiagramLeftLever());
             LinearLayout.LayoutParams dp = new LinearLayout.LayoutParams(-1, -2); dp.topMargin = ui.dp(8); dp.bottomMargin = ui.dp(6);
             box.addView(diagram, dp);
         }
@@ -2240,6 +2242,8 @@ public final class MoreScreen implements AppScreen {
         if (last != null && !last.resolved) { pill.show(ui.danger, true, T.moreLabStatusUnfinished(), T.moreLabStatusUnfinishedShort()); return; }
         // Untried is the default state, so where "Not tried yet" doesn't fit (pt-PT beside Try at 344 dp) the row shows no
         // words rather than a cut-off phrase; the pill's description, which the row speaks, keeps the full words.
+        // A try pruned from the journal (30 days after a report, or for room) leaves Tried before, never Not tried yet.
+        if (last == null && !ble.simulating() && ble.triedBefore(key)) { quietUntried(pill, T.moreLabStatusTriedBefore()); return; }
         if (last == null) { pill.quiet(ui.muted, T.moreLabStatusNotTried(), ""); return; }
         switch (CompatibilityReport.tryResult(last)) {
             case "worked_here": pill.show(ui.ok, true, T.moreLabStatusWorked(), T.moreLabStatusWorkedShort()); return;
