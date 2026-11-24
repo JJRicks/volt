@@ -330,6 +330,10 @@ STEPS += [
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),
     inst('phone-ride-granted', T + 'PhoneRideValidation', '-e', 'mode', 'granted'),
     inst('riding-from-zero', T + 'RidingFromZeroValidation'),
+    # Range at this pace shows a dash until this ride's pace is known (owner, 2.0.5): opened stopped and moving, a stop,
+    # rotation and a fold or unfold. The window and theme are the validation's own (it sets wm size and density).
+    inst('riding-range-start', T + 'RidingRangeStartValidation', '-e', 'window', 'phone', '-e', 'theme', 'dark'),
+    inst('riding-range-start-fold', T + 'RidingRangeStartValidation', '-e', 'window', 'fold', '-e', 'theme', 'light'),
     inst('regen-display', T + 'RegenDisplayValidation'),
     inst('riding-auto-close', T + 'RidingAutoCloseValidation', hidden_api=True),
     inst('riding-lost-connection', T + 'RidingLostConnectionValidation', hidden_api=True),

@@ -51,9 +51,19 @@ public final class RangeReadout {
         public final boolean held;
         /** No fresh reading: the last value, frozen (the dashboard's stale handling). */
         public final boolean stale;
+        /**
+         * This ride hasn't been ridden at pace long enough for its own energy per km to outweigh the learned
+         * prior (LiveRangeEstimator.Snapshot.settling). The number is then the prior's figure, not this ride's
+         * pace, and riding mode shows a dash instead (owner, 2.0.5). False for a value that isn't the energy model's.
+         */
+        public final boolean settling;
         Value(State state, Double primary, Double secondaryKm, boolean primaryIsKm, int decimals, boolean approx, boolean amber, boolean held, boolean stale) {
+            this(state, primary, secondaryKm, primaryIsKm, decimals, approx, amber, held, stale, false);
+        }
+        Value(State state, Double primary, Double secondaryKm, boolean primaryIsKm, int decimals, boolean approx, boolean amber, boolean held, boolean stale,
+                boolean settling) {
             this.state = state; this.primary = primary; this.secondaryKm = secondaryKm; this.primaryIsKm = primaryIsKm;
-            this.decimals = decimals; this.approx = approx; this.amber = amber; this.held = held; this.stale = stale;
+            this.decimals = decimals; this.approx = approx; this.amber = amber; this.held = held; this.stale = stale; this.settling = settling;
         }
     }
 
@@ -62,6 +72,8 @@ public final class RangeReadout {
     private long lastMs = -1;
     private State lastState;
     private boolean lastKm;
+    /** The last energy-model reading was still settling: riding mode showed a dash, not the filtered number. */
+    private boolean lastSettling;
     /** The presentation lastValue was formatted for: units ("mi", "km", "dual") and the tenths toggle. */
     private String lastUnits; private boolean lastTenths;
     /** The last displayed distance, in km: what a stale reading freezes and reformats (never the filter target). */
@@ -89,10 +101,10 @@ public final class RangeReadout {
                 // Carry the switch into the calm state, so fresh readings continue from here without counting it as a movement.
                 shown = value; step = q; lastKm = km;
                 remember(unitsKey, tenths, new Value(v.state, value == 0 ? 0d : value, dual ? (Double) round(value * KM_PER_MI, q) : null, km, fine ? 1 : 0,
-                        v.approx, v.amber, v.held, false));
+                        v.approx, v.amber, v.held, false, v.settling));
             }
             Value v = lastValue;
-            return new Value(v.state, v.primary, v.secondaryKm, v.primaryIsKm, v.decimals, v.approx, v.amber, v.held, true);
+            return new Value(v.state, v.primary, v.secondaryKm, v.primaryIsKm, v.decimals, v.approx, v.amber, v.held, true, v.settling);
         }
         if (s.rawKm == null || !Double.isFinite(s.rawKm)) { clear(); return remember(unitsKey, tenths, new Value(State.NO_HISTORY, null, null, km, 0, false, false, s.held, s.stale)); }
         State state = !s.energyModel ? State.NO_HISTORY : soc <= LOW_PERCENT ? State.LOW
@@ -101,7 +113,11 @@ public final class RangeReadout {
         double dt = lastMs < 0 || s.monoMs <= lastMs ? 0 : (s.monoMs - lastMs) / 1000.0;
         lastMs = s.monoMs;
         double raw = Math.max(0, s.rawKm);
-        smoothKm = Double.isNaN(smoothKm) ? raw : smoothKm + (raw - smoothKm) * (1 - Math.exp(-dt / params.smoothTauS));
+        // The first number after the dash starts the display filter afresh: what it held came from the settling
+        // seconds, mostly the learned prior's figure, which nobody saw and which would hold the hand-over high.
+        boolean handOver = s.energyModel && lastSettling && !s.settling;
+        lastSettling = s.energyModel && s.settling;
+        smoothKm = Double.isNaN(smoothKm) || handOver ? raw : smoothKm + (raw - smoothKm) * (1 - Math.exp(-dt / params.smoothTauS));
         double target = smoothKm / perUnit;
         boolean fine = tenths && (state == State.LIVE || state == State.LOW) && target < 99.5;
         double q = fine ? .1 : 1;
@@ -128,11 +144,12 @@ public final class RangeReadout {
         frozenKm = value * perUnit;
         Double secondary = dual ? (Double) round(value * KM_PER_MI, q) : null;
         boolean approx = state != State.LIVE || s.belowSeen;
-        return remember(unitsKey, tenths, new Value(state, value == 0 ? 0d : value, secondary, km, fine ? 1 : 0, approx, state == State.LOW, s.held, s.stale));
+        return remember(unitsKey, tenths, new Value(state, value == 0 ? 0d : value, secondary, km, fine ? 1 : 0, approx, state == State.LOW, s.held, s.stale,
+                s.energyModel && s.settling));
     }
 
     private Value remember(String units, boolean tenths, Value v) { lastValue = v; lastUnits = units; lastTenths = tenths; return v; }
-    private void clear() { smoothKm = Double.NaN; shown = Double.NaN; frozenKm = Double.NaN; lastState = null; lastMs = -1; }
+    private void clear() { smoothKm = Double.NaN; shown = Double.NaN; frozenKm = Double.NaN; lastState = null; lastMs = -1; lastSettling = false; }
     /** Rounded to the step; never "-0.0". */
     static double round(double x, double q) { double r = Math.round(x / q) * q; r = Math.round(r * 10) / 10.0; return r == 0 ? 0 : r; }
 }

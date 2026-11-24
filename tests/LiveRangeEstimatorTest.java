@@ -210,7 +210,28 @@ public final class LiveRangeEstimatorTest {
         RangeReadout.Value fresh = r.update(snap(0, 38.0, 60, false), "mi", true);
         v = r.update(snap(2000, 20.0, 60, false, true, false, true), "mi", true);
         check(v.stale && v.primary.equals(fresh.primary), "Stale: the last value, frozen");
+        readoutSettling();
         readoutStalePresentation();
+    }
+
+    /**
+     * Riding mode shows a dash while the energy model settles (owner, 2.0.5): the readout says so, and the first
+     * number after it starts from the reading itself, not from a filter that spent the dash on the learned prior.
+     */
+    private static void readoutSettling() {
+        check(new RangeReadout().update(snap(0, 38.0, 60, true), "mi", true).settling, "Settling: flagged for the dash");
+        check(!new RangeReadout().update(snap(0, 38.0, 60, false), "mi", true).settling, "Settled: no dash");
+        check(!new RangeReadout().update(snap(0, 30.0, 60, true, false, false, false), "mi", true).settling, "Distance model: never a dash for settling");
+        check(new RangeReadout().update(snap(0, 6.0, 5, true), "mi", true).settling, "Low and settling: still flagged");
+        RangeReadout r = new RangeReadout();
+        r.update(snap(0, 38.0, 60, true), "km", true);
+        check(r.update(snap(20000, 20.0, 60, true, true, false, true), "km", true).settling, "Stale while settling: still flagged");
+        // 40 km from the prior for a while, then the ride's pace brings it to 20 km just as settling ends.
+        r = new RangeReadout();
+        for (long t = 0; t <= 30000; t += 2000) r.update(snap(t, 40.0 - (t / 30000.0) * 18, 60, true), "km", true);
+        RangeReadout.Value first = r.update(snap(32000, 20.0, 60, false), "km", true);
+        check(first.state == RangeReadout.State.LIVE && !first.settling, "Hand-over: live");
+        near(20.0, first.primary, 1e-9, "Hand-over: the reading itself, not the filtered prior's figure");
     }
 
     /** While stale the estimate stays frozen, but units and tenths follow the rider's current choice. */
