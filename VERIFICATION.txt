@@ -1,3 +1,137 @@
+VOLT 2.0.5 — SCOOTER OFF, RANGE AND CHARGE TIMES WAIT FOR A REAL FIGURE, DARK MAP, DISTANCE ON THE RIDE GRAPH, FOLD KEEPS YOUR PLACE (versionCode 65)
+Draft, November 24, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.4
+  (47778a2d) is in it:
+  - riding: Range at this pace showing a dash until the pace is known
+    (#615); a switched-off scooter that still answers detected, with its
+    refusals, the ride's auto-end and the diagnostics' push_frames section
+    and real file dates (#623); a reconnect without a push keeping the
+    auto-end countdown, and reconnects pausing after such a ride (#627);
+    the Scooter off words and the switched-off ride end (#628, which
+    replaced the closed #624);
+  - controls: a spinner when the scooter hasn't confirmed a change after
+    1 s (#616);
+  - charging: Estimating time left at a UT5 MAX plug-in (#619); Time to
+    full on no-limit models, the range line's no-break unit and the charge
+    invite sent only when an app takes it (#626); the cold-battery
+    estimate using the battery's own warming rate (#632);
+  - maps and charts: one Dark map switch (#614) and its emulator check
+    with a white route casing on a dark map (#620); every axis on wide
+    screens, the fitted expanded graph and the charge graph's detail line
+    (#617); the Distance line (#618);
+  - Home, Widgets and navigation: fold and unfold keeping your place
+    (#625); the Widgets edit buttons and other fixes (#629); search by
+    translated row names (#630);
+  - fixes: crash guards, the made key's popup after a slow start and Find
+    it nearby (#621) with their strings (#622); the Tried and Estimating
+    rungs, the retention wording and own-words row names in search (#631).
+  #612 (2.0.4's record in this file) and #613 (README pictures) change
+  docs only; neither changes the app. The language top-up for this
+  release's 20 new texts and this release's own version, changelog and
+  docs come after them.
+  [PHASE 2: the top-up's PR number and the last PR merged before the
+  release commit; for each PR, CI on its merged head and the independent
+  review on the head that merged.]
+- run-release-sweep.py lists 344 steps on main at #632's merge, 29 more
+  than 2.0.4's 315, none removed: charge-estimating-first-412 and -fold
+  (#619); charge-invite-handover, charge-time-tile-wording-412, -fold and
+  -clean-412, and charging-range-line-412, -fold and -344-large (#626);
+  charge-trace-detail, ride-charts-phone and ride-charts-fold (#617, #618);
+  control-pending (#616); fold-keeps-place-clean and -widgets (#625);
+  map-style-344, -412 and -fold (#620); riding-range-start and -fold
+  (#615); scooter-off-344, -412 and -fold (#623, #628); widgets-edit-344,
+  -412, -412-light and -fold, and widgets-tiles-412-large and
+  -fold-large (#629). Every validation registered in
+  android-tests/AndroidManifest.xml is covered (the script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit. Before the top-up, 20
+  keys per language fell back to English: ble_status_scooter_off,
+  ble_scooter_off_detail, ble_waiting_speed_report,
+  controls_reason_scooter_off, dashboard_status_scooter_off,
+  dashboard_status_scooter_off_short, dashboard_status_spoken_scooter_off,
+  rides_saved_automatically_switched_off_description,
+  service_ride_switched_off, service_ride_switched_off_label,
+  service_ride_switched_off_at and service_ride_switched_off_label_at
+  (#628); charging_estimate_estimating and
+  more_lab_status_tried_before_short (#631); maps_dark_map (#614);
+  readings_chart_distance and readings_chart_gps_distance (#618);
+  more_pin_diagram_left_lever, more_lab_status_tried_before and
+  onboarding_done_home_starting (#622). The top-up also re-rules
+  onboarding_new_unowned_detail in de, it, pt-BR and pt-PT (#611's
+  review).]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.4's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed (from the
+  merged result of a split sweep, with its pseudo-locale note), each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.] The sweep
+  runs on the shared test machines and this Mac, under the owner's
+  standing approval for release candidates on the shared test machines
+  (RELEASING.md step 4, from November 20, 2026).
+- Hardware: [PHASE 2: the parked hardware sweep's report.md outcomes, or
+  the owner's decision to ship without one.] Not yet tried on real
+  hardware: the Scooter off state and its words with a real switched-off
+  scooter that still answers (seen once, on one UT5 MAX, and not
+  reproducible on demand), a ride ended by a real switch-off and the
+  reconnect pause after it, a real slow confirmation's spinner, the
+  Estimating hold and the cold-battery warming rate during a real charge,
+  the Dark map and Distance line on a phone, a fold and unfold on a real
+  Pixel Fold, a GT3 Max's Time to full, and everything 2.0.4's list below
+  still owes.
+- Scooter off (#623, #627, #628) was checked by ScooterPowerStateTest
+  (every guard and false positive: grace, charging, other models, the
+  simulator, stale status, deep sleep), CapabilityResolverTest,
+  RideAutoStopPolicyTest, RideAutoStopWireTest, OffReconnectHoldTest,
+  ScooterOffWordsTest, ScooterOffRideEndTest, OffRowsTapTest,
+  SnapshotColumnsTest and DiagnosticsBundleTest, and on an emulator
+  through a validation-only hold (scooter-off-344, -412 and -fold): the
+  simulator can't produce the off state itself. format stays
+  volt-diagnostics-v1.
+- Range at this pace (#615) was checked by RidingFocusTest (opened
+  stopped, already moving, waiting for the prior, the simulator) and
+  LiveRangeEstimatorTest.readoutSettling, and on an emulator
+  (riding-range-start, -fold).
+- The control spinner (#616) was checked by PendingControlTest and on an
+  emulator with a slowed simulator (control-pending: every drawn frame of
+  the lock switch and a Controls row, a timeout, a disconnect mid-wait, a
+  fold, a theme change and a recreated activity). The other controls use
+  the same helper but weren't exercised on an emulator.
+- Charging (#619, #626, #631, #632) was checked by ChargeEstimateHoldTest
+  (synthesized plug-ins and the public fast-charge-taper-v7 set: nothing
+  held past 3 minutes), ChargeTimeStateRungsTest, ModelRegistryTest,
+  ChargeTimeReadingsTest, ChargingEstimateTest, UnitsJoinedTest,
+  ChargeInviteRuleTest and ChargeSlowdownTest (a synthesized cold charge
+  and the rate's limits; warm, deep and hot charges identical in every
+  field), and on an
+  emulator (charge-estimating-first-*, charge-time-tile-wording-*,
+  charging-range-line-*, charge-invite-handover).
+- Maps and charts (#614, #617, #618, #620) were checked by MapStyleTest
+  (with a backup round trip of every state), ChartAxisLayoutTest,
+  ChargeTraceDetailTest, RideChartDataTest, RideDistanceTextTest and
+  HubSearchTest, and on an emulator (map-style-*, ride-charts-*,
+  charge-trace-detail, rides).
+- Fold and unfold (#625) was checked by KeptPlaceTest and on an emulator
+  (fold-keeps-place-clean and -widgets: a size switch both ways at every
+  depth, then Back) at density 420; a real Fold's unfold wasn't tried.
+- Home, Widgets and search (#629, #630, #631) were checked by HubNavTest,
+  ReadingSpanTest, SheetSpringTest, DashboardLayoutTest, ReleaseHoldsTest,
+  HomeWidgetsNavTest, HubSearchRowsTest and HubSearchOwnRowsTest, and on
+  an emulator (widgets-edit-*, widgets-tiles-*, my-scooters-*,
+  dock-sheet-*, responsive).
+- The fixes (#621, #622, #631) were checked by SettingsChangeTest,
+  BackupArchiveTest.storeRefusedId, MadeKeyPromptTest, FindNearbyTest,
+  TestJournalTest, ModelRegistryTest and LabStatusRungsTest, and on an
+  emulator (new-owner-key-* with a slow bind, unlock-guide-412).
+- ModelRegistry.REPORTED is unchanged from 2.0.4 (22131, 23452, 24162,
+  24182, 25462, 25852). [PHASE 2: confirm no compatibility report with a
+  new Model ID reached volt-reports@jjricks.com since 2.0.4; adding one is
+  the owner's step.]
+
+--- Previous verification ---
+
 VOLT 2.0.4 — MAKE A NEW OWNER KEY IS FOR A SCOOTER NOT IN THE NAVEE APP, THE GPS CHIP'S WORDS FIT, FIXES (versionCode 64)
 Built, swept and tagged at commit 47778a2d, #611's merge into main,
 November 21, 2026. That merge is the release commit (RELEASING.md step
