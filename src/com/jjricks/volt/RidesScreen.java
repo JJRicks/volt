@@ -1263,8 +1263,27 @@ public final class RidesScreen implements AppScreen {
             expandedDialog = dialog;
             show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
             dialog.getWindow().setLayout(-1, -1);
+            fillPage(expanded, dialog);
             expanded.loadStatus.setOnClickListener(v -> loadFull(expanded, dialog));
             loadFull(expanded, dialog);
+        }
+        /**
+         * Grows or shrinks the expanded graph to the page it is on, down to Done, whenever the page is laid out. Its
+         * first height is a guess from the app's window (expand()), which the dialog's own window and insets need not
+         * match: a guess too small left an empty band above Done, one too large ran under it.
+         */
+        void fillPage(ChartPanel expanded, AlertDialog dialog) {
+            View content = dialog.findViewById(android.R.id.content);
+            if (!(content instanceof ViewGroup)) return;
+            content.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                View page = ((ViewGroup) content).getChildCount() == 0 ? null : ((ViewGroup) content).getChildAt(0);
+                if (page == null || expanded.getHeight() == 0) return;
+                // The room left under the dialog's buttons (negative when it runs past the window).
+                int spare = content.getHeight() - content.getPaddingBottom() - page.getBottom();
+                int target = Math.max(ui.dp(400), expanded.getHeight() + spare);
+                if (Math.abs(target - expanded.getMinimumHeight()) > 1 && (spare != 0 || target < expanded.getMinimumHeight()))
+                    expanded.post(() -> { if (dialog.isShowing()) { expanded.setMinimumHeight(target); expanded.requestLayout(); } });
+            });
         }
         void loadFull(ChartPanel expanded, AlertDialog dialog) {
             if (closed || !isAttachedToWindow() || !dialog.isShowing()) return;

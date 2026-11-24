@@ -69,7 +69,7 @@ public final class GpsAccuracyTextTest {
 
     private static void graph() {
         List<RideChartData.Series> lines = RideChartData.forRide(Collections.<RideStore.Point>emptyList(), null, true, false, false);
-        check(lines.size() == 9, "the ride graph offers its eight lines and GPS accuracy: " + lines.size());
+        check(lines.size() >= 9, "the ride graph offers its eight lines and GPS accuracy (then distance): " + lines.size());
         for (int i = 0; i < 8; i++) check(lines.get(i).key.equals(RideChartData.KEYS[i]) && lines.get(i).color == RideChartData.COLORS[i], "the eight lines keep their order and colours");
         RideChartData.Series accuracy = lines.get(8);
         check(accuracy.key.equals(GpsAccuracy.KEY) && accuracy.displayLabel().equals("GPS accuracy") && accuracy.notedLabel().equals("GPS accuracy"), "its legend name");

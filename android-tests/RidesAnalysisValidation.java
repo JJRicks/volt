@@ -69,7 +69,9 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
             List<?> data = (List<?>)field(panel, "data"); List<String> offered = new ArrayList<>();
             for (Object series : data) offered.add(((RideChartData.Series)series).key);
             List<String> expected = new ArrayList<>(Arrays.asList(RideChartData.KEYS)); expected.add(GpsAccuracy.KEY);
-            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy: " + offered);
+            // Then the distance line (2.0.5), whichever source draws it; nothing else.
+            if (offered.size() > expected.size()) expected.add(RideChartData.DISTANCE_KEY);
+            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy, then distance: " + offered);
             check(!selected.contains(GpsAccuracy.KEY), "GPS accuracy stays off until chosen");
             main(() -> { View inline = find(root, RideChartView.class); inline.requestRectangleOnScreen(new android.graphics.Rect(0,0,inline.getWidth(),inline.getHeight()+activity.ui().dp(90)),true); }); settle();
             main(() -> verifyInspection((RideChartView)find(root, RideChartView.class))); settle(); screenshot("inline-inspection");
@@ -709,7 +711,10 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
         touch(chart,start+1600,0,MotionEvent.ACTION_DOWN,new float[]{plot.left-activity.ui().dp(12),cy});
         touch(chart,start+1600,20,MotionEvent.ACTION_MOVE,new float[]{activity.ui().dp(8),cy});
         touch(chart,start+1600,40,MotionEvent.ACTION_UP,new float[]{activity.ui().dp(8),cy});
-        check(((Number)field(chart,"axisScroll")).doubleValue() > oldScroll, "Color scale rail scrolls independently");
+        // A wide graph shows all five scales (ChartAxisLayout: a third of its width); a narrow one scrolls the rest into view.
+        boolean overflow = (Float)invoke(chart, "totalAxisWidth", new Class[0]) > (Float)field(chart, "axesWidth") + 1;
+        if (overflow) check(((Number)field(chart,"axisScroll")).doubleValue() > oldScroll, "Color scale rail scrolls independently");
+        else check(((Number)field(chart,"axisScroll")).doubleValue() == 0, "Every scale shows, so the rail has nothing to scroll");
         check(plot.width() > chart.getWidth() * .55, "Plot retains most of the screen with five axes selected");
     }
     /** Zooming a long low-speed interval costs only the visible number of hatch strokes. */

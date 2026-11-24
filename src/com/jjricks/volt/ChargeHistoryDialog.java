@@ -374,7 +374,9 @@ final class ChargeHistoryDialog {
                 // Controls and raw readings remain scrollable even in short landscape windows.
                 // Half the available height is always reserved for the plot.
                 controlsScroll.getLayoutParams().height = Math.min(ui.dp(150), Math.round(available * .25f));
-                traceScroll.getLayoutParams().height = Math.min(ui.dp(120), Math.round(available * .25f));
+                // The readings take what their tallest cell needs (a wrapped estimate detail, large text) up to a quarter.
+                trace.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+                traceScroll.getLayoutParams().height = Math.min(Math.max(ui.dp(120), trace.getMeasuredHeight()), Math.round(available * .25f));
             }
             super.onMeasure(width, height);
         }
@@ -424,14 +426,37 @@ final class ChargeHistoryDialog {
                     ChargeSessionStore.Estimate estimate = estimateAt(value.time);
                     if (estimate != null) {
                         boolean limit = series.key.startsWith("limit_");
-                        String detail = T.statsChargeEstimator(source(limit ? estimate.limitSource : estimate.fullSource), estimate.version);
-                        if (estimate.learnedSessions > 0) detail += T.statsChargeLearned(estimate.learnedSessions, estimate.learnedSessions);
-                        if (limit && estimate.targetPercent != null) detail += T.statsChargeTarget(Fmt.decimal(Locale.getDefault(), estimate.targetPercent, 0));
-                        TextView provenance = ui.caption(detail); provenance.setSingleLine(true); cell.addView(provenance);
+                        String from = source(limit ? estimate.limitSource : estimate.fullSource), more = "";
+                        if (estimate.learnedSessions > 0) more += T.statsChargeLearned(estimate.learnedSessions, estimate.learnedSessions);
+                        if (limit && estimate.targetPercent != null) more += T.statsChargeTarget(Fmt.decimal(Locale.getDefault(), estimate.targetPercent, 0));
+                        String after = more;
+                        cell.addView(provenance(version -> T.statsChargeEstimator(from, version) + after, from + more, estimate.version));
                     }
                 }
                 cell.setContentDescription(T.statsChargeCellDescription(series.displayLabel(), reading.getText(), stamp.getText())); trace.addView(cell);
             }
+        }
+        /**
+         * The estimate's detail line, at most 260 dp wide and never wider than the readings row shows (ChargeTraceDetail):
+         * the full line when it fits on one line, else the version's first part or no version, wrapped at spaces, never
+         * inside a word. The full detail is what it says aloud.
+         */
+        TextView provenance(java.util.function.Function<String, String> withVersion, String noVersion, String version) {
+            String detail = withVersion.apply(version);
+            TextView line = ui.caption(detail);
+            line.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+            line.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
+            View row = (View) trace.getParent();
+            int shown = row != null && row.getWidth() > 0 ? row.getWidth() : host.activity().getWindow().getDecorView().getWidth() - ui.dp(48);
+            // A reading's width, not the row's: the cells beside it stay in view.
+            int room = Math.max(ui.dp(104), Math.min(ui.dp(260), shown - ui.dp(20)));
+            String shortVersion = ChargeTraceDetail.shortVersion(version);
+            ChargeTraceDetail.Rung rung = ChargeTraceDetail.pick(line.getPaint().measureText(detail),
+                    shortVersion == null ? Float.NaN : line.getPaint().measureText(shortVersion), room);
+            if (rung == ChargeTraceDetail.Rung.SHORT_VERSION) line.setText(withVersion.apply(shortVersion));
+            else if (rung == ChargeTraceDetail.Rung.NO_VERSION) line.setText(noVersion);
+            line.setMaxWidth(room); line.setContentDescription(detail);
+            return line;
         }
         ChargeSessionStore.Estimate estimateAt(long time) {
             int low = 0, high = history.size() - 1;

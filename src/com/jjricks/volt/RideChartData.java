@@ -282,6 +282,53 @@ public final class RideChartData {
         return new Series(GpsAccuracy.KEY, GpsAccuracy.KEY, labelId, GpsAccuracy.unit(miles), GpsAccuracy.COLOR, GpsAccuracy.CHART_INDEX,
                 values, GpsAccuracy.scale(shown, miles));
     }
+    /** The distance line's key, whichever source draws it, so a chosen line stays chosen from ride to ride. */
+    public static final String DISTANCE_KEY = "distance";
+    /** Its label (Series.label) when the phone's GPS track draws it; DISTANCE_KEY when the scooter's odometer does. */
+    static final String GPS_DISTANCE_LABEL = "gps_distance";
+    /** Its own colour, a tan no other ride line uses, and its pattern slot (9: a solid line, as Power's). */
+    public static final int DISTANCE_COLOR = 0xffc49a6c, DISTANCE_INDEX = 9;
+
+    /**
+     * Distance since the ride started, in km (or mi with miles), on the scooter's timeline. The scooter's odometer draws
+     * it when the ride has two or more odometer readings and the odometer never went backwards, the rule the ride's
+     * Distance tile follows (RideStore.Summary.distanceKm). Otherwise the phone's GPS track draws it, counted as the
+     * ride's GPS distance is (PhoneRideStore.Point.distanceSoFarMeters), and its legend says GPS. One source per line,
+     * never mixed. A point without an odometer reading is left out rather than drawn as zero, and a recorded gap stays a
+     * gap. A ride with neither has no values ("no data"). scooterLabelId and gpsLabelId are the two legend names' catalog
+     * ids.
+     */
+    static Series distance(List<RideStore.Point> scooter, PhoneRideStore.Track phone, boolean miles, boolean fullDetail,
+                           int scooterLabelId, int gpsLabelId) {
+        double perKm = miles ? 1 / RideStore.KM_PER_MILE : 1;
+        String unit = miles ? UnitCode.MI.code : UnitCode.KM.code;
+        List<Value> values = new ArrayList<>();
+        Double first = null, previous = null; int readings = 0; boolean backwards = false;
+        for (RideStore.Point p : scooter) {
+            checkCanceled(); if (fullDetail) RideStore.checkDetailMemory();
+            if (p.odometerKm == null || !Double.isFinite(p.odometerKm)) continue;
+            if (first == null) first = p.odometerKm;
+            // The ride summary's own tolerance for a backwards odometer.
+            if (previous != null && p.odometerKm + 0.000001 < previous) backwards = true;
+            previous = p.odometerKm; readings++;
+            values.add(new Value(p.elapsedMs, Math.max(0, p.odometerKm - first) * perKm, p.segment));
+        }
+        boolean gps = readings < 2 || backwards;
+        if (gps) {
+            values = new ArrayList<>();
+            List<PhoneRideStore.Point> points = phone == null ? Collections.<PhoneRideStore.Point>emptyList() : fullDetail ? phone.fullPoints() : phone.points;
+            ClockIndex clocks = new ClockIndex(scooter);
+            for (PhoneRideStore.Point p : points) {
+                checkCanceled(); if (fullDetail) RideStore.checkDetailMemory();
+                Long aligned = clocks.align(p);
+                if (aligned != null) values.add(new Value(aligned, p.distanceSoFarMeters / 1000 * perKm, p.segment));
+            }
+        }
+        double high = 0;
+        for (Value v : values) high = Math.max(high, v.value);
+        return new Series(DISTANCE_KEY, gps ? GPS_DISTANCE_LABEL : DISTANCE_KEY, gps ? gpsLabelId : scooterLabelId, unit,
+                DISTANCE_COLOR, DISTANCE_INDEX, values, ChartScale.range(DISTANCE_KEY, unit, true, 0, high));
+    }
     /** True when a stored power reading was labelled inferred regen, so the plot's sign isn't measured. */
     private static boolean plotsInferredRegen(List<RideStore.Point> scooter, RegenInference.Label[] regen) {
         if (regen == null) return false;

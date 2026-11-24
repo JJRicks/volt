@@ -11,6 +11,7 @@ public final class RideChartDataTest {
         inferredRegen();
         signedRideIsNotInferred();
         noRegenAcrossARecordedGap();
+        distanceLine();
         near(50, RideChartData.energyPerDistance(1000d, 20d, false), "W divided by km/h yields Wh/km");
         near(80.4672, RideChartData.energyPerDistance(1000d, 20d, true), "Imperial conversion preserves energy");
         near(-10, RideChartData.energyPerDistance(-200d, 20d, false), "Battery input keeps negative sign");
@@ -174,6 +175,114 @@ public final class RideChartDataTest {
         try { RideChartData.build(points, null, false, true); } catch (java.util.concurrent.CancellationException expected) { canceled = true; } finally { Thread.interrupted(); }
         check(canceled, "Full chart preparation honors cancellation before posting UI data");
         System.out.println("RideChartDataTest: " + checks + " assertions passed");
+    }
+    /** A ride sampled each second; odometer(i) is the scooter's odometer at second i (null: not sent), gapAfter marks a gap. */
+    private static String odometerRide(RideStore store, String label, long wall, int seconds, java.util.function.IntFunction<Double> odometer, int gapAfter) throws Exception {
+        String id = store.start("fixture", label, wall, 1000);
+        for (int i = 0; i < seconds; i++) {
+            long mono = 1000 + i * 1000L;
+            Map<String, RideStore.Sample> row = new HashMap<>();
+            row.put("speed_kmh", new RideStore.Sample(18d, mono));
+            Double odo = odometer.apply(i);
+            if (odo != null) row.put("odometer_km", new RideStore.Sample(odo, mono));
+            store.sample(wall + i * 1000L, mono, row);
+            if (i == gapAfter) store.markGap(wall + i * 1000L + 500, mono + 500, "Bluetooth disconnected");
+        }
+        store.stop(wall + seconds * 1000L, 1000 + seconds * 1000L);
+        return id;
+    }
+    /** A phone journal on the ride's clocks: a moving fix each second from second 1 to last, northward, a GAP before gapAt. */
+    private static PhoneRideStore.Track gpsTrack(PhoneRideStore phones, String id, long wall, int last, int gapAt) throws Exception {
+        phones.start(id, wall, 1000);
+        StringBuilder batch = new StringBuilder();
+        for (int t = 1; t <= last; t++) {
+            if (t == gapAt) batch.append(PhoneRideStore.row("GAP", wall + t * 1000L - 200, 1000 + t * 1000L - 200));
+            batch.append(PhoneRideStore.row("GPS", wall + t * 1000L, 1000 + t * 1000L, 43.82 + t * 4.5e-5, -111.78, 3, 5, .2, 1500, 4));
+        }
+        phones.appendBatch(id, batch.toString(), "");
+        phones.stop(id, wall + (last + 1) * 1000L, 1000 + (last + 1) * 1000L);
+        return phones.load(id);
+    }
+    /** The distance line (owner, Nov 23 2026): the scooter's odometer, else the phone's GPS distance, never both. */
+    private static void distanceLine() throws Exception {
+        File dir = Files.createTempDirectory("ride-chart-distance").toFile(); RideStore store = new RideStore(dir);
+        PhoneRideStore phones = new PhoneRideStore(Files.createTempDirectory("ride-chart-distance-phone").toFile());
+        // Scooter source: 0.1 km steps every 20 s from 1234.5 km; the line starts at zero and reads km or mi.
+        String odo = odometerRide(store, "Odometer", 3000000, 61, i -> 1234.5 + (i / 20) * 0.1, -1);
+        List<RideStore.Point> points = store.fullTrend(odo);
+        PhoneRideStore.Track track = gpsTrack(phones, odo, 3000000, 59, -1);
+        RideChartData.Series km = RideChartData.distance(points, track, false, true, 101, 202), mi = RideChartData.distance(points, track, true, true, 101, 202);
+        check(km.key.equals(RideChartData.DISTANCE_KEY) && km.label.equals(RideChartData.DISTANCE_KEY), "the odometer draws it when the ride has one: " + km.label);
+        check(km.unit.equals("km") && mi.unit.equals("mi"), "units follow the setting: " + km.unit + " / " + mi.unit);
+        near(0, km.values.get(0).value, "the line starts at zero, not at the odometer's reading");
+        near(0.3, km.values.get(km.values.size() - 1).value, "the last point is the ride's odometer distance");
+        near(0.3 / RideStore.KM_PER_MILE, mi.values.get(mi.values.size() - 1).value, "in miles");
+        near(0.1, km.sampleAt(25000).value, "between steps it reads the odometer's own distance");
+        check(km.scale.min == 0 && km.scale.max >= 0.3, "the scale starts at zero: " + km.scale.min + ".." + km.scale.max);
+        check(km.available() && km.color == RideChartData.DISTANCE_COLOR && km.index == RideChartData.DISTANCE_INDEX, "its own colour and pattern");
+        Set<Integer> colours = new HashSet<>(); for (int c : RideChartData.COLORS) colours.add(c);
+        check(!colours.contains(RideChartData.DISTANCE_COLOR) && RideChartData.DISTANCE_COLOR != GpsAccuracy.COLOR, "a colour no other line uses");
+        check(!Arrays.asList(RideChartData.KEYS).contains(RideChartData.DISTANCE_KEY) && !RideChartData.DISTANCE_KEY.equals(GpsAccuracy.KEY), "a key of its own");
+        check(!RideChartData.defaults().contains(RideChartData.DISTANCE_KEY), "off until chosen");
+        // The preview (600 points) and the full journal agree.
+        RideChartData.Series preview = RideChartData.distance(store.trend(odo, 600), null, false, false, 101, 202);
+        near(0.3, preview.values.get(preview.values.size() - 1).value, "the preview reads the same distance");
+        check(preview.label.equals(RideChartData.DISTANCE_KEY), "the preview has the same source");
+
+        // GPS fallback: no odometer at all, so the phone's track draws it, labelled as GPS, matching the ride's GPS distance.
+        String noOdo = odometerRide(store, "No odometer", 4000000, 61, i -> null, -1);
+        PhoneRideStore.Track gpsOnly = gpsTrack(phones, noOdo, 4000000, 59, -1);
+        RideChartData.Series gps = RideChartData.distance(store.fullTrend(noOdo), gpsOnly, false, true, 101, 202);
+        check(gps.key.equals(RideChartData.DISTANCE_KEY) && gps.label.equals(RideChartData.GPS_DISTANCE_LABEL), "GPS draws it without an odometer: " + gps.label);
+        check(gps.available() && gpsOnly.distanceMeters != null, "the track has a distance");
+        near(gpsOnly.distanceMeters / 1000, gps.values.get(gps.values.size() - 1).value, "GPS line ends at the ride's GPS distance");
+        check(gps.values.get(0).time == 1000, "on the scooter's timeline (the first fix is 1 s in)");
+        RideChartData.Series gpsMiles = RideChartData.distance(store.fullTrend(noOdo), gpsOnly, true, true, 101, 202);
+        near(gpsOnly.distanceMeters / 1000 / RideStore.KM_PER_MILE, gpsMiles.values.get(gpsMiles.values.size() - 1).value, "GPS distance in miles");
+        for (int i = 1; i < gps.values.size(); i++) check(gps.values.get(i).value + 1e-9 >= gps.values.get(i - 1).value, "distance never goes down");
+        // One odometer reading is not a distance: GPS draws the whole line rather than mixing the two.
+        String oneReading = odometerRide(store, "One reading", 5000000, 61, i -> i == 10 ? 500d : null, -1);
+        PhoneRideStore.Track oneTrack = gpsTrack(phones, oneReading, 5000000, 59, -1);
+        RideChartData.Series single = RideChartData.distance(store.fullTrend(oneReading), oneTrack, false, true, 101, 202);
+        check(single.label.equals(RideChartData.GPS_DISTANCE_LABEL) && single.values.size() == oneTrack.fullPoints().size(), "one odometer reading falls back to GPS for the whole line");
+        // An odometer that steps backwards (a reset, an 8-bit wrap) is not a distance either, as for the Distance tile.
+        String reset = odometerRide(store, "Reset", 6000000, 61, i -> i < 30 ? 254.0 + i * 0.01 : 0.2 + i * 0.01, -1);
+        check(store.get(reset).odometerReset && store.get(reset).distanceKm == null, "the ride summary calls it a reset");
+        RideChartData.Series afterReset = RideChartData.distance(store.fullTrend(reset), gpsTrack(phones, reset, 6000000, 59, -1), false, true, 101, 202);
+        check(afterReset.label.equals(RideChartData.GPS_DISTANCE_LABEL), "a backwards odometer falls back to GPS");
+        RideChartData.Series nothing = RideChartData.distance(store.fullTrend(reset), null, false, true, 101, 202);
+        check(!nothing.available() && nothing.values.isEmpty(), "a backwards odometer and no GPS: no data, never a made-up line");
+
+        // Gaps: a missing odometer reading is left out (never a zero), and a recorded gap breaks the line.
+        String sparse = odometerRide(store, "Sparse", 7000000, 61, i -> i % 5 == 0 ? 10.0 + i * 0.005 : null, -1);
+        List<RideStore.Point> sparsePoints = store.fullTrend(sparse);
+        int withOdometer = 0; for (RideStore.Point p : sparsePoints) if (p.odometerKm != null) withOdometer++;
+        check(withOdometer < sparsePoints.size(), "the fixture has points without an odometer reading");
+        RideChartData.Series every5 = RideChartData.distance(sparsePoints, null, false, true, 101, 202);
+        check(every5.values.size() == withOdometer, "only points with an odometer reading: " + every5.values.size() + " of " + sparsePoints.size());
+        for (RideChartData.Value v : every5.values) check(v.value != null, "no empty points");
+        check(every5.sampleAt(12000) != null, "readings 5 s apart still join up");
+        String gapped = odometerRide(store, "Gap", 8000000, 61, i -> 50.0 + i * 0.005, 29);
+        RideChartData.Series broken = RideChartData.distance(store.fullTrend(gapped), null, false, true, 101, 202);
+        RideChartData.Value before = broken.sampleAt(29000), after = broken.sampleAt(30000);
+        check(before != null && after != null && after.segment != before.segment, "a recorded gap breaks the line");
+        check(!broken.connects(before, after), "and isn't bridged");
+        near(0.15, after.value, "distance carries on from the ride's start after the gap");
+        // GPS with a gap: the line breaks there and the distance over the gap isn't counted, as the ride's GPS distance.
+        String gpsGap = odometerRide(store, "GPS gap", 9000000, 61, i -> null, -1);
+        PhoneRideStore.Track gappedTrack = gpsTrack(phones, gpsGap, 9000000, 59, 30);
+        RideChartData.Series gpsBroken = RideChartData.distance(store.fullTrend(gpsGap), gappedTrack, false, true, 101, 202);
+        RideChartData.Value g29 = gpsBroken.sampleAt(29000), g30 = gpsBroken.sampleAt(30000);
+        check(g29 != null && g30 != null && g29.segment != g30.segment && !gpsBroken.connects(g29, g30), "a GPS gap breaks the line");
+        near(g29.value, g30.value, "no distance is counted across the GPS gap");
+        near(gappedTrack.distanceMeters / 1000, gpsBroken.values.get(gpsBroken.values.size() - 1).value, "and the line ends at the ride's GPS distance");
+
+        // An old ride (no odometer, no phone journal) opens with the line offered and empty.
+        String old = odometerRide(store, "Old", 1000000, 10, i -> null, -1);
+        RideChartData.Series none = RideChartData.distance(store.trend(old, 600), null, false, false, 101, 202);
+        check(!none.available() && none.label.equals(RideChartData.GPS_DISTANCE_LABEL) && none.scale.max > none.scale.min, "an old ride has an empty line with a valid scale");
+        RideChartData.Series empty = RideChartData.distance(Collections.<RideStore.Point>emptyList(), null, true, false, 101, 202);
+        check(!empty.available() && empty.unit.equals("mi"), "no points at all is safe");
     }
     /** Unsigned ride: the power line goes below zero on the brake, and the energy rows stay unavailable; a signed plot is untouched. */
     private static void inferredRegen() throws Exception {

@@ -124,6 +124,11 @@ public final class PhoneRideStore {
                 batteryPercent,
                 scooterSpeedKmh;
         public final String elevationSource;
+        /**
+         * The ride's GPS distance up to this fix, in metres, counted as Track.distanceMeters counts it (moving steps
+         * within a run of fixes; a gap adds nothing). The last fix's value is the track's distance. Never stored.
+         */
+        public final double distanceSoFarMeters;
 
         private Point(
                 Fix f,
@@ -133,7 +138,8 @@ public final class PhoneRideStore {
                 String source,
                 Double grade,
                 Double gpsAccel,
-                TelemetrySample t) {
+                TelemetrySample t,
+                double distanceSoFar) {
             monoMs = f.mono;
             wallMs = f.wall;
             elapsedMs = Math.max(0, monoMs - start);
@@ -150,6 +156,7 @@ public final class PhoneRideStore {
             elevationSource = source;
             gradePercent = grade;
             gpsAccelerationMps2 = gpsAccel;
+            distanceSoFarMeters = distanceSoFar;
             boolean speedFresh = t != null && fresh(qTime(f), t.speedMono),
                     powerFresh = t != null && fresh(qTime(f), t.powerMono),
                     socFresh = t != null && fresh(qTime(f), t.socMono);
@@ -793,7 +800,7 @@ public final class PhoneRideStore {
                     }
                 }
             }
-            Point point = new Point(q, start, segment, relative, source, grade, gpsAccel, t);
+            Point point = new Point(q, start, segment, relative, source, grade, gpsAccel, t, distance);
             points.add(point);
             window.add(point);
             positions.put(point, segmentDistance);
