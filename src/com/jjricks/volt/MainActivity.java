@@ -185,6 +185,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private long lastBodyRefreshMs;
     /** Whether the link was ready at the last body refresh (null before the first). */
     private Boolean bodyReady;
+    /** The write in flight (BleController.pending()) when the page last refreshed: its end refreshes the page at once. */
+    private String bodyPending;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
     private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
@@ -655,6 +657,20 @@ public final class MainActivity extends Activity implements ScreenHost {
     @Override public void toast(String text){if(text!=null&&!text.isEmpty())Toast.makeText(this,ChargeScheduleText.shown(text),Toast.LENGTH_LONG).show();}
     /** A display form that may be a Msg or plain text; null shows nothing. */
     private void toast(CharSequence text){if(text!=null)toast(text.toString());}
+    /** The redraw a control's pending spinner asked for (redrawIn), and when it runs (uptime ms; 0 for none). */
+    private final Runnable pendingRedraw=()->{pendingRedrawAt=0;redraw();};private long pendingRedrawAt;
+    /** One redraw at the earliest time asked for: a spinner due at 1 s, or its backstop (PendingControl). */
+    @Override public void redrawIn(long delayMs){
+        long now=SystemClock.uptimeMillis(),at=now+Math.max(0,delayMs)+16;
+        if(pendingRedrawAt>=now&&pendingRedrawAt<=at)return;
+        handler.removeCallbacks(pendingRedraw);pendingRedrawAt=at;handler.postAtTime(pendingRedraw,at);
+    }
+    /**
+     * What TalkBack hears once when a control's pending spinner appears (PendingControl): the Maximum speed buttons'
+     * spoken "Confirming", which they already said while waiting; one string for every control.
+     */
+    private static String waitingWords(){return T.mainSpeedConfirming();}
+    @Override public CharSequence pendingWords(){return waitingWords();}
     @Override public void redraw(){
         if(destroyed||design==null||enteringMaintenance||startupRedirect)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::redraw);return;}
@@ -684,13 +700,15 @@ public final class MainActivity extends Activity implements ScreenHost {
         // The link becoming ready (or not) refreshes the page at once: its banner changes in the same frame as the header,
         // as one motion, instead of up to a pulse later.
         if(bodyReady!=null&&bodyReady!=(scooterService!=null&&scooterService.ble.ready()))delay=0;
+        // So does a write settling: a row's pending spinner stops with the scooter's answer, not up to a pulse later.
+        if(bodyPending!=null&&!bodyPending.equals(scooterService==null?null:scooterService.ble.pending()))delay=0;
         if(delay==0){cancelDeferredBodyRefresh();refreshBodyNow();}
         else if(!bodyRefreshScheduled){bodyRefreshScheduled=true;handler.postDelayed(deferredBodyRefresh,delay);}
     }
     private void cancelDeferredBodyRefresh(){handler.removeCallbacks(deferredBodyRefresh);bodyRefreshScheduled=false;}
     private void refreshBodyNow(){
         watchHome();
-        lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();if(homeScreen!=null)homeScreen.refresh();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
+        lastBodyRefreshMs=SystemClock.elapsedRealtime();bodyReady=scooterService!=null&&scooterService.ble.ready();bodyPending=scooterService==null?null:scooterService.ble.pending();if(homeScreen!=null)homeScreen.refresh();if(screen!=null)screen.refresh();if(dock!=null)dock.refresh();updateScan();
         for (ControlRow row : quickMenuRows) row.refresh();
         for (ChargeDoneRow row : quickChargeRows) row.refresh();
         for (ChargeDoneRow row : doneSheetRows) row.refresh();
@@ -2049,6 +2067,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             // Another write in flight (an automatic one right after connecting) no longer disables the switch: the tap waits for it.
             // Not ready, a state shown is the saved one: riding mode's switch, which stays on screen, says it's the last known.
             lockControl.update(shownLock,ready&&!editing&&lockOffered(ble,shownLock),ready?null:description);
+            // The scooter hasn't confirmed the lock change: from the tap (a waiting or sent tap), else the write's own start
+            // (an automatic one, or a tap from before a theme change rebuilt the activity). A spinner on the thumb after 1 s.
+            lockControl.pending(ready&&(lockQueue.waiting()||"lock".equals(pending)),lockQueue.waiting()?lockQueue.requestedAt():ble==null?0:ble.pendingSinceMs());
             if(offlineTitle!=null){
                 // The scooter name is already in the Home header; repeating it can fill
                 // a narrow card and push Cancel out of view at larger system font sizes.
@@ -2121,7 +2142,10 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean target=Boolean.TRUE.equals(lockQueue.target());
             // Marked first: a refused send redraws the header from inside set(), which must neither send again nor call it unconfirmed.
             lockQueue.sending(true);
+            long tapped=lockQueue.requestedAt();
             lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+            // The tap's time rides on the write, so a switch rebuilt mid-wait (a recreated activity) keeps its second.
+            else ble.pendingSince("lock",tapped);
             // A riding-mode tap stays held to the complete stop until its frame goes out: a read in flight can leave it queued past this point.
             if(lockQueue.stoppedOnly())ble.holdUnsent("lock",lockStillGate,this::stoppedLockCancelled);
             lockQueue.sending(false);
@@ -2146,6 +2170,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** What a connection action does, never its shown text: its icon follows this. */
     private static final String LINK_CANCEL="Cancel",LINK_DISCONNECT="Disconnect",ADD_SCOOTER="Add scooter",WATCHING="Watching";
     private final java.util.WeakHashMap<TextView,String> linkActions=new java.util.WeakHashMap<>();
+    /** The one name a charge schedule operation's wait goes by on every control that shows it (PendingControl.announce). */
+    static final String SCHEDULE_WAIT="charge_schedule";
     /** Updates the action presentation without changing the Bluetooth transport. */
     private void updateConnectionAction(boolean ready,boolean connecting){
         BleController ble=scooterService==null?null:scooterService.ble;
@@ -2195,6 +2221,13 @@ public final class MainActivity extends Activity implements ScreenHost {
         private android.animation.ValueAnimator motion;
         /** Recent thumb positions for a short speed trail; visual only, never the lock value. */
         private final LockSliderTrail trail=new LockSliderTrail();
+        /** A lock change the scooter hasn't confirmed: a spinner on the thumb after 1 s, until it settles (PendingControl). */
+        private final PendingControl waitLook=new PendingControl();private boolean spinning;
+        /** One look at the lock change in flight (updateHeader, after update): waiting, and since when (elapsed ms). */
+        void pending(boolean waiting,long since){
+            boolean spin=pendingLook(waitLook,"lock",waiting,since,this);
+            if(spin!=spinning){spinning=spin;invalidate();}
+        }
         LockControl(){super(MainActivity.this);setMinimumWidth(design.dp(48));setMinimumHeight(design.dp(48));setClickable(true);setFocusable(true);setContentDescription(T.mainLockSwitch());setOnClickListener(v->apply(!Boolean.TRUE.equals(shown())));}
         /** The side drawn: a waiting tap's side until the scooter's readback settles it. Accessibility keeps the confirmed state. */
         private Boolean shown(){return lockQueue.shown(value);}
@@ -2327,7 +2360,15 @@ public final class MainActivity extends Activity implements ScreenHost {
                 }
             }else if(!trail.isEmpty()&&!Ui.motionEnabled())trail.clear();
             paint.setColor(thumb);canvas.drawCircle(cx,h/2,knob,paint);
-            design.drawIcon(canvas,locked?"lock":"unlock",!available?design.surface:locked?design.bg:design.onAccent,cx,h/2,knob*0.95f);
+            int glyph=!available?design.surface:locked?design.bg:design.onAccent;
+            // Waiting over a second for the scooter to confirm: the thumb turns a spinner where its padlock was.
+            if(spinning&&waitLook.showing(SystemClock.elapsedRealtime())){
+                // On the light theme's white locked thumb the padlock's colour is too faint for a thin arc: the text colour there.
+                int ink=locked&&available&&!design.dark?design.text:glyph;
+                float ring=knob*.5f;RectF spot=new RectF(cx-ring,h/2-ring,cx+ring,h/2+ring);
+                if(PendingSpinner.draw(canvas,spot,paint,design.dp(2.5f),ink,Ui.withAlpha(ink,60))&&resumed&&isShown())postInvalidateOnAnimation();
+                paint.setStyle(Paint.Style.FILL);
+            }else design.drawIcon(canvas,locked?"lock":"unlock",glyph,cx,h/2,knob*0.95f);
             // The accessibility label keeps the full tap-or-slide action; the arrow shows the slide direction.
             String label=value==null?T.mainLockUnavailable():locked?T.mainLockActionUnlock():T.mainLockActionLock();
             words.setTypeface(design.semibold());
@@ -2741,6 +2782,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         @Override public String withNote(String value,String note){return joinNote(value,note);}
         @Override public String confirming(){return rowConfirmingPart();}
+        @Override public String waiting(){return waitingWords();}
         @Override public String stateNote(String note){return rowStateNote(note);}
         @Override public String spoken(String name,String value,String note){return labelValueState(name,value,note);}
     };
@@ -4365,6 +4407,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         private LinearLayout swatchRow;private boolean wideSwatches;
         /** Moving while this setting needs the scooter parked: the row greys out and a tap says why. */
         private boolean parkedBlocked;
+        /** A change the scooter hasn't confirmed: the spinner takes the switch's (or value's) slot after 1 s (PendingControl). */
+        private final PendingControl waitLook=new PendingControl();
         ControlRow(ScooterCommands.Feature feature){
             this.feature=feature;inline=inlineChoice(feature);
             String detail=rowDetail(feature);
@@ -4451,14 +4495,18 @@ public final class MainActivity extends Activity implements ScreenHost {
                 view.setEnabled(usable);view.setAlpha(usable?1f:.5f);
                 if(Build.VERSION.SDK_INT>=30)view.setStateDescription(on?T.commonSelected():"");
             }
-            // Short-lived result state: a spinner in the switch slot while pending, then a red chip if it failed.
+            // Short-lived result state: a spinner in the switch slot once a change has waited 1 s for the scooter (a quicker
+            // confirmation shows nothing new), then a red chip if it failed.
             boolean pending=ble!=null&&feature.key.equals(ble.pending());
+            boolean spin=pendingLook(waitLook,feature.key,pending,ble==null?0:ble.pendingSinceMs(),action);
             String chip=pending?null:resultChip(ble,feature.key);
-            spinner.setVisibility(pending?View.VISIBLE:View.GONE);
+            spinner.setVisibility(spin?View.VISIBLE:View.GONE);
             result.setText(chip==null?"":chip);result.setVisibility(chip==null?View.GONE:View.VISIBLE);
             // TalkBack reads the name and value, plus any short state.
             action.setContentDescription(labelValueState(shortLabel(feature),shown,pending?rowConfirmingPart():chip!=null?T.mainRowStateNote(lowerInEnglish(chip)):parkedBlocked?T.mainRowStopPart():note!=null?rowStateNote(note):""));
-            if(toggle!=null){toggle.setVisibility(pending?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
+            // The first second shows the asked side (as the lock switch does), so the tap doesn't look refused; the readback decides after.
+            Long asked=pending?ble.pendingValue():null;
+            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setEnabled(usable);toggle.setChecked(asked!=null?asked==1:actual!=null&&actual==1);if(Build.VERSION.SDK_INT>=30)toggle.setStateDescription(actual==null?T.commonNotReported():actual==1?T.commonOn():T.commonOff());}
         }
         private void refreshChargeSchedule(){
             ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
@@ -4467,6 +4515,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             String note=rowNote(ble,decision,decision!=null&&decision.blockedByRide());
             String blocked=charge==null?T.mainScheduleConnectYourScooter():toggle==null?charge.manualTimeBlockedReason:charge.manualBlockedReason;
             boolean pending=charge!=null&&charge.busy,on=charge!=null&&charge.manualEnabled;
+            // The schedule's writes go one after another: the spinner counts from the operation's start, its backstop from the latest write.
+            boolean spin=pendingLook(waitLook,SCHEDULE_WAIT,pending,charge==null?0:charge.busySinceMs,ble==null||ble.pending()==null?0:ble.pendingSinceMs(),action);
             String shown=toggle!=null?(on?T.commonOn():T.commonOff()):charge==null||charge.manualStartWallMs<=0?T.mainRowNotScheduled()
                     :DisplayTime.clock(MainActivity.this,preferences,charge.manualStartWallMs);
             blocked=ChargeScheduleText.shown(blocked);
@@ -4474,10 +4524,11 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean wide=toggle==null&&note!=null&&decision!=null&&decision.layer!=ModelRegistry.Layer.UT5_MAX&&textOver(shown,10,5.12,value);
             name.setTextColor(blocked==null?design.text:design.muted);value.setText(wide?"":shown);row.setSub(wide?joinNote(shown,note):note);
             action.setEnabled(true);row.line.setAlpha(blocked==null?1f:.5f);parkedBlocked=false;
-            spinner.setVisibility(pending?View.VISIBLE:View.GONE);result.setVisibility(View.GONE);
+            spinner.setVisibility(spin?View.VISIBLE:View.GONE);result.setVisibility(View.GONE);
             action.setContentDescription(note==null||note.equals(blocked)?(blocked==null?T.mainLabelValue(shortLabel(feature),shown):T.mainLabelValueDetail(shortLabel(feature),shown,blocked))
                     :blocked==null?T.mainLabelValueDetail(shortLabel(feature),shown,note):T.mainLabelValueDetails(shortLabel(feature),shown,blocked,note));
-            if(toggle!=null){toggle.setVisibility(pending?View.GONE:View.VISIBLE);toggle.setChecked(on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);}
+            // Scheduled charging turned on or off shows the asked side until the scooter answers.
+            if(toggle!=null){toggle.setVisibility(spin?View.GONE:View.VISIBLE);toggle.setChecked(pending&&charge.busyManualTarget!=null?charge.busyManualTarget:on);toggle.setEnabled(blocked==null&&!pending);toggle.setClickable(blocked==null&&!pending);toggle.setFocusable(blocked==null&&!pending);}
         }
         /**
          * Short caption for a connected row: why the control is refused (not the transient states the row
@@ -4552,9 +4603,17 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** Four signal bars, filled up to a rank. Used by the top speed options and the scooter picker. */
     private final class SignalBars extends View {
         private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);private int rank,color,off;
+        /** The top speed the scooter hasn't confirmed yet, after 1 s: the bars turn a spinner (TopSpeedCard). */
+        private boolean waiting;
         SignalBars(int rank){super(MainActivity.this);this.rank=rank;setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);}
         void set(int rank,int color,int off){this.rank=rank;this.color=color;this.off=off;invalidate();}
+        void waiting(boolean next){if(waiting!=next){waiting=next;invalidate();}}
         @Override protected void onDraw(Canvas canvas){
+            if(waiting){
+                float size=Math.min(getWidth(),getHeight()),cx=getWidth()/2f,cy=getHeight()/2f;
+                if(PendingSpinner.draw(canvas,new RectF(cx-size/2,cy-size/2,cx+size/2,cy+size/2),paint,design.dp(2),color,off)&&resumed&&isShown())postInvalidateOnAnimation();
+                paint.setStyle(Paint.Style.FILL);return;
+            }
             float bar=design.dp(3),gap=design.dp(2),h=getHeight(),x=(getWidth()-(4*bar+3*gap))/2;float[] heights={.34f,.58f,.82f,1f};
             for(int i=0;i<4;i++){paint.setColor(i<rank?color:off);canvas.drawRoundRect(new RectF(x,h-h*heights[i],x+bar,h),design.dp(1),design.dp(1),paint);x+=bar+gap;}
         }
@@ -4579,8 +4638,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         final TextView title,amount,unit,status;
         final ArrayList<LinearLayout> buttons=new ArrayList<>();final ArrayList<TextView> numbers=new ArrayList<>();final ArrayList<SignalBars> bars=new ArrayList<>();
         private String styled="";
-        /** The speed the rider tapped; its button pulses until the scooter confirms or the change ends. */
-        private Integer requested;private View pulsing;private android.animation.ValueAnimator pulse;
+        /** The speed the rider tapped; its bars turn a spinner once it has waited 1 s for the scooter, until it settles. */
+        private Integer requested;private final PendingControl waitLook=new PendingControl();
         TopSpeedCard(){
             card.setPadding(design.dp(16),design.dp(14),design.dp(16),design.dp(16));
             LinearLayout.LayoutParams cardParams=new LinearLayout.LayoutParams(-1,-2);cardParams.bottomMargin=design.dp(10);card.setLayoutParams(cardParams);
@@ -4629,30 +4688,19 @@ public final class MainActivity extends Activity implements ScreenHost {
                 if(Build.VERSION.SDK_INT>=30)button.setStateDescription(on?T.commonSelected():"");
             }
             boolean pending=ble!=null&&feature.key.equals(ble.pending());
-            if(!pending)requested=null;
+            // The asked speed is the write's own, so a card rebuilt mid-wait still marks its button.
+            Long asked=pending?ble.pendingValue():null;requested=asked==null?null:asked.intValue();
             int index=-1;for(int i=0;i<buttons.size();i++)if(requested!=null&&requested==feature.optionValues[i])index=i;
-            pulse(pending&&index>=0?buttons.get(index):null);
-            if(pending&&index>=0&&Build.VERSION.SDK_INT>=30)buttons.get(index).setStateDescription(T.mainSpeedConfirming());
-            // Without motion the pulse cannot show, so a one-word status stands in for it.
-            String feedback=pending?(Ui.motionEnabled()&&index>=0?null:T.mainSpeedConfirmingVisible()):resultChip(ble,feature.key);
+            boolean spin=pendingLook(waitLook,feature.key,pending,ble==null?0:ble.pendingSinceMs(),card);
+            for(int i=0;i<bars.size();i++)bars.get(i).waiting(spin&&i==index);
+            if(pending&&index>=0&&Build.VERSION.SDK_INT>=30)buttons.get(index).setStateDescription(waitingWords());
+            // A change with no tapped button (an automatic one, or a tap from before the activity was rebuilt) says it in words.
+            String feedback=pending?(spin&&index<0?T.mainSpeedConfirmingVisible():null):resultChip(ble,feature.key);
             // An owner saw this model keep its old top speed after a change: say so until a report shows it kept.
             if(feedback==null&&ready&&ModelRegistry.unconfirmed(ble.descriptor(),feature.key))feedback=T.mainRowUnconfirmed();
             status.setText(feedback==null?"":feedback);status.setVisibility(feedback==null?View.GONE:View.VISIBLE);
             String state=ready+"|"+available+"|"+actual;
             if(!state.equals(styled)){styled=state;style(!ready,available,actual);}
-        }
-        /** Breathes the tapped speed button while the scooter confirms it; null stops and restores. */
-        private void pulse(View target){
-            if(target==pulsing)return;
-            if(pulse!=null){pulse.cancel();pulse=null;}
-            if(pulsing!=null)pulsing.setAlpha(1f);
-            pulsing=target;
-            if(target==null||!Ui.motionEnabled())return;
-            pulse=android.animation.ValueAnimator.ofFloat(1f,.45f);pulse.setDuration(520);
-            pulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);pulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
-            pulse.setInterpolator(new android.view.animation.PathInterpolator(.4f,0,.2f,1));
-            pulse.addUpdateListener(a->{if(!target.isAttachedToWindow()){a.cancel();return;}target.setAlpha((Float)a.getAnimatedValue());});
-            pulse.start();
         }
         /** Red gradient while live; a grey card when only last-seen values are known. */
         private void style(boolean grey,boolean available,Integer actual){
@@ -4668,7 +4716,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 buttons.get(i).setBackground(raisedOption(fill,ring,on?2:1));
                 int ink=on?selectedText:fg;numbers.get(i).setTextColor(ink);
                 int barColor=on&&!grey?design.accent:ink;bars.get(i).set(i+1,barColor,Ui.withAlpha(barColor,90));
-                if(buttons.get(i)!=pulsing)buttons.get(i).setAlpha(available||grey?1f:.6f);
+                buttons.get(i).setAlpha(available||grey?1f:.6f);
             }
         }
         private android.graphics.drawable.Drawable raisedOption(int fill,int ring,int ringDp){
@@ -5420,6 +5468,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         final SegmentedSelector selector;
         final LinearLayout wait;final TextView status;
         Integer target;boolean sent;CharSequence failure;
+        /** The chosen value the scooter hasn't confirmed: the waiting line after 1 s, a quicker answer shows nothing (PendingControl). */
+        private final PendingControl waitLook=new PendingControl();
         ChoiceSheet(ScooterCommands.Feature feature,int[] choices){
             this.feature=feature;this.choices=choices;
             final AlertDialog[] self=new AlertDialog[1];
@@ -5494,7 +5544,7 @@ public final class MainActivity extends Activity implements ScreenHost {
                 options.get(i).setEnabled(enabled);if(Build.VERSION.SDK_INT>=30)options.get(i).setStateDescription(on?T.commonSelected():T.mainEditNotSelected());
             }
             String failure=this.failure==null?null:this.failure.toString();
-            wait.setVisibility(waiting?View.VISIBLE:View.GONE);
+            wait.setVisibility(pendingLook(waitLook,feature.key,waiting,ble==null?0:ble.pendingSinceMs(),wait)?View.VISIBLE:View.GONE);
             String message=failure!=null?failure:!ready&&!waiting?T.mainEditNotConnected():null;
             status.setText(message==null?"":message);status.setTextColor(failure!=null?design.danger:design.muted);status.setVisibility(message==null?View.GONE:View.VISIBLE);
         }

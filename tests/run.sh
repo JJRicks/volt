@@ -46,6 +46,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSl
 sources+=("$APP_DIR/src/com/jjricks/volt/EndlessMotion.java" "$TEST_DIR/EndlessMotionTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
+# A control waiting on the scooter: its spinner after 1 s, until confirmed, timed out or dropped (PendingControl).
+sources+=("$APP_DIR/src/com/jjricks/volt/PendingControl.java" "$TEST_DIR/PendingControlTest.java")
 # Riding mode core: layouts, live values, gauge smoothing, storage and burn-in drift (riding-mode plan, PR 1).
 for name in RidingLayout RidingValues GaugeSmoother RidingConfig PowerSign RidingPowerCue; do sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java"); done
 sources+=("$APP_DIR/src/com/jjricks/volt/RidingBurnIn.java")
@@ -226,6 +228,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.EndlessMotionTest "$APP_DIR/src" "$APP_DIR/android-tests"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.PendingControlTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.WideLayoutTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.IconLabelBalanceTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.GpsAccuracyTest

@@ -408,6 +408,8 @@ STEPS += [inst('charge-trace-detail', T + 'RideChartsValidation', '-e', 'part', 
 STEPS += [inst('riding-config-menu', T + 'RidingConfigMenuValidation'),
           inst('riding-config-menu-narrow', T + 'RidingConfigMenuValidation', '-e', 'label', 'narrow', size='344x882')]
 STEPS += [inst('riding-stopped-motion', T + 'RidingStoppedMotionValidation', size='344x882')]
+# The pending spinner on the lock switch and a controls row, on a slowed simulator (owner, Nov 23, 2.0.5 item 6).
+STEPS += [inst('control-pending', T + 'ControlPendingValidation', size='344x882')]
 STEPS += [inst('riding-battery-gauge', T + 'RidingBatteryGaugeValidation')]
 STEPS += [inst('riding-disconnected', T + 'RidingDisconnectedValidation', hidden_api=True),
           inst('riding-disconnected-narrow', T + 'RidingDisconnectedValidation', '-e', 'label', 'narrow', size='344x882', hidden_api=True)]
