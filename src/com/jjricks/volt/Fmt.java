@@ -177,6 +177,30 @@ public final class Fmt {
         return compose(T.FMT_QUANTITY, number, unit);
     }
 
+    /**
+     * The same text with each plain space that alone separates a number from its unit (either order, as the language's
+     * template puts them) made a no-break space (U+00A0), so a line that wraps keeps "38 km" together instead of leaving
+     * the unit alone on the next line (#452: "about 38 / km left"). Every other space can still break; a template that
+     * already joins them (U+00A0, U+202F) is unchanged. Same length, so every number and unit range stays where it was.
+     */
+    public static Formatted unitsJoined(Formatted text) {
+        char[] chars = text.toString().toCharArray();
+        int[] numbers = text.numberRanges(), units = text.unitRanges();
+        for (int u = 0; u < units.length; u += 2)
+            for (int n = 0; n < numbers.length; n += 2) {
+                if (numbers[n + 1] <= units[u]) joinGap(chars, numbers[n + 1], units[u]);
+                if (units[u + 1] <= numbers[n]) joinGap(chars, units[u + 1], numbers[n]);
+            }
+        return new Formatted(new String(chars), numbers, units);
+    }
+
+    /** Spaces only between from and to: each becomes U+00A0. Anything else there (" / ", a word) is left as it is. */
+    private static void joinGap(char[] chars, int from, int to) {
+        if (from >= to) return;
+        for (int i = from; i < to; i++) if (chars[i] != ' ' && chars[i] != ' ' && chars[i] != ' ') return;
+        for (int i = from; i < to; i++) if (chars[i] == ' ') chars[i] = ' ';
+    }
+
     /** Two numbers sharing one unit, "10–25 km/h" in English (fmt_range). */
     public static Formatted range(Formatted low, Formatted high, Formatted unit) {
         return compose(T.FMT_RANGE, low, high, unit);

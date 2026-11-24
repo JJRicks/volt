@@ -1074,8 +1074,9 @@ reboot or under battery saver is not yet checked on a real phone.
 Riding mode (Home's RIDE button) is a full-screen view that keeps the
 screen on and hides the navigation bar. Focus (the default), Halo (a speedometer
 ring with max and average) and Trace (the last minute of speed, draw and regen)
-show speed, Range at this pace (from recent energy per km at cruising speed,
-falling back to Volt's or the scooter's range), battery, trip, ride time,
+show speed, Range at this pace (from recent energy per km at cruising speed;
+a dash until about half a minute of riding at pace has shown this ride's pace;
+without Volt's energy model, Volt's or the scooter's range), battery, trip, ride time,
 battery temperature and power. In Focus, Battery brings its gauge to whichever
 spot shows it (segments, a strip under the big number or a thin bar under a
 tile), and the gauge is left out where it would squeeze the number.

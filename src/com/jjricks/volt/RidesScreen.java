@@ -1052,7 +1052,7 @@ public final class RidesScreen implements AppScreen {
     private void buildOverview(LinearLayout body, RideStore.Summary ride, List<RideStore.Point> measured, Runnable afterDelete) throws IOException {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
-        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
+        ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent(), ride); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
         // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
@@ -1159,8 +1159,10 @@ public final class RidesScreen implements AppScreen {
         Runnable fullLoadRetry;
         int loadGeneration; boolean fullDataLoaded;
         int overlayLimit = ui.dp(112); ScrollView overlayScroll;
-        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen) {
-            super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
+        /** The ride's summary: its first odometer reading is the distance line's zero (RideChartData.distance). */
+        final RideStore.Summary ride;
+        ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full, boolean inferRegen, RideStore.Summary ride) {
+            super(host.activity()); this.ride = ride; this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
             this.inferRegen = inferRegen;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
             LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
@@ -1234,7 +1236,7 @@ public final class RidesScreen implements AppScreen {
         }
         void setPhone(PhoneRideStore.Track track) { phone = track; update(); }
         void update() {
-            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen));
+            applyData(RideChartData.forRide(measured, phone, !"km".equals(preferences.getString("units", "mi")), false, inferRegen, ride));
         }
         void applyData(List<RideChartData.Series> prepared) {
             data = prepared;
@@ -1257,14 +1259,33 @@ public final class RidesScreen implements AppScreen {
         }
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
-            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen);
+            ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen, ride);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
             expandedDialog = dialog;
             show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
             dialog.getWindow().setLayout(-1, -1);
+            fillPage(expanded, dialog);
             expanded.loadStatus.setOnClickListener(v -> loadFull(expanded, dialog));
             loadFull(expanded, dialog);
+        }
+        /**
+         * Grows or shrinks the expanded graph to the page it is on, down to Done, whenever the page is laid out. Its
+         * first height is a guess from the app's window (expand()), which the dialog's own window and insets need not
+         * match: a guess too small left an empty band above Done, one too large ran under it.
+         */
+        void fillPage(ChartPanel expanded, AlertDialog dialog) {
+            View content = dialog.findViewById(android.R.id.content);
+            if (!(content instanceof ViewGroup)) return;
+            content.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                View page = ((ViewGroup) content).getChildCount() == 0 ? null : ((ViewGroup) content).getChildAt(0);
+                if (page == null || expanded.getHeight() == 0) return;
+                // The room left under the dialog's buttons (negative when it runs past the window).
+                int spare = content.getHeight() - content.getPaddingBottom() - page.getBottom();
+                int target = Math.max(ui.dp(400), expanded.getHeight() + spare);
+                if (Math.abs(target - expanded.getMinimumHeight()) > 1 && (spare != 0 || target < expanded.getMinimumHeight()))
+                    expanded.post(() -> { if (dialog.isShowing()) { expanded.setMinimumHeight(target); expanded.requestLayout(); } });
+            });
         }
         void loadFull(ChartPanel expanded, AlertDialog dialog) {
             if (closed || !isAttachedToWindow() || !dialog.isShowing()) return;
@@ -1285,7 +1306,7 @@ public final class RidesScreen implements AppScreen {
                 try {
                     List<RideStore.Point> all = rideStore.fullTrend(rideId);
                     PhoneRideStore.Track track = phoneStore == null ? null : phoneStore.loadSnapshot(rideId);
-                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen);
+                    List<RideChartData.Series> prepared = RideChartData.forRide(all, track, miles, true, inferRegen, ride);
                     host.activity().runOnUiThread(() -> {
                         if (!currentLoad(generation, expanded, dialog)) return;
                         fullLoad = null; expanded.fullDataLoaded = true;
@@ -1734,11 +1755,11 @@ public final class RidesScreen implements AppScreen {
         FrameLayout.LayoutParams creditParams = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
         creditParams.setMargins(ui.dp(8), 0, ui.dp(64), ui.dp(8)); mapFrame.addView(attribution, creditParams);
         attribution.setVisibility(View.GONE);
-        if (!track.points.isEmpty()) top.addView(MapPreferences.basemapControl(host, enabled -> {
+        if (!track.points.isEmpty()) top.addView(MapStyleControls.basemapRow(host, enabled -> {
             map.setStreets(enabled);
             attribution.setVisibility(enabled ? View.VISIBLE : View.GONE);
             if (enabled) MapPreferences.offerOsmSwitch(host, mapFrame, track.points);
-        }));
+        }, map::setDarkTiles));
         TextView mapStatus = ui.caption(""); mapStatus.setTextColor(ui.orange);
         mapStatus.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), 0); top.addView(mapStatus);
         map.setStatusListener(message -> { mapStatus.setText(message); mapStatus.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE); });

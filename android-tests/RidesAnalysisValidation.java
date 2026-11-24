@@ -69,7 +69,9 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
             List<?> data = (List<?>)field(panel, "data"); List<String> offered = new ArrayList<>();
             for (Object series : data) offered.add(((RideChartData.Series)series).key);
             List<String> expected = new ArrayList<>(Arrays.asList(RideChartData.KEYS)); expected.add(GpsAccuracy.KEY);
-            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy: " + offered);
+            // Then the distance line (2.0.5), whichever source draws it; nothing else.
+            if (offered.size() > expected.size()) expected.add(RideChartData.DISTANCE_KEY);
+            check(offered.equals(expected), "Graph offers every reading line, then GPS accuracy, then distance: " + offered);
             check(!selected.contains(GpsAccuracy.KEY), "GPS accuracy stays off until chosen");
             main(() -> { View inline = find(root, RideChartView.class); inline.requestRectangleOnScreen(new android.graphics.Rect(0,0,inline.getWidth(),inline.getHeight()+activity.ui().dp(90)),true); }); settle();
             main(() -> verifyInspection((RideChartView)find(root, RideChartView.class))); settle(); screenshot("inline-inspection");
@@ -625,10 +627,22 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
     void verifyMapContrast(RouteMapView map){
         int casing=(int)invoke(map,"routeCasingColor",new Class[0]);check(casing==(activity.ui().dark?android.graphics.Color.WHITE:0xff20242c),"Map canvas chooses contrasting route casing");
         setField(map,"streets",true);int tileCasing=(int)invoke(map,"routeCasingColor",new Class[0]);setField(map,"streets",false);
-        check(tileCasing==0xff20242c,"Basemap uses dark casing in either theme");
-        check((android.graphics.Color.luminance(0xffe2e2e2)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Neutral route has at least 3:1 against casing");
-        check((android.graphics.Color.luminance(0xffffd246)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Yellow route endpoint has at least 3:1 against casing");
+        // A basemap's casing follows the map style (MapStyle): dark on light tiles, white on dark ones, in either theme.
+        boolean darkMap=(boolean)invoke(map,"darkTiles",new Class[0]);
+        check(tileCasing==(darkMap?android.graphics.Color.WHITE:0xff20242c),"Basemap casing contrasts with the map style's tiles");
+        if(darkMap){
+            // A dark map (MapStyle) takes the dark theme's trade: the white casing keeps the ramps' dark blue end clear, and
+            // their light end (neutral, yellow) reads against the dark map itself, its paper under loading tiles included.
+            // 0xff23499b is RouteSpeedScale.LOW, the speed and power ramps' dark end.
+            check(contrast(0xff23499b,tileCasing)>=3,"Dark route end has at least 3:1 against casing on a dark map");
+            check(contrast(0xffe2e2e2,0xff2a2b28)>=3&&contrast(0xffffd246,0xff2a2b28)>=3,"Light route ends have at least 3:1 against a dark map's paper");
+        }else{
+            check((android.graphics.Color.luminance(0xffe2e2e2)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Neutral route has at least 3:1 against casing");
+            check((android.graphics.Color.luminance(0xffffd246)+.05)/(android.graphics.Color.luminance(tileCasing)+.05)>=3,"Yellow route endpoint has at least 3:1 against casing");
+        }
     }
+    /** The WCAG contrast ratio of two colours. */
+    static double contrast(int a,int b){double la=android.graphics.Color.luminance(a)+.05,lb=android.graphics.Color.luminance(b)+.05;return Math.max(la,lb)/Math.min(la,lb);}
     void verifySavingAndEmptyPhone() throws Exception{
         main(()->{for(Object dialog:new ArrayList<>((List<?>)field(screen,"dialogs")))((AlertDialog)dialog).dismiss();setField(activity.service(),"phoneSavingCount",1);invoke(screen,"showDetails",new Class[]{String.class},id);});settle();
         View pending=root();check(byDescription(pending,"Finishing the sensor files")!=null&&find(pending,RouteMapView.class)==null,"Open ride shows a map skeleton while the sensor save finishes");
@@ -709,7 +723,10 @@ public final class RidesAnalysisValidation extends ValidationInstrumentation {
         touch(chart,start+1600,0,MotionEvent.ACTION_DOWN,new float[]{plot.left-activity.ui().dp(12),cy});
         touch(chart,start+1600,20,MotionEvent.ACTION_MOVE,new float[]{activity.ui().dp(8),cy});
         touch(chart,start+1600,40,MotionEvent.ACTION_UP,new float[]{activity.ui().dp(8),cy});
-        check(((Number)field(chart,"axisScroll")).doubleValue() > oldScroll, "Color scale rail scrolls independently");
+        // A wide graph shows all five scales (ChartAxisLayout: a third of its width); a narrow one scrolls the rest into view.
+        boolean overflow = (Float)invoke(chart, "totalAxisWidth", new Class[0]) > (Float)field(chart, "axesWidth") + 1;
+        if (overflow) check(((Number)field(chart,"axisScroll")).doubleValue() > oldScroll, "Color scale rail scrolls independently");
+        else check(((Number)field(chart,"axisScroll")).doubleValue() == 0, "Every scale shows, so the rail has nothing to scroll");
         check(plot.width() > chart.getWidth() * .55, "Plot retains most of the screen with five axes selected");
     }
     /** Zooming a long low-speed interval costs only the visible number of hatch strokes. */

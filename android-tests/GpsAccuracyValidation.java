@@ -726,7 +726,9 @@ public final class GpsAccuracyValidation extends ValidationInstrumentation {
         // Default: the line is offered but off, as the other optional lines are; the default lines are unchanged.
         open(full, 344, 882, "dark", 1f);
         List<RideChartData.Series> data = data();
-        require(data.size() == GPS_LINE + 1 && data.get(GPS_LINE).key.equals(GpsAccuracy.KEY) && data.get(GPS_LINE).index == GpsAccuracy.CHART_INDEX, "the line is not the last, after the readings: " + keys(data));
+        // After the readings; the distance line (2.0.5) may follow it.
+        require(data.size() > GPS_LINE && data.get(GPS_LINE).key.equals(GpsAccuracy.KEY) && data.get(GPS_LINE).index == GpsAccuracy.CHART_INDEX, "the line is not right after the readings: " + keys(data));
+        for (int i = GPS_LINE + 1; i < data.size(); i++) require(data.get(i).key.equals(RideChartData.DISTANCE_KEY), "an unknown line after GPS accuracy: " + keys(data));
         require(!RideChartData.defaults().contains("gps_accuracy"), "the line is on by default");
         CheckBox chip = toggle(GPS_LINE);
         AtomicReference<Boolean> checked = new AtomicReference<>();

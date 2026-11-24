@@ -378,7 +378,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     /** A maintenance notice's place: Service › Maintenance reminders, so Back steps through Service to Home. */
     private void showMaintenanceFromNotice(){clearAway();pageArgs=null;compatibilityRecovery=false;nav.reset(MaintenanceScreen.PAGE);selectedPage=nav.current();watchHome();}
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;
+        super.onResume();
+        // Back without having stopped: a chooser closed over Volt, no app took the recordings' email (ChargeInvite.HandOver).
+        chargeHandOver.resumed();
+        if(startupRedirect || enteringMaintenance)return;
         // A rebuild before ensureService below (a long time away) would find no bind under way yet: the check waits for the end.
         checkHeld++;
         try{resume();}finally{checkHeld--;}
@@ -442,6 +445,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(riding!=null&&scooterService!=null&&riding.lostOnReturn(scooterService.rideLink(),scooterService.isRecording(),SystemClock.elapsedRealtime())){dropRiding();rebuild();}
     }
     @Override protected void onStop(){
+        // An app took the recordings' email (its screen covers Volt): the invite has done its job (ChargeInvite.HandOver).
+        android.os.PowerManager power=getSystemService(android.os.PowerManager.class);
+        if(chargeHandOver.stopped(power==null||power.isInteractive(),isChangingConfigurations()))
+            preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();
         if(!startupRedirect&&!enteringMaintenance)noteRidingLeft();
         super.onStop();
     }
@@ -451,6 +458,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     @Override public void onPause(){
         connectionHaptics.cancel();
+        chargeHandOver.paused();
         if(startupRedirect || enteringMaintenance){super.onPause();return;}
         // A dialog on top (an editor's unsaved text) or an app a page opened keeps the stack (#392 early review). The clock
         // starts only over a sub-page it could close, never on Home, a subject's own page or in setup: nothing is written there.
@@ -4944,9 +4952,12 @@ public final class MainActivity extends Activity implements ScreenHost {
         String body="Volt "+version+(export.model.isEmpty()?"":"\n"+export.model)+"\n";
         ChargeSend.Outcome outcome=ChargeSend.outcome(true,sendWithUri(subject,body,Uri.parse(export.attachment)));
         if(outcome==ChargeSend.Outcome.NO_EMAIL_APP)toast(HubText.chargeSendNoEmail());
-        // Recordings on their way to Volt: Battery & charging's invite to send them has done its job (ChargeInvite).
-        else if(outcome==ChargeSend.Outcome.SENT)preferences.edit().putString(ChargeInvite.KEY,ChargeInvite.SENT).apply();
+        // Handed to Android, not yet taken: Battery & charging's invite counts as answered only once an app takes the email
+        // (onStop), never when a chooser opens and is closed again (#537 review, F03; ChargeInvite.HandOver).
+        else if(outcome==ChargeSend.Outcome.SENT)chargeHandOver.opened();
     }
+    /** Email to Volt's hand-over, waiting to learn whether an app took the email (ChargeInvite.HandOver). */
+    private final ChargeInvite.HandOver chargeHandOver=new ChargeInvite.HandOver();
     /** The Language sheet's drafts: straight to the email app, never the diagnostics sheet. */
     @Override public boolean emailDraft(String subject,String body){return email(subject,body);}
     /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
