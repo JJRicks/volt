@@ -2506,6 +2506,9 @@ public final class DashboardScreen implements AppScreen {
         private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {
             captions[reading].setLabels(names[0], names[1], names[2]);
             showChargeTime(values[reading], tags[reading], estimate, minutes);
+            // The tile's state words step down too: Estimating time left, then Estimating, before smaller or wrapped text
+            // (review of #619); what it speaks below keeps the full words. The widgets' two-line rows keep theirs.
+            if (minutes == null && values[reading] instanceof FittedValue) ((FittedValue) values[reading]).setRungs(ChargingEstimate.stateRungs(estimate));
             spoken[reading] = spokenChargeTime(names[0], fullText(values[reading]), tags[reading], status);
             values[reading].setContentDescription(spoken[reading]);
         }
