@@ -263,6 +263,40 @@
     <!-- The same tile's name where the full one does not fit on its one line. -->
     <string name="hub_qa_search_settings_short" volt:screen="Widgets Home Quick access" volt:purpose="shortcut name" volt:ladder="short" volt:max="64dp@12sp">Search</string>
 
+    <!-- ===== Clean Home while a ride records (the Ride clock; its switch is hub_moment_recording below) =====
+      While Volt records a ride, Clean Home's top area shows it: a red dot and "Recording" (home_qa_recording), the
+      time it started, the recording's time in large figures, a speed graph of the ride so far, then Trip, Battery
+      and the estimated range (riding_label_trip, hub_just_back_battery, hub_recording_range) and an
+      Open riding mode button (hub_ride_open_riding). A lost link reuses riding mode's words (riding_status_*). -->
+    <!-- Muted, at the right of "Recording". %1$s is the clock time the recording started, in the owner's 12- or
+         24-hour format ("9:24 AM", "21:24"). Left out where the row has no room for it. -->
+    <string name="hub_recording_started" volt:screen="Clean Home while recording" volt:purpose="status" volt:max="150dp@14sp">Started %1$s</string>
+    <!-- Small label at the top left of the speed graph: the graph shows this ride's speed from its start to now. The
+         short rung where the label and the current speed beside it do not fit together. -->
+    <string name="hub_recording_speed" volt:screen="Clean Home while recording" volt:purpose="graph label" volt:ladder="full" volt:overflow="short" volt:max="150dp@12.5sp">Speed, this ride</string>
+    <string name="hub_recording_speed_short" volt:screen="Clean Home while recording" volt:purpose="graph label" volt:ladder="short" volt:max="70dp@12.5sp">Speed</string>
+    <!-- The third reading's name: the estimated range left, the figure the parked battery card shows ("about 23 mi
+         left"). The short rung where a third of the row is too narrow. -->
+    <string name="hub_recording_range" volt:screen="Clean Home while recording" volt:purpose="reading name" volt:ladder="full" volt:overflow="short" volt:max="100dp@13sp" volt:safety="ride">Range (est.)</string>
+    <string name="hub_recording_range_short" volt:screen="Clean Home while recording" volt:purpose="reading name" volt:ladder="short" volt:max="64dp@13sp" volt:safety="ride">Range</string>
+    <!-- At the top right of the speed graph: the speed now. %1$s is the speed with its unit ("16.8 mph"). -->
+    <string name="hub_recording_speed_now" volt:screen="Clean Home while recording" volt:purpose="value" volt:max="150dp@12.5sp" volt:safety="ride">%1$s now</string>
+    <!-- Spoken at the start of that screen-reader text in the recording's first minute (after it, riding mode's
+         riding_status_recording_spoken_minutes: "Recording for 14 minutes"). Said once, not counted second by second. -->
+    <string name="hub_recording_spoken_under_minute" volt:screen="Clean Home while recording" volt:purpose="accessibility" volt:safety="ride">Recording for less than a minute</string>
+    <!-- Joins two sentences of the screen-reader text below: %1$s is what comes before, %2$s the next reading
+         ("Trip, 2.5 mi"). Keep the sentence break your language uses. -->
+    <string name="hub_recording_spoken_next" volt:screen="Clean Home while recording" volt:purpose="accessibility">%1$s. %2$s</string>
+    <!-- Screen-reader text of the whole recording view. %1$s is what it shows, in sentences: the recording's time and
+         any connection problem, then the trip, the battery, the estimated range and the speed ("Recording for 14
+         minutes. Trip, 2.5 mi. Battery, 73%. Range (est.), about 23 mi"). Tapping it opens the Ride page. -->
+    <string name="hub_recording_description" volt:screen="Clean Home while recording" volt:purpose="accessibility" volt:safety="ride">%1$s. Opens the Ride page.</string>
+
+    <!-- Switch in Settings › Home style, beside home_moment_charging and home_moment_ride (strings_home.xml): while
+         Volt records a ride, Clean Home's top area shows that ride as it records (its time, a speed graph, the trip,
+         the battery and the range). -->
+    <string name="hub_moment_recording" volt:screen="Home style settings" volt:purpose="switch">Show the ride while recording</string>
+
     <!-- ===== Clean Home after a ride (Just back; its other text is in strings_home.xml, home_just_back_*) ===== -->
     <!-- Name of the tile that shows the battery's change over the ride, as a signed percent ("−18%", "+2%"). -->
     <string name="hub_just_back_battery" volt:screen="Clean Home after a ride" volt:purpose="tile name" volt:max="96dp@12sp">Battery</string>

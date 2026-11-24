@@ -8,3 +8,6 @@ src/com/jjricks/volt/DisplayUnits.java
 src/com/jjricks/volt/RecordingPill.java
 src/com/jjricks/volt/RidingFocus.java
 tests/l10n/RecordingFitTest.java
+# The moment's words and values in English (slice with the catalog text): HubText's recording methods.
+src/com/jjricks/volt/HubText.java
+tests/l10n/RecordingMomentTest.java
