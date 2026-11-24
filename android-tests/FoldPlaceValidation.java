@@ -96,9 +96,11 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
             // Argument only: one case by name (a comma list), for a quick look; the sweep runs them all.
             Set<String> only = new HashSet<>(Arrays.asList(args.getString("only", "").split(",")));
             only.remove("");
-            String[] names = {"home", "ride", "map", "chart", "pane", "charge", "battery", "settings", "search", "riding", "wide-page"};
+            String[] names = {"home", "ride", "map", "chart", "pane", "charge", "battery", "settings", "search", "riding", "wide-page",
+                    "twice", "search-ride", "compare"};
             ThrowingRunnable[] cases = {this::homeStays, this::rideDetails, this::expandedMap, this::expandedChartCase, this::widePaneRide,
-                    this::chargeRecording, this::batterySheet, this::settingsSubpage, this::search, this::ridingMode, this::widePageFolds};
+                    this::chargeRecording, this::batterySheet, this::settingsSubpage, this::search, this::ridingMode, this::widePageFolds,
+                    this::twoRebuilds, this::searchRideFolds, this::comparisonUnder};
             for (int i = 0; i < names.length; i++) if (only.isEmpty() || only.contains(names[i])) { if (unfolded()) fold(); cases[i].run(); }
             if (!misses.isEmpty()) throw new IllegalStateException(misses.size() + " check(s) missed: " + String.join(" | ", misses));
             result.putString("result", "PASS");
@@ -374,6 +376,69 @@ public final class FoldPlaceValidation extends ValidationInstrumentation {
         back();
         expect(waitFor(() -> page().equals(HubPages.HOME), 5000), "Back: Home (got " + page() + ")");
         checks.add(label + " a wide page folds to the same page; Back to Home");
+    }
+
+    /**
+     * Two rebuilds in one main-thread turn (an unfold's size change, then its posture: onConfigurationChanged and the
+     * fold monitor each rebuild): the ride's details still come back (council round 1, F03).
+     */
+    private void twoRebuilds() throws Exception {
+        open(HubPages.RIDE_RIDES);
+        openRide(rideA);
+        await(() -> rideShown("Fold check ride A"), 10000, "The ride's details did not open");
+        main(() -> { activity.rebuild(); activity.rebuild(); });
+        settle(); SystemClock.sleep(800); settle();
+        expect(waitFor(() -> detailsWindow() != null && rideShown("Fold check ride A"), 8000), "two rebuilds in one turn: the ride's details are open again");
+        unfold();
+        main(() -> { activity.rebuild(); activity.rebuild(); });
+        settle(); SystemClock.sleep(800); settle();
+        expect(waitFor(() -> rideShown("Fold check ride A"), 8000), "unfolded, then two rebuilds in one turn: the ride still shows");
+        fold();
+        expect(waitFor(() -> detailsWindow() != null && rideShown("Fold check ride A"), 8000), "folded again: its details page");
+        back();
+        checks.add(label + " two rebuilds in one turn keep the ride's details, folded and unfolded");
+    }
+
+    /**
+     * A ride opened as a search result does (back past All rides), on the wide layout, then folded: its details page's
+     * Back goes to the page that opened it, not All rides (council round 1, F08).
+     */
+    private void searchRideFolds() throws Exception {
+        unfold();
+        open(HubPages.HOME);
+        main(() -> activity.open(HubPages.RIDE_RIDES, HubNav.Args.rideAndBack(rideB)));
+        settle(); SystemClock.sleep(800); settle();
+        await(() -> rideShown("Fold check ride B"), 10000, "The search result's ride did not show on the wide layout");
+        fold();
+        expect(waitFor(() -> detailsWindow() != null && rideShown("Fold check ride B"), 8000), "folded: the search result's ride in its details page");
+        back();
+        expect(waitFor(() -> detailsWindow() == null && page().equals(HubPages.HOME), 5000), "Back from it goes back past All rides, to Home (got " + page() + ")");
+        checks.add(label + " a search result's ride opened wide, folded: Back goes past All rides to the page that opened it");
+    }
+
+    /** A ride opened from Compare two rides, then unfolded and folded: the comparison is still under it (council round 1, F07). */
+    private void comparisonUnder() throws Exception {
+        require(settings().edit().putStringSet("ride_comparison", new LinkedHashSet<>(Arrays.asList(rideA, rideB))).commit(), "Could not choose two rides");
+        open(HubPages.RIDE_RIDES);
+        main(() -> invoke(field(activity, "screen"), "showComparison", new Class<?>[]{}));
+        await(() -> byText(comparisonWindow(), T.ridesViewFirst()) != null, 8000, "Compare two rides did not open");
+        main(() -> require(byText(comparisonWindow(), T.ridesViewFirst()).performClick(), "View first took no tap"));
+        await(() -> detailsWindow() != null, 8000, "The first ride's details did not open from the comparison");
+        unfold();
+        expect(waitFor(() -> comparisonWindow() != null, 8000), "unfolded: the comparison is still open");
+        fold();
+        expect(waitFor(() -> detailsWindow() != null && comparisonWindow() != null, 8000), "folded: the ride's details over the comparison");
+        back();
+        expect(waitFor(() -> detailsWindow() == null && comparisonWindow() != null, 5000), "Back from the ride: the comparison under it");
+        back();
+        expect(waitFor(() -> comparisonWindow() == null && page().equals(HubPages.RIDE_RIDES), 5000), "Back again: All rides");
+        checks.add(label + " a ride opened from Compare two rides keeps the comparison under it, both ways");
+    }
+    /** Compare two rides' window: one holding its View first button. */
+    private View comparisonWindow() {
+        View main = activity.getWindow().getDecorView();
+        for (View window : allWindows()) if (window != main && window.isShown() && byText(window, T.ridesViewFirst()) != null) return window;
+        return null;
     }
 
     // ---- What is on screen ------------------------------------------------------------------------------------------
