@@ -830,9 +830,10 @@ public final class HubSearchTest {
         // A target still owed survives a recreation while the loading page waits (a theme change, a fold, process death): the
         // activity saves pageArgs with its state and restores it before its first rebuild (#393 council review, fourth round,
         // finding 3). Every field comes back; none saves as null.
-        HubNav.Args owed = new HubNav.Args("feature", true, "ride-7", "preference_riding_auto_record", "speed_kmh", true);
+        // (A control's key this build knows: an unknown one is dropped as it comes back, HubNavTest.)
+        HubNav.Args owed = new HubNav.Args("speed_limit", true, "ride-7", "preference_riding_auto_record", "speed_kmh", true);
         HubNav.Args back = HubNav.Args.restore(HubNav.Args.save(owed));
-        check(back != null && "feature".equals(back.inspect) && back.recovery && "ride-7".equals(back.ride)
+        check(back != null && "speed_limit".equals(back.inspect) && back.recovery && "ride-7".equals(back.ride)
                 && "preference_riding_auto_record".equals(back.anchor) && "speed_kmh".equals(back.reading) && back.backAfterRide,
                 "a saved target comes back whole");
         HubNav.Args anchorOnly = HubNav.Args.restore(HubNav.Args.save(HubNav.Args.anchor("update_check")));

@@ -462,6 +462,8 @@
     <string name="more_got_it" volt:screen="Unlock without phone" volt:purpose="button">Got it</string>
     <!-- Screen-reader text of the handlebar drawing; the numbers match the drawing's markers. -->
     <string name="more_pin_diagram" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">Handlebar: 1 turn-signal button, 2 brake lever, 3 power button</string>
+    <!-- Screen-reader text of the handlebar drawing on a handlebar with a brake lever ahead of each grip (NT3): step 2 is the left lever. The numbers match the drawing's markers. -->
+    <string name="more_pin_diagram_left_lever" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">Handlebar: 1 turn-signal button, 2 left brake lever, 3 power button</string>
 
     <!-- ===== Experimental controls ===== -->
 
@@ -596,6 +598,8 @@
     <string name="more_lab_status_unfinished_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Unfinished</string>
     <!-- Try sheet status before any try. -->
     <string name="more_lab_status_not_tried" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Not tried yet</string>
+    <!-- Status of a control tried on this scooter before, whose try Volt no longer keeps (finished tries go 30 days after a report includes them, or when too many are kept). Its result is no longer known, so say only that it was tried. -->
+    <string name="more_lab_status_tried_before" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Tried before</string>
     <!-- Row status: offered by the official app here, untested by Volt. Full wording; shorter rungs follow when the pill has no room. -->
     <string name="more_lab_status_unverified" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Unverified on your model</string>
     <!-- Shorter more_lab_status_unverified. -->

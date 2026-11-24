@@ -86,6 +86,18 @@ final class Motion {
     }
 
     /**
+     * A window a rebuild opens again in place (a fold, an unfold or a rotation: KeptPlace), after {@code present}: it is
+     * simply there, as the page under it is, without its entrance; once shown it leaves with its usual motion.
+     */
+    static void inPlace(Dialog dialog) {
+        Window window = dialog == null ? null : dialog.getWindow();
+        if (window == null) return;
+        int animations = window.getAttributes().windowAnimations;
+        window.setWindowAnimations(0);
+        dialog.setOnShowListener(shown -> { dialog.setOnShowListener(null); window.setWindowAnimations(animations); });
+    }
+
+    /**
      * A sheet ({@code present}ed as SHEET, its content in {@code holder}) whose height glides with the rows a reveal
      * inside it shows or hides, instead of the window resizing in one step. {@code background} is the sheet's own
      * background; call before show(). At rest the window, its background and the keyboard's resizing are as without it.
@@ -509,6 +521,15 @@ final class Motion {
         }
         @Override public void captureStartValues(TransitionValues values) { capture(values); }
         @Override public void captureEndValues(TransitionValues values) { capture(values); }
+        /**
+         * The values a running fade is kept for. Android keeps a transition's running animator's values only for these
+         * names, and a later change on the same view cancels that animator when one of them differs; with none it kept
+         * nothing and cancelled nothing, so a quick reversal (tab A, B, A) left the first fade running beside the new one
+         * and its Echo drawn at the view's new place plus its old shift (#529 review, F01). Cancelled, it ends as
+         * onAnimationEnd says, and the new fade starts from the opacity captured before it.
+         */
+        @Override public String[] getTransitionProperties() { return PROPERTIES; }
+        private static final String[] PROPERTIES = {TOP, SHOWN};
         @Override public Transition setInterpolator(TimeInterpolator interpolator) { return this; }
         @Override public Animator createAnimator(ViewGroup root, TransitionValues start, TransitionValues end) {
             // Views that come or go are Veil's.

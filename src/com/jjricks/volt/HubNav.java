@@ -62,10 +62,17 @@ final class HubNav {
             if (args == null) return null;
             return new String[]{args.inspect, args.ride, args.anchor, args.reading, Boolean.toString(args.recovery), Boolean.toString(args.backAfterRide)};
         }
-        /** The arguments save wrote, or null for none or for anything else. */
+        /**
+         * The arguments save wrote, or null for none or for anything else. A control's feature key this build doesn't
+         * know (saved by another build, or a hand-made state) is dropped here, the one place saved arguments come back:
+         * Experimental then opens without its try instead of throwing as it looks the key up (#546 review, F01). The
+         * rest of the arguments come back as saved. A rebuild in the same process (a fold, an unfold, a rotation: KeptPlace)
+         * never saves them, so only a recreation reaches this.
+         */
         static Args restore(String[] saved) {
             if (saved == null || saved.length != 6) return null;
-            return new Args(saved[0], Boolean.parseBoolean(saved[4]), saved[1], saved[2], saved[3], Boolean.parseBoolean(saved[5]));
+            String inspect = ScooterCommands.known(saved[0]) ? saved[0] : null;
+            return new Args(inspect, Boolean.parseBoolean(saved[4]), saved[1], saved[2], saved[3], Boolean.parseBoolean(saved[5]));
         }
     }
 

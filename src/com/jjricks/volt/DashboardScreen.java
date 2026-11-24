@@ -4205,6 +4205,8 @@ public final class DashboardScreen implements AppScreen {
             final View grip, editButton, duplicateButton, removeButton;
             int target, controlColumns, resizeInset;
             boolean compactRail, singleAction;
+            /** The four controls together at the card's end, clear of a title at its start (DashboardLayout.editorAtEnd). */
+            boolean atEnd;
             PopupMenu actionsMenu;
 
             EditorBar(View grip) {
@@ -4273,6 +4275,8 @@ public final class DashboardScreen implements AppScreen {
                                 > MeasureSpec.getSize(heightSpec) - ui.dp(48));
                 duplicateButton.setVisibility(compactRail ? GONE : VISIBLE);
                 removeButton.setVisibility(compactRail ? GONE : VISIBLE);
+                // The lock cards' words sit in their middle, so their controls stay where they were.
+                atEnd = !compactRail && !lockType(widget.type) && DashboardLayout.editorAtEnd(available, target, controlColumns, ui.dp(96));
                 for (int i = 0; i < getChildCount(); i++)
                     getChildAt(i).measure(MeasureSpec.makeMeasureSpec(target, MeasureSpec.EXACTLY),
                             MeasureSpec.makeMeasureSpec(target, MeasureSpec.EXACTLY));
@@ -4286,6 +4290,17 @@ public final class DashboardScreen implements AppScreen {
                         int x = (i % controlColumns) * target, y = (i / controlColumns) * target;
                         if (i == 3) x = getWidth() - resizeInset - target;
                         getChildAt(i).layout(x, y, x + target, y + target);
+                    }
+                    return;
+                }
+                if (atEnd) {
+                    // Together at the end (left in RTL), in their usual order, the title free at the start.
+                    boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+                    View[] order = {grip, editButton, duplicateButton, removeButton};
+                    int first = rtl ? 0 : getWidth() - resizeInset - 4 * target;
+                    for (int i = 0; i < 4; i++) {
+                        int x = first + (rtl ? 3 - i : i) * target;
+                        order[i].layout(x, 0, x + target, target);
                     }
                     return;
                 }
@@ -5501,16 +5516,18 @@ public final class DashboardScreen implements AppScreen {
                 for (LinearLayout cell : cells)
                     cell.setPadding(horizontal, cell.getPaddingTop(), horizontal, cell.getPaddingBottom());
                 int perRow = budget > 0 ? (budget - (rows - 1) * gap) / rows : Integer.MAX_VALUE;
-                int natural;
-                if (width == fittedWidth && budget == fittedBudget && columns == fittedColumns) natural = measureCells(-1);
-                else {
-                    // Search only when the space changes, so value budgets settle instead of re-requesting layout.
+                boolean sameSpace = width == fittedWidth && budget == fittedBudget && columns == fittedColumns;
+                int natural = sameSpace ? measureCells(-1) : 0;
+                // Search only when the space changes, so value budgets settle instead of re-requesting layout, or when a
+                // value grew past the row at the kept mode (ReadingSpan.refit): then only fewer labels can fit it.
+                if (ReadingSpan.refit(sameSpace, natural, perRow, mode == VALUE)) {
+                    int from = sameSpace ? mode : cramped ? VALUE : FULL;
                     fittedWidth = width;
                     fittedBudget = budget;
                     fittedColumns = columns;
                     natural = 0;
                     // Too narrow for a label: values only (each value's description keeps its label).
-                    for (int next = cramped ? VALUE : FULL; next <= VALUE; next++) {
+                    for (int next = from; next <= VALUE; next++) {
                         apply(next);
                         natural = measureCells(perRow);
                         if (natural <= perRow) break;

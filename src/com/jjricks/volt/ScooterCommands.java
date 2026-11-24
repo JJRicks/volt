@@ -220,6 +220,9 @@ public final class ScooterCommands {
     }
     public static boolean oemOnly(String key) { return OEM_ONLY.containsKey(key); }
 
+    /** Whether find knows this key (the catalogue or another model's control); false for null. */
+    public static boolean known(String key) { return key != null && (FEATURES.containsKey(key) || OEM_ONLY.containsKey(key)); }
+
     public static Feature find(String key) {
         Feature feature = FEATURES.get(key);
         if (feature == null) feature = OEM_ONLY.get(key);

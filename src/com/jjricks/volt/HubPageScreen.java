@@ -31,6 +31,17 @@ final class HubPageScreen implements AppScreen {
         for (AppScreen part : parts) { View found = part.anchor(id); if (found != null) return found; }
         return null;
     }
+    /** Each part's own place, by its position on the page (KeptPlace). */
+    @Override public Object keepPlace() {
+        Object[] kept = new Object[parts.size()]; boolean any = false;
+        for (int i = 0; i < kept.length; i++) { kept[i] = parts.get(i).keepPlace(); any |= kept[i] != null; }
+        return any ? kept : null;
+    }
+    @Override public void restorePlace(Object place) {
+        if (!(place instanceof Object[])) return;
+        Object[] kept = (Object[]) place;
+        for (int i = 0; i < kept.length && i < parts.size(); i++) if (kept[i] != null) parts.get(i).restorePlace(kept[i]);
+    }
     @Override public boolean openHeld(String id) {
         for (AppScreen part : parts) if (part.openHeld(id)) return true;
         return false;

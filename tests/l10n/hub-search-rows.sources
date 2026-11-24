@@ -1,0 +1,4 @@
+# Search finds every page's rows by the names they show in the current language (#533 review, F04/F05; 2.0.5).
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the
+# repository root. HubSearch, HubText and their neighbours are listed by hub-search.sources.
+tests/l10n/HubSearchRowsTest.java

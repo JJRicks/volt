@@ -127,6 +127,18 @@ public final class HubNavTest {
                 "A ride opened from Home closes back to Home");
         HubNav.Args restoredHome = HubNav.Args.restore(HubNav.Args.save(home));
         require(restoredHome != null && "r3".equals(restoredHome.ride) && restoredHome.backAfterRide, "A ride owed from Home keeps closing back to Home after a recreation");
+        // A control's try owed across a recreation keeps its feature key while this build knows it; a key it doesn't know
+        // (saved by another build, or a hand-made state) is dropped as it is restored, so Experimental opens without the
+        // try instead of throwing in ScooterCommands.find (#546 review, F01). The rest of the arguments still come back.
+        HubNav.Args known = HubNav.Args.restore(HubNav.Args.save(HubNav.Args.inspect("speed_limit")));
+        require(known != null && "speed_limit".equals(known.inspect), "A known feature's try comes back after a recreation");
+        String oem = ScooterCommands.oemOnly().get(0).key;
+        HubNav.Args oemKnown = HubNav.Args.restore(HubNav.Args.save(HubNav.Args.inspect(oem)));
+        require(oemKnown != null && oem.equals(oemKnown.inspect), "Another model's control keeps its try too: " + oem);
+        HubNav.Args stale = HubNav.Args.restore(new String[] {"gone_feature", "r6", "row", "speed", "true", "true"});
+        require(stale != null && stale.inspect == null, "A feature key this build doesn't know is dropped on restore");
+        require("r6".equals(stale.ride) && "row".equals(stale.anchor) && "speed".equals(stale.reading) && stale.recovery && stale.backAfterRide,
+                "Dropping the unknown key keeps the other arguments");
         // The wide Clean Home beside All rides already shown (#557 review, F01): a plain ride, so All rides stays under it.
         HubNav.Args besideList = HubNav.Args.fromHome("r4", HubPages.RIDE_RIDES);
         require("r4".equals(besideList.ride) && !besideList.backAfterRide, "Just back over All rides keeps All rides under its details");
