@@ -44,33 +44,67 @@ public final class MapPreferences {
         return null;
     }
 
-    /** One remembered choice, shared by inline maps, expanded maps and app preferences. */
-    static View basemapControl(ScreenHost host, Consumer<Boolean> changed) {
-        return new BasemapControl(host, changed);
+    /** The map style switch's name, "Dark map": beside the ride maps' Basemap switch and in Map settings. */
+    static String darkMapName() { return T.mapsDarkMap(); }
+
+    /** The stored map style (MapStyle.KEY): "dark", "light", or null while never picked (or not a string). */
+    static Object mapStyle(SharedPreferences settings) {
+        try { return settings.getString(MapStyle.KEY, null); } catch (ClassCastException unreadable) { return null; }
+    }
+
+    /** Whether the online maps draw dark tiles now (MapStyle.dark): the saved pick, else the app's theme. */
+    static boolean darkMap(SharedPreferences settings, boolean darkTheme) { return MapStyle.dark(mapStyle(settings), darkTheme); }
+
+    /** Saves a pick of the map style for both maps (MapStyle.pick), kept in either theme until the next flip. */
+    static void setDarkMap(SharedPreferences settings, boolean dark) {
+        settings.edit().putString(MapStyle.KEY, MapStyle.pick(dark)).apply();
+    }
+
+    /** View tag: the Dark map switch beside a ride map's Basemap switch. */
+    static final String TAG_RIDE_STYLE = "ride-map-style";
+
+    /**
+     * One remembered choice, shared by inline maps, expanded maps and app preferences; changed gets the Basemap switch's
+     * state. Beside it, while the basemap is on, the Dark map switch (MapStyle, shared with the Just back card); dark gets
+     * whether the maps draw dark tiles, at once and on every change.
+     */
+    static View basemapControl(ScreenHost host, Consumer<Boolean> changed, Consumer<Boolean> dark) {
+        return new BasemapControl(host, changed, dark);
     }
 
     private static final class BasemapControl extends LinearLayout {
         private final ScreenHost host;
+        private final Ui ui;
         private final SharedPreferences settings;
-        private final Consumer<Boolean> changed;
-        private final Switch toggle;
+        private final Consumer<Boolean> changed, darkChanged;
+        private final Switch toggle, style;
         private boolean updating, listening;
-        private Boolean shown;
+        private Boolean shown, shownDark;
         private AlertDialog prompt;
         private final SharedPreferences.OnSharedPreferenceChangeListener preferenceChanged = (p, key) -> {
-            if (key == null || key.equals("map_basemap_enabled")) refresh();
+            if (key == null || key.equals("map_basemap_enabled") || key.equals(MapStyle.KEY)) refresh();
         };
 
-        BasemapControl(ScreenHost host, Consumer<Boolean> changed) {
+        BasemapControl(ScreenHost host, Consumer<Boolean> changed, Consumer<Boolean> dark) {
             super(host.activity());
-            this.host = host; this.settings = host.appSettings(); this.changed = changed;
-            Ui ui = host.ui();
+            this.host = host; this.settings = host.appSettings(); this.changed = changed; this.darkChanged = dark;
+            ui = host.ui();
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
             toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(basemapName());
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
             toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(basemapName());
-            ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
+            ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(0, -2, 1));
+            style = new Haptics.FeedbackSwitch(host.activity()); style.setText(darkMapName());
+            style.setTextColor(ui.text); style.setTextSize(15 * ui.textScale);
+            style.setMinHeight(ui.dp(48)); style.setContentDescription(darkMapName());
+            style.setTag(TAG_RIDE_STYLE);
+            ui.styleSwitch(style); style.setVisibility(GONE); addView(style, new LinearLayout.LayoutParams(0, -2, 1));
+            style.setOnCheckedChangeListener((button, on) -> {
+                if (updating) return;
+                setDarkMap(settings, on);
+                refresh();
+            });
             // The old-default USGS pin is written down before anything here can turn the basemap off (MapSource.keepPin).
             MapSource.keepPin(settings);
             refresh();
@@ -92,12 +126,59 @@ public final class MapPreferences {
         }
 
         private void refresh() {
-            boolean on = enabled(settings);
-            updating = true; toggle.setChecked(on); updating = false;
+            boolean on = enabled(settings), dark = darkMap(settings, ui.dark);
+            updating = true; toggle.setChecked(on); style.setChecked(dark); updating = false;
+            // Only with the basemap on: the style changes nothing on the plain route grid.
+            int styleShown = on ? VISIBLE : GONE;
+            if (style.getVisibility() != styleShown) style.setVisibility(styleShown);
+            if (shownDark == null || shownDark != dark) {
+                shownDark = dark;
+                if (darkChanged != null) darkChanged.accept(dark);
+            }
             if (shown == null || shown != on) {
                 shown = on;
                 if (changed != null) changed.accept(on);
             }
+        }
+
+        /**
+         * The two switches share the row, half each, when both labels fit whole beside their thumbs; otherwise (large
+         * text, a narrow window, a long translation) the Dark map switch takes its own row under Basemap with its full
+         * label, so neither label is ever shortened, cut or broken mid-word.
+         */
+        @Override protected void onMeasure(int widthSpec, int heightSpec) {
+            boolean beside = true;
+            if (style.getVisibility() != GONE && MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
+                int room = (MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight() - ui.dp(STYLE_GAP_DP)) / 2;
+                beside = natural(toggle) <= room && natural(style) <= room;
+            }
+            arrange(beside);
+            super.onMeasure(widthSpec, heightSpec);
+        }
+
+        /** The gap between the two switches sharing the row. */
+        private static final int STYLE_GAP_DP = 16;
+
+        /** A switch's width with its whole label on one line. */
+        private static int natural(Switch view) {
+            view.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
+            return view.getMeasuredWidth();
+        }
+
+        private void arrange(boolean beside) {
+            int orientation = beside ? HORIZONTAL : VERTICAL;
+            if (getOrientation() != orientation) setOrientation(orientation);
+            LinearLayout.LayoutParams first = (LinearLayout.LayoutParams) toggle.getLayoutParams(),
+                    second = (LinearLayout.LayoutParams) style.getLayoutParams();
+            int width = beside ? 0 : -1, gap = beside ? ui.dp(STYLE_GAP_DP) : 0;
+            float weight = beside ? 1 : 0;
+            // Set in place during this measure pass (super.onMeasure reads them next), so no further layout is asked for.
+            first.width = width; first.weight = weight;
+            second.width = width; second.weight = weight; second.setMarginStart(gap); second.setMarginEnd(0);
+            // The resolved sides too: a start margin set after the params were resolved is otherwise read only at the next
+            // layout-direction change (as JustBackView's ended line).
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            second.leftMargin = rtl ? 0 : gap; second.rightMargin = rtl ? gap : 0;
         }
 
         private void explain() {
@@ -299,6 +380,58 @@ public final class MapPreferences {
     }
 
     /**
+     * Map settings' Dark map switch (MapStyle, owner Nov 23 2026): one style for the ride maps and the Just back card,
+     * the same setting as the switch beside a ride map's Basemap switch. It shows while either online map is on
+     * (MapStyle.shown); a flip saves a pick, kept in either theme. A change anywhere else (a ride map, a restore) shows
+     * here at once.
+     */
+    private static final class StyleControl extends LinearLayout {
+        private final Ui ui;
+        private final SharedPreferences settings;
+        private final Switch toggle;
+        private boolean updating, listening;
+        private final SharedPreferences.OnSharedPreferenceChangeListener preferenceChanged = (p, key) -> {
+            if (key == null || key.equals(MapStyle.KEY) || key.equals("map_basemap_enabled") || key.equals(JustBackBasemap.KEY)) refresh();
+        };
+
+        StyleControl(ScreenHost host) {
+            super(host.activity());
+            ui = host.ui(); settings = host.appSettings();
+            setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
+            setPadding(ui.dp(4), ui.dp(12), ui.dp(4), 0);
+            setTag("map-settings-style");
+            String name = darkMapName();
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(name);
+            toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(name);
+            ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
+            refresh();
+            toggle.setOnCheckedChangeListener((button, on) -> {
+                if (updating) return;
+                setDarkMap(settings, on);
+                refresh();
+            });
+        }
+
+        private void refresh() {
+            updating = true; toggle.setChecked(darkMap(settings, ui.dark)); updating = false;
+            int shown = MapStyle.shown(enabled(settings), justBackEnabled(settings)) ? VISIBLE : GONE;
+            if (getVisibility() != shown) setVisibility(shown);
+        }
+
+        @Override protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            settings.registerOnSharedPreferenceChangeListener(preferenceChanged); listening = true;
+            refresh();
+        }
+
+        @Override protected void onDetachedFromWindow() {
+            if (listening) { settings.unregisterOnSharedPreferenceChangeListener(preferenceChanged); listening = false; }
+            super.onDetachedFromWindow();
+        }
+    }
+
+    /**
      * Saves the answer to the one-time offer to leave USGS (MapDefault.offersSwitch) as the person's own
      * choice, in one commit with the mark that it was answered, so it is never asked again, also after a
      * restore of a backup made afterwards. Switching saves OpenStreetMap; keeping saves USGS. An answer
@@ -424,6 +557,7 @@ public final class MapPreferences {
         body.addView(ui.text(T.mapsSettingsTitle(), 22, true));
         body.addView(new ProviderControl(host));
         body.addView(new JustBackControl(host));
+        body.addView(new StyleControl(host));
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton(T.commonDone(), null).create();
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();

@@ -1738,7 +1738,7 @@ public final class RidesScreen implements AppScreen {
             map.setStreets(enabled);
             attribution.setVisibility(enabled ? View.VISIBLE : View.GONE);
             if (enabled) MapPreferences.offerOsmSwitch(host, mapFrame, track.points);
-        }));
+        }, map::setDarkTiles));
         TextView mapStatus = ui.caption(""); mapStatus.setTextColor(ui.orange);
         mapStatus.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), 0); top.addView(mapStatus);
         map.setStatusListener(message -> { mapStatus.setText(message); mapStatus.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE); });
