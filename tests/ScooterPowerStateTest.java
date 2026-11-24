@@ -25,6 +25,9 @@ public final class ScooterPowerStateTest {
         onlyPushesCount();
         usableWhileOff();
         diagnostics();
+        offEndsOnlyWithAPush();
+        switchOnLoggedOnlyByAPush();
+        staleChargingReadings();
         System.out.println("ScooterPowerStateTest: " + checks + " assertions passed");
     }
 
@@ -79,12 +82,12 @@ public final class ScooterPowerStateTest {
         ScooterPowerState s = started();
         ScooterPowerState.Result r = s.verdict(READY + 60_000, false, true, true, true, true);
         check(!r.off() && r.why == ScooterPowerState.Why.CHARGING, "Never off while charging");
-        check(ScooterPowerState.charging(1d, 0d), "Charging state 1 is charging");
-        check(ScooterPowerState.charging(2d, null), "Any other non-zero charging state counts too (the safe side)");
-        check(ScooterPowerState.charging(0d, -10.09), "A charging current counts (either sign)");
-        check(ScooterPowerState.charging(null, 0.2) && ScooterPowerState.charging(null, -0.2), "The threshold is inclusive");
-        check(!ScooterPowerState.charging(0d, 0d), "The owner's off state: 0 and 0 A is not charging");
-        check(!ScooterPowerState.charging(0d, 0.1) && !ScooterPowerState.charging(null, null), "Noise and unknown are not charging");
+        check(ScooterPowerState.charging(1d, 0, 0d, 0), "Charging state 1 is charging");
+        check(ScooterPowerState.charging(2d, 0, null, -1), "Any other non-zero charging state counts too (the safe side)");
+        check(ScooterPowerState.charging(0d, 0, -10.09, 0), "A charging current counts (either sign)");
+        check(ScooterPowerState.charging(null, -1, 0.2, 0) && ScooterPowerState.charging(null, -1, -0.2, 0), "The threshold is inclusive");
+        check(!ScooterPowerState.charging(0d, 0, 0d, 0), "The owner's off state: 0 and 0 A is not charging");
+        check(!ScooterPowerState.charging(0d, 0, 0.1, 0) && !ScooterPowerState.charging(null, -1, null, -1), "Noise and unknown are not charging");
     }
 
     /** A model that never pushes (the parked-tick path) is never judged; a scooter that pushed before is. */
@@ -157,5 +160,52 @@ public final class ScooterPowerStateTest {
         check(Long.valueOf(18_000).equals(ages.get("0x90")) && ages.get("0x91") == null && Long.valueOf(17_500).equals(ages.get("0x92")), "Last age per push, null when none");
         check("off".equals(m.get("verdict")) && "silent".equals(m.get("why")) && Boolean.TRUE.equals(m.get("armed")), "The verdict and why");
         check(Long.valueOf(20_000).equals(m.get("ready_age_ms")), "Time since ready");
+    }
+    /**
+     * Review of #623: once off, only a push ends it. Status replies lapsing past the 7 s window (background polling, a
+     * short radio gap), a moment without a ready link, or a charging reading arriving afterwards all leave it off, so
+     * a ride's countdown and Home's state stay put. A closed link forgets it.
+     */
+    private static void offEndsOnlyWithAPush() {
+        ScooterPowerState s = started();
+        check(judge(s, READY + 20_000).off(), "Off");
+        check(s.verdict(READY + 28_000, false, true, true, false, false).off(), "Status older than the window: still off");
+        check(s.verdict(READY + 30_000, false, false, true, true, false).off(), "Not ready for a moment: still off");
+        check(s.verdict(READY + 31_000, false, true, true, true, true).off(), "A charging reading afterwards: still off");
+        check(judge(s, READY + 40_000).off(), "Fresh status again: off, as it was");
+        s.frame(0x92, READY + 41_000);
+        check(judge(s, READY + 41_000).state == ScooterPowerState.State.LIVE, "A push ends it");
+        check(s.verdict(READY + 60_000, false, true, true, false, false).why == ScooterPowerState.Why.STATUS_STALE, "After the push the usual guards apply again");
+        check(judge(s, READY + 62_000).off(), "Silent again for 10 s: off again");
+        s.reset(); s.start(READY + 70_000);
+        check(judge(s, READY + 71_000).state == ScooterPowerState.State.WAITING, "A new connection starts over");
+        // Never off before the first off verdict: the stale-status guard still holds then.
+        ScooterPowerState fresh = started();
+        check(!fresh.verdict(READY + 60_000, false, true, true, false, false).off(), "Never judged off: a stale status is not off");
+    }
+
+    /** Review of #623: the event log says "switched on" only when a push ends the off state. */
+    private static void switchOnLoggedOnlyByAPush() {
+        ScooterPowerState s = started();
+        ScooterPowerState.Result off = judge(s, READY + 20_000);
+        check(ScooterPowerState.logged(false, off) == ScooterPowerState.Logged.SWITCHED_OFF, "Off is logged once");
+        check(ScooterPowerState.logged(true, off) == ScooterPowerState.Logged.NONE, "Then not again");
+        ScooterPowerState.Result stale = new ScooterPowerState.Result(ScooterPowerState.State.NOT_JUDGED, ScooterPowerState.Why.STATUS_STALE);
+        ScooterPowerState.Result notReady = new ScooterPowerState.Result(ScooterPowerState.State.NOT_JUDGED, ScooterPowerState.Why.NOT_READY);
+        check(ScooterPowerState.logged(true, stale) != ScooterPowerState.Logged.SWITCHED_ON
+                && ScooterPowerState.logged(true, notReady) != ScooterPowerState.Logged.SWITCHED_ON, "A status gap is never a switch-on");
+        s.frame(0x90, READY + 21_000);
+        check(ScooterPowerState.logged(true, judge(s, READY + 21_000)) == ScooterPowerState.Logged.SWITCHED_ON, "A push is");
+        check(ScooterPowerState.logged(false, judge(s, READY + 21_000)) == ScooterPowerState.Logged.NONE, "Live and never logged off: nothing");
+    }
+
+    /** Review of #623: a charging reading older than the status window says nothing about now. */
+    private static void staleChargingReadings() {
+        long window = CapabilityResolver.STATUS_MAX_AGE_MS;
+        check(ScooterPowerState.charging(null, -1, 0.5, window), "A current read within the window counts");
+        check(!ScooterPowerState.charging(null, -1, 0.5, window + 1), "An older current is ignored");
+        check(!ScooterPowerState.charging(1d, window + 1, null, -1), "An older charging state too");
+        check(ScooterPowerState.charging(1d, 0, 0d, window + 1), "A fresh charging state still counts beside an old current");
+        check(!ScooterPowerState.charging(1d, -1, 0.5, -1), "No age (never read) is not a reading");
     }
 }
