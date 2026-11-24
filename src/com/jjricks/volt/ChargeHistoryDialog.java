@@ -438,8 +438,8 @@ final class ChargeHistoryDialog {
         }
         /**
          * The estimate's detail line, at most 260 dp wide and never wider than the readings row shows (ChargeTraceDetail):
-         * the full line when it fits on one line, else the version's first part or no version, wrapped at spaces, never
-         * inside a word. The full detail is what it says aloud.
+         * the full line, on one line or wrapped when the version fits a line of its own; else the version's first part or no
+         * version; never broken inside a word. The full detail is what it says aloud.
          */
         TextView provenance(java.util.function.Function<String, String> withVersion, String noVersion, String version) {
             String detail = withVersion.apply(version);
@@ -451,7 +451,7 @@ final class ChargeHistoryDialog {
             // A reading's width, not the row's: the cells beside it stay in view.
             int room = Math.max(ui.dp(104), Math.min(ui.dp(260), shown - ui.dp(20)));
             String shortVersion = ChargeTraceDetail.shortVersion(version);
-            ChargeTraceDetail.Rung rung = ChargeTraceDetail.pick(line.getPaint().measureText(detail),
+            ChargeTraceDetail.Rung rung = ChargeTraceDetail.pick(line.getPaint().measureText(detail), line.getPaint().measureText(version),
                     shortVersion == null ? Float.NaN : line.getPaint().measureText(shortVersion), room);
             if (rung == ChargeTraceDetail.Rung.SHORT_VERSION) line.setText(withVersion.apply(shortVersion));
             else if (rung == ChargeTraceDetail.Rung.NO_VERSION) line.setText(noVersion);
