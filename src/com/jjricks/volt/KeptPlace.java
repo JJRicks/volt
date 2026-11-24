@@ -33,11 +33,12 @@ final class KeptPlace {
     static boolean reopensChoice(boolean showing, boolean sent, boolean caution) { return showing && !sent && !caution; }
 
     /**
-     * Whether riding mode's tune menu opens again: it was open, and the scooter is still now (it says stationary and its
-     * newest fresh speed is 0), read fresh rather than from the speed peak the screen's refresh already took, so a
-     * rebuild while the rider moves off never puts the menu back up.
+     * Whether riding mode's tune menu opens again: it was open, the tune button's own gate shows it now (a tap's rule: no
+     * scooter connected, or under 1 mph, or the stationary flag without a live speed: RidingFrames.StoppedGate), and the
+     * current live speed is under the menu's close speed. That speed is read fresh, not from the peak the screen's refresh
+     * already took, so a rebuild while the rider moves off never puts the menu back up (council round 1, F12; round 2).
      */
-    static boolean reopensTuneMenu(boolean wasOpen, boolean still) { return wasOpen && still; }
+    static boolean reopensTuneMenu(boolean wasOpen, boolean gateShows, boolean belowCloseSpeed) { return wasOpen && gateShows && belowCloseSpeed; }
 
     /**
      * The newest kept place's restore (MainActivity). Each rebuild posts one; two rebuilds in one turn (an unfold's size
@@ -83,27 +84,34 @@ final class KeptPlace {
         final boolean mapExpanded, chartExpanded;
         /** The expanded map's view (RouteMapView.ViewState) and the charts' (RideChartView.State); null for the default view. */
         final Object mapView, chartView, inlineChartView;
-        /** Compare two rides was open (under the ride's details, when one was opened from it): it opens again first. */
-        final boolean comparison;
+        /**
+         * Compare two rides was open, and whether it was in front of the ride (a comparison opened over a ride picked in
+         * the wide panes) or behind it (the ride's details opened from it, View first or second), and its scroll (px).
+         */
+        final boolean comparison, comparisonOnTop;
+        final int comparisonScrollY;
 
         RidePlace(String ride, Runnable onClose, int scrollY, boolean mapExpanded, Object mapView,
                   boolean chartExpanded, Object chartView, Object inlineChartView) {
-            this(ride, onClose, scrollY, mapExpanded, mapView, chartExpanded, chartView, inlineChartView, false);
+            this(ride, onClose, scrollY, mapExpanded, mapView, chartExpanded, chartView, inlineChartView, false, false, 0);
         }
         private RidePlace(String ride, Runnable onClose, int scrollY, boolean mapExpanded, Object mapView,
-                          boolean chartExpanded, Object chartView, Object inlineChartView, boolean comparison) {
+                          boolean chartExpanded, Object chartView, Object inlineChartView,
+                          boolean comparison, boolean comparisonOnTop, int comparisonScrollY) {
             this.ride = ride; this.onClose = ride == null ? null : onClose; this.scrollY = Math.max(0, scrollY);
             this.mapExpanded = ride != null && mapExpanded; this.mapView = this.mapExpanded ? mapView : null;
             this.chartExpanded = ride != null && chartExpanded; this.chartView = this.chartExpanded ? chartView : null;
             this.inlineChartView = ride == null ? null : inlineChartView; this.comparison = comparison;
+            this.comparisonOnTop = comparison && (ride == null || comparisonOnTop);
+            this.comparisonScrollY = comparison ? Math.max(0, comparisonScrollY) : 0;
         }
 
         /** Compare two rides open over the list, with no ride's details over it. */
-        static RidePlace comparisonOnly() { return new RidePlace(null, null, 0, false, null, false, null, null, true); }
+        static RidePlace comparisonOnly(int scrollY) { return new RidePlace(null, null, 0, false, null, false, null, null, true, true, scrollY); }
 
-        /** This place with Compare two rides open under it (or not): the details were opened from the comparison. */
-        RidePlace overComparison(boolean open) {
-            return open == comparison ? this : new RidePlace(ride, onClose, scrollY, mapExpanded, mapView, chartExpanded, chartView, inlineChartView, open);
+        /** This place with Compare two rides open too: in front of the ride (onTop) or behind its details. */
+        RidePlace withComparison(boolean onTop, int comparisonScroll) {
+            return new RidePlace(ride, onClose, scrollY, mapExpanded, mapView, chartExpanded, chartView, inlineChartView, true, onTop, comparisonScroll);
         }
 
         /** The ride's details page is open (one column, or a page that has no panes): that is where the owner is. */
@@ -126,7 +134,11 @@ final class KeptPlace {
         }
 
         /** How the ride shows on the rebuilt page: in the panes when the page has them now, else its details page. */
-        Show show(boolean panes) { return ride == null ? Show.NOTHING : panes ? Show.PANE : Show.DETAILS; }
+        Show show(boolean panes) {
+            if (ride == null) return Show.NOTHING;
+            // Details opened from the comparison stay a details page over it on a wide window too, as View first opens them.
+            return panes && !(comparison && !comparisonOnTop) ? Show.PANE : Show.DETAILS;
+        }
 
         /** Whether the ride can still show: it is among the saved rides (it may have been deleted meanwhile). */
         boolean present(List<String> saved) { return ride != null && saved != null && saved.contains(ride); }

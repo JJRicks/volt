@@ -816,15 +816,21 @@ final class RidingScreen implements AppScreen {
 
     @Override public View view() { return view; }
     /**
-     * The tune menu open: the screen built again after a fold, an unfold or a rotation opens it again (KeptPlace) when
-     * the scooter is still (KeptPlace.reopensTuneMenu), and then under the same rule as a tap. A change made in it is
+     * The tune menu open: the screen built again after a fold, an unfold or a rotation opens it again (KeptPlace) under a
+     * tap's rule fed the current speed, below the menu's close speed (KeptPlace.reopensTuneMenu). A change made in it is
      * already saved, and the rebuild shows it.
      */
     @Override public Object keepPlace() { AlertDialog d = sheet; return d != null && d.isShowing() ? Boolean.TRUE : null; }
     @Override public void restorePlace(Object place) {
-        // Still now, read fresh (council round 1, F12): the refresh before this already took the speed peak edit() and
-        // menuChangeAllowed() look at, so a rider moving off during the fold would otherwise get the menu back.
-        if (!closed && KeptPlace.reopensTuneMenu(Boolean.TRUE.equals(place), still())) edit();
+        // The tap's own gate, and under the menu's close speed, both read from the current live speed (council round 1,
+        // F12; round 2): the refresh before this already took the speed peak edit() and menuChangeAllowed() look at, so a
+        // rider moving off during the fold would otherwise get the menu back inside the controls' 2 s hold.
+        if (closed) return;
+        long now = SystemClock.elapsedRealtime();
+        BleController ble = service == null ? null : service.ble;
+        Double kmh = ble == null || !ble.connected() ? null : ble.telemetry.liveSpeedKmh(now);
+        boolean below = kmh == null || kmh < RidingFrames.MENU_CLOSE_KMH;
+        if (KeptPlace.reopensTuneMenu(Boolean.TRUE.equals(place), controlsShown(now), below)) edit();
     }
     @Override public void close() {
         closed = true;

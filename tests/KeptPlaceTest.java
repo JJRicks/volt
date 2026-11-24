@@ -110,17 +110,24 @@ public final class KeptPlaceTest {
         require(!KeptPlace.reopensChoice(true, false, true), "With its caution up, nothing reopens: the caution closes, nothing is sent");
         require(!KeptPlace.reopensChoice(true, true, false), "A choice already sent isn't reopened: its answer is on the page");
         require(!KeptPlace.reopensChoice(false, false, false), "No sheet, nothing reopens");
-        // F12: the tune menu only reopens when the scooter is still now, never from a consumed speed peak.
-        require(KeptPlace.reopensTuneMenu(true, true), "Stopped: the tune menu opens again");
-        require(!KeptPlace.reopensTuneMenu(true, false), "Moving off during the fold: the tune menu stays closed");
-        require(!KeptPlace.reopensTuneMenu(false, true), "No menu was open: none opens");
-        // F07: a ride opened from Compare two rides keeps the comparison under it.
-        KeptPlace.RidePlace fromCompare = KeptPlace.RidePlace.details("ride-1", null, 0, false, null, false, null, null).overComparison(true);
-        require(fromCompare.comparison && "ride-1".equals(fromCompare.ride), "Details over the comparison: both come back");
-        KeptPlace.RidePlace compareOnly = KeptPlace.RidePlace.comparisonOnly();
-        require(compareOnly.comparison && compareOnly.show(false) == KeptPlace.RidePlace.Show.NOTHING && compareOnly.show(true) == KeptPlace.RidePlace.Show.NOTHING,
-                "The comparison alone: it comes back, no ride's details with it");
-        require(!fromCompare.overComparison(false).comparison, "Closed comparison: not kept");
+        // F12, round 2: the tune button's own gate (a tap's rule), fed the current speed, and under the menu's close speed.
+        require(KeptPlace.reopensTuneMenu(true, true, true), "Stopped (or no scooter connected): the tune menu opens again");
+        require(!KeptPlace.reopensTuneMenu(true, true, false), "Within the controls' 2 s hold but at riding speed: it stays closed");
+        require(!KeptPlace.reopensTuneMenu(true, false, true), "The tune button is hidden: it stays closed");
+        require(!KeptPlace.reopensTuneMenu(false, true, true), "No menu was open: none opens");
+        // F07, round 2: which window was in front, and the comparison's scroll.
+        KeptPlace.RidePlace fromCompare = KeptPlace.RidePlace.details("ride-1", null, 0, false, null, false, null, null).withComparison(false, 420);
+        require(fromCompare.comparison && !fromCompare.comparisonOnTop && fromCompare.comparisonScrollY == 420, "Details opened from the comparison: it is behind them, with its scroll");
+        require(fromCompare.show(true) == KeptPlace.RidePlace.Show.DETAILS && fromCompare.show(false) == KeptPlace.RidePlace.Show.DETAILS,
+                "Details over the comparison stay a details page over it on a wide window too (as View first opens them)");
+        KeptPlace.RidePlace overPane = KeptPlace.RidePlace.pane("ride-2", true, null, 0, false, null, false, null, null).withComparison(true, 0);
+        require(overPane.comparisonOnTop && overPane.show(true) == KeptPlace.RidePlace.Show.PANE,
+                "A comparison opened over a picked pane ride: the ride in the pane, the comparison in front");
+        KeptPlace.RidePlace compareOnly = KeptPlace.RidePlace.comparisonOnly(90);
+        require(compareOnly.comparison && compareOnly.comparisonOnTop && compareOnly.comparisonScrollY == 90
+                && compareOnly.show(false) == KeptPlace.RidePlace.Show.NOTHING && compareOnly.show(true) == KeptPlace.RidePlace.Show.NOTHING,
+                "The comparison alone: it comes back with its scroll, no ride's details with it");
+        require(!KeptPlace.RidePlace.details("ride-1", null, 0, false, null, false, null, null).comparison, "No comparison: none kept");
     }
 
     private static void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
