@@ -43,6 +43,17 @@ final class ChargeHistoryDialog {
     static final int FULL = 20, PAGE = 50;
     /** Rows the list shows now; scrolling near the end adds PAGE, and Back from a recording keeps it. */
     private int shown = PAGE;
+    /*
+     * Where the owner is, for a fold, an unfold or a rotation (KeptPlace.ChargePlace): the list's scroller, or the open
+     * recording with its scroller and chart panel, and the expanded chart's panel while it shows.
+     */
+    private ScrollView listScroll, detailScroll;
+    private ChargeSessionStore.HistorySession openSession;
+    private Panel detailPanel, expandedPanel;
+    /** A kept place on its way back (show(ChargePlace)): the list loads, then its recording opens. */
+    private KeptPlace.ChargePlace arriving;
+    /** True while a kept place opens its windows again: they are simply there, without their entrance motion. */
+    private boolean inPlace;
 
     ChargeHistoryDialog(ScreenHost host) {
         this.host = host; ui = host.ui(); profile = activeProfile();
@@ -58,6 +69,21 @@ final class ChargeHistoryDialog {
         dialog = page(body);
         dialog.setOnDismissListener(d -> close());
         load();
+    }
+    /** Opens where a fold left the owner (place): the list at its scroll, or the recording with its chart, expanded or not. */
+    void show(KeptPlace.ChargePlace place) {
+        arriving = place;
+        inPlace = true;
+        try { show(); } finally { inPlace = false; }
+    }
+    /** Where the owner is now, for the rebuild about to close this (KeptPlace.ChargePlace); null once it is closed. */
+    KeptPlace.ChargePlace place() {
+        if (!available()) return null;
+        if (arriving != null) return arriving;
+        if (openSession != null && detailPanel != null)
+            return new KeptPlace.ChargePlace(openSession.id, shown, detailScroll == null ? 0 : detailScroll.getScrollY(), expandedPanel != null,
+                    detailPanel.chart.getState(), expandedPanel == null ? null : expandedPanel.chart.getState());
+        return new KeptPlace.ChargePlace(null, shown, listScroll == null ? 0 : listScroll.getScrollY(), false, null, null);
     }
     void refresh() { if (!profile.equals(activeProfile())) close(); }
     void close() {
@@ -89,6 +115,7 @@ final class ChargeHistoryDialog {
     }
     private void failed() {
         if (!available()) return;
+        arriving = null;
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout box = padded(); box.addView(ui.caption(failedText()));
         box.addView(ui.secondaryButton(T.statsChargeHistoryRetry(), this::load)); body.addView(box);
@@ -96,6 +123,16 @@ final class ChargeHistoryDialog {
     private void showList() {
         if (!available()) return;
         loadGeneration++; // Back while an older recording was still being read: that read no longer opens it.
+        openSession = null; detailPanel = null; detailScroll = null;
+        KeptPlace.ChargePlace kept = arriving;
+        if (kept != null) {
+            java.util.ArrayList<String> ids = new java.util.ArrayList<>();
+            for (ChargeSessionStore.HistorySession session : recordings) ids.add(session.id);
+            shown = kept.shown(PAGE, recordings.size());
+            int index = kept.index(ids);
+            if (index >= 0) { showDetail(recordings.get(index)); return; }
+            arriving = null;
+        }
         body.removeAllViews(); body.addView(header(T.statsChargeHistoryTitle(), false));
         LinearLayout list = padded(); list.setTag("charge-history-list");
         if (recordings.isEmpty()) list.addView(ui.caption(emptyText()));
@@ -104,7 +141,8 @@ final class ChargeHistoryDialog {
         if (host.service() != null && host.service().isChargeRecording()) {
             TextView note = ui.caption(T.statsChargeHistoryCurrent()); note.setPadding(0, ui.dp(8), 0, 0); list.addView(note);
         }
-        ScrollView scroll = scroller(list);
+        ScrollView scroll = scroller(list); listScroll = scroll;
+        if (kept != null) Motion.scrollBeforeDraw(scroll, kept.scrollY);
         // Within a screen of the end, the next PAGE older rows join the list.
         scroll.setOnScrollChangeListener((v, x, y, oldX, oldY) -> {
             if (shown >= recordings.size() || !available()) return;
@@ -142,7 +180,21 @@ final class ChargeHistoryDialog {
         sub.setPadding(0, ui.dp(6), 0, ui.dp(12)); contents.addView(sub);
         Panel panel = new Panel(session, false);
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));
-        body.addView(scroller(contents), new LinearLayout.LayoutParams(-1, 0, 1));
+        ScrollView scroll = scroller(contents);
+        body.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        openSession = session; detailPanel = panel; detailScroll = scroll;
+        KeptPlace.ChargePlace kept = arriving;
+        if (kept != null && session.id.equals(kept.recording)) {
+            arriving = null;
+            if (kept.chartView instanceof RideChartView.State) panel.chart.restoreState((RideChartView.State) kept.chartView);
+            Motion.scrollBeforeDraw(scroll, kept.scrollY);
+            if (kept.expanded) panel.post(() -> {
+                if (!available() || detailPanel != panel) return;
+                inPlace = true;
+                try { panel.expand(kept.expandedView instanceof RideChartView.State ? (RideChartView.State) kept.expandedView : null); }
+                finally { inPlace = false; }
+            });
+        }
     }
     /** An older recording is a summary in the list: its samples are read when it is opened. */
     private void loadDetail(ChargeSessionStore.HistorySession summary) {
@@ -213,6 +265,7 @@ final class ChargeHistoryDialog {
     private Dialog page(View content) {
         Dialog opened = new Dialog(host.activity(), ui.dark ? android.R.style.Theme_Material_NoActionBar : android.R.style.Theme_Material_Light_NoActionBar);
         opened.requestWindowFeature(Window.FEATURE_NO_TITLE); opened.setContentView(content); Motion.present(opened, Motion.PAGE);
+        if (inPlace) Motion.inPlace(opened);
         Window window = opened.getWindow();
         if (window != null) {
             window.setBackgroundDrawable(new ColorDrawable(ui.bg)); window.setStatusBarColor(ui.bg); window.setNavigationBarColor(ui.bg);
@@ -442,18 +495,20 @@ final class ChargeHistoryDialog {
             }
             return null;
         }
-        void expand() {
+        void expand() { expand(null); }
+        /** The expanded chart; view: the span and cursor it opens at (a fold's kept view), else this chart's. */
+        void expand(RideChartView.State view) {
             if (!available() || expanded != null) return;
             LinearLayout expandedBody = column(); expandedBody.setBackgroundColor(ui.bg); expandedBody.setTag("charge-history-fullscreen");
             LinearLayout heading = new LinearLayout(host.activity()); heading.setGravity(Gravity.CENTER_VERTICAL); heading.setPadding(ui.dp(16), ui.dp(4), ui.dp(6), ui.dp(4));
             heading.addView(ui.text(T.statsChargeReadings(), 20, true), new LinearLayout.LayoutParams(0, -2, 1));
-            Panel child = new Panel(session, true); child.chart.restoreState(chart.getState());
+            Panel child = new Panel(session, true); child.chart.restoreState(view != null ? view : chart.getState());
             heading.addView(iconButton("close", T.statsChargeCloseExpanded(), () -> { if (expanded != null) expanded.dismiss(); }));
             ScrollView viewport = scroller(child); viewport.setFillViewport(true);
             expandedBody.addView(heading); expandedBody.addView(viewport, new LinearLayout.LayoutParams(-1, 0, 1));
-            expanded = page(expandedBody);
+            expanded = page(expandedBody); expandedPanel = child;
             expanded.setOnDismissListener(d -> {
-                expanded = null;
+                expanded = null; if (expandedPanel == child) expandedPanel = null;
                 if (available() && isAttachedToWindow()) {
                     chosen.clear(); chosen.addAll(child.chosen); update(); chart.restoreState(child.chart.getState());
                 }

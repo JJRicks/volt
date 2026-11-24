@@ -138,6 +138,20 @@ public final class RidesScreen implements AppScreen {
     private final List<Runnable> phoneRefreshers = new ArrayList<>();
     private int visibleHistory = 20, savedCount;
     private Boolean activeStyled;
+    /*
+     * Where the owner is beyond the list, for a fold, an unfold or a rotation (KeptPlace.RidePlace): the open details page
+     * (its ride, window, scroller and Done action), the overview's readings chart, and the expanded map and chart while
+     * they show. The wide panes' ride (paneRide) counts once picked on this visit (pickedRide).
+     */
+    private String detailsRide, paneRide; private AlertDialog detailsDialog; private ScrollView detailsScroller; private Runnable detailsClosed;
+    private ChartPanel overviewChart, expandedChart; private PhoneRide overviewMap, expandedMap; private String overviewMapRide;
+    private boolean pickedRide;
+    /** A details page's Done action that a fold carried into the panes with its ride (paneClosedRide), for folding back. */
+    private Runnable paneClosed; private String paneClosedRide;
+    /** A kept place still arriving: its ride's details or pane are built, its map or expanded chart not yet (restorePlace). */
+    private KeptPlace.RidePlace arriving;
+    /** True while a kept place opens its windows again: they are simply there, without their entrance motion. */
+    private boolean inPlace;
 
     /** All rides & compare, as the Rides tab was. */
     public RidesScreen(ScreenHost host) { this(host, ALL); }
@@ -847,6 +861,9 @@ public final class RidesScreen implements AppScreen {
         return stopped.isEmpty() ? null : stopped.get(0).id;
     }
     private void selectRide(String id) {
+        // Picked on this visit (a tap, a page argument, a fold): the pane's ride is now where the owner is (keepPlace).
+        pickedRide = true;
+        if (arriving != null && !id.equals(arriving.ride)) arriving = null;
         if (!id.equals(selectedRide)) { selectedRide = id; preferences.edit().putString("ride_selected", id).apply(); }
         styleHistoryRows(id);
         boolean changed = !detailKey.startsWith(id + ":");
@@ -1018,7 +1035,12 @@ public final class RidesScreen implements AppScreen {
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller)
                     .setPositiveButton(T.commonDone(), onClose == null ? null : (d, which) -> onClose.run()).create();
             if (onClose != null) dialog.setOnCancelListener(d -> onClose.run());
-            holder[0] = dialog; show(dialog, PAGE, null);
+            detailsRide = id; detailsDialog = dialog; detailsScroller = scroller; detailsClosed = onClose;
+            holder[0] = dialog; show(dialog, PAGE, () -> {
+                if (detailsDialog == dialog) { detailsRide = null; detailsDialog = null; detailsScroller = null; detailsClosed = null; }
+                if (arriving != null && id.equals(arriving.ride)) arriving = null;
+            });
+            if (arriving != null && id.equals(arriving.ride)) arrived(scroller, body);
         } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
     }
     private void rideHeading(LinearLayout body, RideStore.Summary ride) {
@@ -1053,6 +1075,9 @@ public final class RidesScreen implements AppScreen {
         rideHeading(body, ride);
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false, ride.unsignedCurrent()); body.addView(graph);
+        overviewChart = graph;
+        if (arriving != null && ride.id.equals(arriving.ride) && arriving.inlineChartView instanceof RideChartView.State)
+            graph.chart.restoreState((RideChartView.State) arriving.inlineChartView);
         body.addView(ui.sectionLabel(T.ridesJourney()));
         // The saved average, else the Distance tile's distance over the moving or Duration tile's time (RideAverages, as
         // Clean Home's Just back card): "Not measured" only for a ride without a distance or a time. Display only.
@@ -1108,17 +1133,17 @@ public final class RidesScreen implements AppScreen {
                     if (closed || finished || host.activity().isDestroyed() || !route.isAttachedToWindow()) return;
                     finish();
                     graph.setPhone(track);
-                    if(track.locationCount==0&&track.motionSampleCount==0)return;
+                    if(track.locationCount==0&&track.motionSampleCount==0){mapArrived(id, null);return;}
                     PhoneRide map = phoneRide(track, route, phone, true);
-                    if (!track.points.isEmpty()) route.addView(map.frame, 0, new LinearLayout.LayoutParams(-1, ui.dp(INLINE_MAP_DP)));
-                    else { maps.remove(map.map); map.map.close(); }
+                    if (!track.points.isEmpty()) { route.addView(map.frame, 0, new LinearLayout.LayoutParams(-1, ui.dp(INLINE_MAP_DP))); overviewMap = map; overviewMapRide = id; mapArrived(id, map); }
+                    else { maps.remove(map.map); map.map.close(); mapArrived(id, null); }
                     route.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
                         @Override public void onViewAttachedToWindow(View v) { }
                         @Override public void onViewDetachedFromWindow(View v) { maps.remove(map.map); map.map.close(); }
                     });
                 });
             } catch (IOException failure) {
-                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();routeNotice(route, T.ridesRouteUnavailable(), () -> exportSheet(id));} });
+                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();routeNotice(route, T.ridesRouteUnavailable(), () -> exportSheet(id));mapArrived(id, null);} });
             }
             });
         }
@@ -1258,10 +1283,13 @@ public final class RidesScreen implements AppScreen {
         void expand() {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
             ChartPanel expanded = new ChartPanel(rideId, measured, phone, true, inferRegen);
+            // Opened again by a fold: the span and cursor it had (the full journal's load keeps them, clamped).
+            if (arriving != null && rideId.equals(arriving.ride) && arriving.chartView instanceof RideChartView.State)
+                expanded.chart.restoreState((RideChartView.State) arriving.chartView);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
-            expandedDialog = dialog;
-            show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
+            expandedDialog = dialog; expandedChart = expanded;
+            show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (expandedChart == expanded) expandedChart = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
             dialog.getWindow().setLayout(-1, -1);
             expanded.loadStatus.setOnClickListener(v -> loadFull(expanded, dialog));
             loadFull(expanded, dialog);
@@ -1440,11 +1468,12 @@ public final class RidesScreen implements AppScreen {
     private void refreshDetail(String id, List<RideStore.Summary> stopped) {
         RideStore.Summary chosen = null;
         for (RideStore.Summary s : stopped) if (s.id.equals(id)) chosen = s;
-        if (chosen == null) { emptyDetail(stopped.isEmpty() ? "none" : "missing"); return; }
+        if (chosen == null) { paneRide = null; emptyDetail(stopped.isEmpty() ? "none" : "missing"); return; }
+        paneRide = chosen.id;
         String key = chosen.id + ":" + chosen.sampleCount + ":" + chosen.label + ":" + service.phoneSaving() + ":" + (service.phoneRides != null);
         if (key.equals(detailKey)) return;
         boolean sameRide = detailKey.startsWith(chosen.id + ":");
-        int keep = sameRide ? detailScroll.getScrollY() : 0;
+        int keep = sameRide ? detailScroll.getScrollY() : arriving != null && chosen.id.equals(arriving.ride) ? arriving.scrollY : 0;
         final RideStore.Summary ride = chosen;
         List<RideStore.Point> measured = detailPreview(key, ride, sameRide);
         if (measured == null) return;
@@ -1507,6 +1536,7 @@ public final class RidesScreen implements AppScreen {
     private void buildDetail(RideStore.Summary ride, List<RideStore.Point> measured) {
         try { buildOverview(detailPane, ride, measured, null); }
         catch (IOException e) { note(detailPane, T.ridesToastRecordingUnreadable()); }
+        if (arriving != null && ride.id.equals(arriving.ride)) arrived(null, detailPane);
     }
     private void routeNotice(LinearLayout parent, String text, Runnable files) {
         LinearLayout card = ui.card(); card.addView(ui.caption(text));
@@ -1823,10 +1853,10 @@ public final class RidesScreen implements AppScreen {
         body.addView(controlScroll, new LinearLayout.LayoutParams(-1, ui.dp(180)));
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).create();
         dialog.setView(body, 0, 0, 0, 0);
-        source.expandedDialog = dialog;
+        source.expandedDialog = dialog; expandedMap = expanded;
         heading.addView(mapButton("close", T.ridesMapCloseExpanded(), dialog::dismiss));
         show(dialog, PAGE, () -> {
-            source.expandedDialog = null;
+            source.expandedDialog = null; if (expandedMap == expanded) expandedMap = null;
             if (!closed && source.frame.isAttachedToWindow()) { source.map.copyViewStateFrom(expanded.map); syncMapControls(source); }
             maps.remove(expanded.map); expanded.map.close();
         });
@@ -2897,12 +2927,94 @@ public final class RidesScreen implements AppScreen {
     /** A chart series' line pattern, so colour is never the only difference. */
     private static final String MARK_SOLID = "━ ", MARK_DASH = "┄ ", MARK_DOT = "⋯ ";
     private static final String WH_PER_DISTANCE = "wh_per_distance";
+    /**
+     * The ride the owner is looking at, for a fold, an unfold or a rotation (KeptPlace.RidePlace): its details page or
+     * the wide pane's picked ride, the scroll there, the overview chart's view, and the expanded map or chart with theirs.
+     * A place still arriving (its map loading) is kept as it is.
+     */
+    @Override public Object keepPlace() {
+        if (closed || mode == SENSORS) return null;
+        if (arriving != null) return arriving;
+        boolean mapOpen = expandedMap != null, chartOpen = expandedChart != null;
+        Object mapView = mapOpen ? expandedMap.map.viewState() : null, chartView = chartOpen ? expandedChart.chart.getState() : null;
+        Object inline = overviewChart != null && overviewChart.isAttachedToWindow() ? overviewChart.chart.getState() : null;
+        if (detailsDialog != null && detailsDialog.isShowing())
+            return KeptPlace.RidePlace.details(detailsRide, detailsClosed, detailsScroller.getScrollY(), mapOpen, mapView, chartOpen, chartView, inline);
+        if (wide) return KeptPlace.RidePlace.pane(paneRide, pickedRide, paneRide != null && paneRide.equals(paneClosedRide) ? paneClosed : null,
+                detailScroll.getScrollY(), mapOpen, mapView, chartOpen, chartView, inline);
+        return null;
+    }
+    /**
+     * Shows the kept ride again: picked in the panes on a wide All rides, else in its details page (KeptPlace.RidePlace.show),
+     * with its scroll, chart view, and expanded chart or map (the map once it has loaded). A ride deleted meanwhile shows nothing.
+     */
+    @Override public void restorePlace(Object place) {
+        if (!(place instanceof KeptPlace.RidePlace) || closed || mode == SENSORS) return;
+        KeptPlace.RidePlace kept = (KeptPlace.RidePlace) place;
+        if (detailsDialog != null && detailsDialog.isShowing()) return; // a page argument already opened a ride here
+        RideStore.Summary ride;
+        try { ride = service.rides.get(kept.ride); } catch (IOException unreadable) { ride = null; }
+        if (ride == null) return;
+        arriving = kept;
+        inPlace = true;
+        try {
+            if (kept.show(wide) == KeptPlace.RidePlace.Show.PANE) {
+                selectRide(kept.ride);
+                paneClosed = kept.onClose; paneClosedRide = kept.ride;
+                // Built already, from the cache, as this screen was made: the place is taken here (buildDetail won't run).
+                if (kept.ride.equals(paneRide) && detailKey.startsWith(kept.ride + ":")) {
+                    if (overviewChart != null && kept.inlineChartView instanceof RideChartView.State)
+                        overviewChart.chart.restoreState((RideChartView.State) kept.inlineChartView);
+                    Motion.scrollBeforeDraw(detailScroll, kept.scrollY);
+                    arrived(null, detailPane);
+                }
+            } else showDetails(kept.ride, kept.onClose);
+        } finally { inPlace = false; }
+    }
+    /**
+     * The kept ride's details page (scroller) or pane (scroller null: detailScroll) is built: its scroll, then its expanded
+     * chart; the expanded map follows once the map loads (mapArrived). A ride without a map to load is done here.
+     */
+    private void arrived(ScrollView scroller, LinearLayout body) {
+        KeptPlace.RidePlace kept = arriving;
+        if (kept == null) return;
+        if (scroller != null) Motion.scrollBeforeDraw(scroller, kept.scrollY);
+        if (kept.chartExpanded && overviewChart != null) {
+            ChartPanel chart = overviewChart;
+            body.post(() -> { if (arriving == kept && !closed) { inPlace = true; try { chart.expand(); } finally { inPlace = false; } } });
+        }
+        boolean mapComing = false;
+        for (Runnable refresher : phoneRefreshers) mapComing |= refresher instanceof PhoneOverview && ((PhoneOverview) refresher).id.equals(kept.ride);
+        if (mapComing) return;
+        // The map came already (a pane built from the cache), or none comes.
+        boolean here = overviewMap != null && kept.ride.equals(overviewMapRide) && overviewMap.frame.getParent() != null;
+        if (here) mapArrived(kept.ride, overviewMap); else body.post(() -> { if (arriving == kept) arriving = null; });
+    }
+    /** The overview's map for this ride arrived (null: none to show): the kept expanded map opens again over it. */
+    private void mapArrived(String id, PhoneRide map) {
+        KeptPlace.RidePlace kept = arriving;
+        if (kept == null || !id.equals(kept.ride)) return;
+        View anchor = map != null ? map.frame : null;
+        Runnable done = () -> {
+            if (arriving != kept || closed) return;
+            if (detailsScroller != null && id.equals(detailsRide)) Motion.scrollBeforeDraw(detailsScroller, kept.scrollY);
+            else if (detailScroll != null && id.equals(paneRide)) Motion.scrollBeforeDraw(detailScroll, kept.scrollY);
+            if (map != null && kept.mapExpanded) {
+                if (kept.mapView instanceof RouteMapView.ViewState) map.map.restoreViewState((RouteMapView.ViewState) kept.mapView);
+                syncMapControls(map);
+                inPlace = true; try { expandMap(map); } finally { inPlace = false; }
+            }
+            arriving = null;
+        };
+        (anchor != null ? anchor : detailsScroller != null ? detailsScroller : scroll).post(done);
+    }
     /** The icon on every ride export button. */
     private static final String EXPORT_ICON = "download";
     private void show(AlertDialog dialog, int style, Runnable onDismiss) {
         dialogs.add(dialog); dialog.setOnDismissListener(d -> { dialogs.remove(dialog); if (onDismiss != null) onDismiss.run(); });
         Window window = dialog.getWindow();
         Motion.present(dialog, style == PAGE ? Motion.PAGE : style == SHEET ? Motion.SHEET : Motion.DIALOG);
+        if (inPlace) Motion.inPlace(dialog);
         if (window != null) {
             if (style == PAGE) {
                 window.setBackgroundDrawable(new ColorDrawable(ui.bg));

@@ -315,6 +315,14 @@ public final class MoreScreen implements AppScreen {
         dialogs.clear();
     }
 
+    /** Charge history & recordings open over the page: it opens again where it was after a fold or a rotation (KeptPlace). */
+    @Override public Object keepPlace() { return chargeHistoryDialog == null ? null : chargeHistoryDialog.place(); }
+    @Override public void restorePlace(Object place) {
+        if (closed || !(place instanceof KeptPlace.ChargePlace)) return;
+        if (chargeHistoryDialog != null) chargeHistoryDialog.close();
+        chargeHistoryDialog = new ChargeHistoryDialog(host); chargeHistoryDialog.show((KeptPlace.ChargePlace) place);
+    }
+
     /** Units returns to its parent; a standalone section otherwise leaves to the page below. */
     @Override public boolean back() {
         // A Hub page's Back is the page stack's; so is Settings' (its sections are Hub pages since PR 11).

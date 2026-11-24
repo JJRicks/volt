@@ -815,9 +815,16 @@ final class RidingScreen implements AppScreen {
     }
 
     @Override public View view() { return view; }
+    /**
+     * The tune menu open: the screen built again after a fold, an unfold or a rotation opens it again (KeptPlace), under
+     * the same rule as a tap (still stopped). A change made in it is already saved, and the rebuild shows it.
+     */
+    @Override public Object keepPlace() { AlertDialog d = sheet; return d != null && d.isShowing() ? Boolean.TRUE : null; }
+    @Override public void restorePlace(Object place) { if (Boolean.TRUE.equals(place) && !closed) edit(); }
     @Override public void close() {
         closed = true;
-        // Rotation, folding and every rebuild close this screen: its sheet goes with it.
+        // Rotation, folding and every rebuild close this screen: its sheet goes with it (and opens again on the new
+        // screen: keepPlace).
         sheetState.close();
         dismissSheet();
         if (disc != null) disc.stop();
