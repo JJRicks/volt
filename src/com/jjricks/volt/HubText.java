@@ -358,6 +358,85 @@ public final class HubText {
         return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
     }
 
+    // ===== Clean Home's top area: the ride being recorded (RecordingView, the Ride clock) =====
+
+    /** The switch for Clean's recording moment (Settings › Home style), beside the other two moments'. */
+    public static Msg momentRecording() { return M.hubMomentRecording(); }
+    /** The head row's word beside the red dot: the Record quick action's own while it records. */
+    public static Msg recordingLabel() { return M.homeQaRecording(); }
+    /** "Started 9:24 AM"; clock is DisplayTime.clock's, in the owner's 12- or 24-hour format. */
+    public static Msg recordingStarted(CharSequence clock) { return M.hubRecordingStarted(clock); }
+    /** The speed graph's label, full then short (the narrow-label ladder). */
+    public static Msg recordingSpeed(boolean full) { return full ? M.hubRecordingSpeed() : M.hubRecordingSpeedShort(); }
+    /** The speed now at the graph's top right: "16.8 mph now"; speed with its unit. */
+    public static Msg recordingSpeedNow(CharSequence speed) { return M.hubRecordingSpeedNow(speed); }
+    /** The three readings' names: riding mode's Trip, Just back's Battery, and the estimated range (full, then short). */
+    public static Msg recordingTrip() { return M.ridingLabelTrip(); }
+    public static Msg recordingBattery() { return M.hubJustBackBattery(); }
+    public static Msg recordingRange(boolean full) { return full ? M.hubRecordingRange() : M.hubRecordingRangeShort(); }
+    /** The button into riding mode: the Ride page's own words. */
+    public static Msg recordingOpenRiding() { return M.hubRideOpenRiding(); }
+
+    /**
+     * What the head row says at its right in place of the start time while the recording's link has a problem, in
+     * riding mode's REC pill's words (RecordingPill: RECORDING_PROBLEM): the scooter switched off (ScooterOffWords),
+     * Reconnecting…, or Not connected. Null while the link is fine.
+     */
+    public static Msg recordingProblem(RidingFocus.Link link, boolean off) {
+        if (off) return M.bleStatusScooterOff();
+        if (link == RidingFocus.Link.RECONNECTING) return M.ridingStatusReconnecting();
+        return link == RidingFocus.Link.NOT_CONNECTED ? M.ridingStatusNotConnectedSeenCompact() : null;
+    }
+
+    /**
+     * The range reading as the recording's Range cell shows it: the parked card's own figure (RangeFigure, which its
+     * "about 23 mi left" takes too: the same rounding, units and text-only readings), marked as an estimate as riding
+     * mode's range chips mark one: "≈ 23 mi", "≈ 23 mi / 37 km" with both units. Null for no reading.
+     */
+    public static Formatted recordingRangeValue(Double km, String text, String units) {
+        Formatted figure = RangeFigure.of(km, text, units);
+        return figure == null ? null : Fmt.compose(T.RIDING_APPROX, figure);
+    }
+
+    /** The same for a reading with a number only (km null or not finite: none). */
+    public static Formatted recordingRangeValue(Double km, String units) { return recordingRangeValue(km, null, units); }
+
+    /** The Range cell's short rung with both units: the first unit alone ("≈ 23 mi"). */
+    public static Formatted recordingRangeShort(double km, String units) {
+        return Fmt.compose(T.RIDING_APPROX, RangeFigure.primary(km, units));
+    }
+
+    /** The range spoken: "about 23 mi", the parked card's own words for the same figure (DashboardScreen.aboutRange). */
+    public static Msg recordingRangeSpoken(Double km, String text, String units) {
+        Formatted figure = RangeFigure.of(km, text, units);
+        return figure == null ? null : M.dashboardAbout(figure);
+    }
+
+    /**
+     * The recording's time spoken, minute by minute so the description does not change every second: "Recording for
+     * less than a minute", then riding mode's REC pill's "Recording for 14 minutes" (whole minutes, past an hour too),
+     * with the link's problem after it in the pill's words.
+     */
+    public static String recordingTimeSpoken(long elapsedMs, RidingFocus.Link link, boolean off) {
+        long minutes = Math.max(0, elapsedMs) / 60_000;
+        String time = minutes < 1 ? T.hubRecordingSpokenUnderMinute() : T.ridingStatusRecordingSpokenMinutes(minutes, minutes);
+        Msg problem = recordingProblem(link, off);
+        return problem == null ? time : T.ridingReadingSpoken(time, problem.render());
+    }
+
+    /**
+     * The recording view's spoken text, one description read once (never a live region): the time and any problem
+     * (recordingTimeSpoken), then each reading by its name ("Trip, 2.5 mi"), then what a tap does. Readings with no value
+     * are left out; readings alternate name and value.
+     */
+    public static Msg recordingSpoken(long elapsedMs, RidingFocus.Link link, boolean off, CharSequence... readings) {
+        String text = recordingTimeSpoken(elapsedMs, link, off);
+        for (int i = 0; i + 1 < readings.length; i += 2)
+            if (readings[i + 1] != null && readings[i + 1].length() > 0)
+                text = T.hubRecordingSpokenNext(text, T.ridingReadingSpoken(readings[i], readings[i + 1]));
+        return M.hubRecordingDescription(text);
+    }
+
     // ===== Settings › Home style: the overview card's two readings (HomeReadings, HomeReadingsEditor.Row) =====
 
     /** The Home style row's title and its sheet's title. */
@@ -643,7 +722,7 @@ public final class HubText {
             case HubPages.DATA: return new Msg[] {M.statsFavouritesTitle()};
             case HubPages.DATA_STORAGE: return new Msg[] {M.moreHistorySave(), M.moreHistoryClearScooter(), M.moreHistoryClearAll()};
             case HubPages.SETTINGS: return new Msg[] {M.morePrefsAppearance()};
-            case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide()};
+            case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide(), M.hubMomentRecording()};
             case HubPages.SETTINGS_SCOOTERS: return new Msg[] {M.morePrefsAutoConnect(), M.morePrefsBackground(), M.morePrefsRefresh()};
             case HubPages.SETTINGS_ABOUT: return new Msg[] {M.moreAboutNearby(), M.moreAboutLocation(), M.moreAboutNotifications(),
                     M.moreAboutOnlineMap(), M.moreAboutActivity(), M.moreAboutLicenses(), M.moreAboutConnect(), M.moreNoticesView()};
