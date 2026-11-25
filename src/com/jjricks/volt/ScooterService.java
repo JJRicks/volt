@@ -251,6 +251,34 @@ public final class ScooterService extends Service {
         rideAutoExport=new RideAutoExportRunner(this,settings,handler,this::rideAutoExportFinished);
         // Rides an earlier pass could not copy (folder gone, storage full, process ended) are retried at start.
         startRideAutoExport();
+        watchChannels();
+    }
+    /**
+     * Android's word that one of Volt's channels, or all its notifications, were turned off or on (#645 F02): the
+     * connection notice is rebuilt at once, so a card whose channel was just turned off moves to the fallback channel
+     * (LiveNotices.channel) without waiting for its next change, and the live card's gates follow (changed()).
+     */
+    private android.content.BroadcastReceiver channelsWatch;
+    private void watchChannels(){
+        if(Build.VERSION.SDK_INT<28)return;
+        android.content.IntentFilter filter=new android.content.IntentFilter(NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED);
+        filter.addAction(NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED);
+        channelsWatch=new android.content.BroadcastReceiver(){
+            @Override public void onReceive(android.content.Context context,Intent intent){handler.post(ScooterService.this::channelsChanged);}
+        };
+        try{
+            if(Build.VERSION.SDK_INT>=33)registerReceiver(channelsWatch,filter,android.content.Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(channelsWatch,filter);
+        }catch(RuntimeException unavailable){channelsWatch=null;}
+    }
+    private void unwatchChannels(){
+        if(channelsWatch==null)return;
+        try{unregisterReceiver(channelsWatch);}catch(RuntimeException alreadyGone){}
+        channelsWatch=null;
+    }
+    void channelsChanged(){
+        if(destroyed)return;
+        updateNotification();changed();
     }
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration){
         super.onConfigurationChanged(configuration);applyLocale();
@@ -1431,12 +1459,16 @@ public final class ScooterService extends Service {
      */
     private boolean liveNoticeAllowed(){
         NotificationManager manager=getSystemService(NotificationManager.class);
+        // Makes Rides and charging first (#645), so the answer is about the channel the notice will really use.
+        try{quietChannel(manager);}catch(RuntimeException unavailable){}
         NotificationChannel quiet=manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
         NotificationChannel scooter=manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
         return LiveNotices.cardCanShow(manager.areNotificationsEnabled(),
                 quiet!=null&&quiet.getImportance()!=NotificationManager.IMPORTANCE_NONE,
                 scooter==null||scooter.getImportance()!=NotificationManager.IMPORTANCE_NONE);
     }
+    /** The notification settings page that would let the live card show now: the quiet channel's, as the sheet's Allow opens it. */
+    public String liveNoticeChannel(){return LiveNotices.QUIET_CHANNEL;}
     private boolean channelAllowed(String id){
         NotificationManager manager=getSystemService(NotificationManager.class);NotificationChannel channel=manager.getNotificationChannel(id);
         return manager.areNotificationsEnabled()&&(channel==null||channel.getImportance()!=NotificationManager.IMPORTANCE_NONE);
@@ -3761,9 +3793,10 @@ public final class ScooterService extends Service {
     /**
      * Creates or renames Volt's quiet Rides and charging channel (LiveNotices.QUIET_CHANNEL): Default importance, so a
      * ride's and the live card's notices show on the lock screen and above Silent, with no sound, no vibration and no
-     * lights, so nothing ever alerts (nor pops up: that takes High). Created once with the connection channel's on/off and
-     * its lock screen choice, so someone who turned Volt's connection notices off or hid them from the lock screen keeps
-     * that; from then on the channel is theirs in Android's settings, and Volt only renames it.
+     * lights, so nothing ever alerts (nor pops up: that takes High). Created once with the connection channel's on/off,
+     * so someone who turned Volt's connection notices off keeps that; from then on the channel is theirs in Android's
+     * settings, and Volt only renames it. A lock screen choice can't be copied: Android 16 ignores an app's lock screen
+     * visibility on a new channel (#645 F05, checked on the emulator), so the new channel starts with Android's default.
      */
     private void quietChannel(NotificationManager manager) {
         String label = T.serviceChannelRidesCharging();
@@ -3782,7 +3815,6 @@ public final class ScooterService extends Service {
         channel.enableVibration(false);
         channel.enableLights(false);
         channel.setShowBadge(false);
-        if (scooter != null && scooter.getLockscreenVisibility() == Notification.VISIBILITY_SECRET) channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
         manager.createNotificationChannel(channel);
         quietChannelLabel = label;
     }
@@ -4028,6 +4060,7 @@ public final class ScooterService extends Service {
         closeEvidence();
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
+        unwatchChannels();
         if(rideAutoExport!=null)rideAutoExport.shutdown();
         if(maintenance!=null&&!maintenanceFed.isEmpty()&&!dataMaintenance)maintenance.flush(maintenanceFed);
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureClosed());}destroyed=true;stopChargeAlarm();finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{
