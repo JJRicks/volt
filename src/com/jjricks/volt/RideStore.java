@@ -49,6 +49,17 @@ public final class RideStore {
      *  {@link RideAutoStopPolicy#NO_MOTION_MS} (rule 3). It takes no parameters: the shown end, the last
      *  motion, comes from the journal's own samples. Older builds read it as a rider's stop. */
     public static final String STOP_AUTO_NO_MOTION = "automatic_no_motion";
+    /** STOP details token for a ride Volt ended because its scooter started charging (RideChargeRule). No
+     *  parameters. Older builds read it as a rider's stop. */
+    public static final String STOP_CHARGING = "automatic_charging";
+    /**
+     * A ride shorter than this (by its summary's distance) is not kept when the service stops it ({@link #stop(long,
+     * long, String, boolean)}): 0.01 mi (owner, Nov 24 2026: "Any recording under 0.01 mi or under 20 seconds [should] be
+     * discarded, I'm getting a lot of accidental incidental ones cluttering my archive").
+     */
+    public static final double MIN_KEEP_KM = 0.01 * KM_PER_MILE;
+    /** A ride shorter than this (by its shown duration) is not kept either. */
+    public static final long MIN_KEEP_MS = 20_000;
     private static final int MAX_STOP_DETAILS = 80;
     private static final int MAX_METRICS = 160;
     private static final String HEADER = "schema_version,event,recorded_utc,wall_ms,monotonic_ms,frame,key,numeric,text,unit,source_command,sensor_updated_monotonic_ms,sensor_age_ms,current_direction,details\n";
@@ -143,6 +154,8 @@ public final class RideStore {
          * rules); a screen showing any automatic end checks both. The analysis JSON names it by its token.
          */
         public final boolean noMotionStop;
+        /** Volt ended it because its scooter started charging ({@link RideStore#STOP_CHARGING}); not an {@link #automaticStop}. */
+        public final boolean chargingStop;
         /** A went-quiet stop whose scooter was switched off while still answering (switchedOffStopReason): ends at its last movement. */
         public final boolean stopSwitchedOff;
         /** The shown end is the ride's last movement (a no-motion or switched-off stop with motion recorded). */
@@ -173,6 +186,7 @@ public final class RideStore {
             Map<String, String> params = quiet ? stopParameters(details) : Collections.<String, String>emptyMap();
             stopReason = quiet ? STOP_AUTO_QUIET : details;
             noMotionStop = STOP_AUTO_NO_MOTION.equals(stopReason);
+            chargingStop = STOP_CHARGING.equals(stopReason);
             automaticStop = quiet || STOP_AUTO_PARKED.equals(stopReason);
             long last = parseLong(params.get("last"), -1);
             stopLastReadingMonotonicMs = last < -1 ? -1 : last;
@@ -286,6 +300,22 @@ public final class RideStore {
             return Collections.unmodifiableMap(m);
         }
         public String toJson() { return json(fields()); }
+        /** Whether Volt ended it by itself (parked, went quiet, no motion or charging) rather than the rider. */
+        public boolean endedByItself() { return automaticStop || noMotionStop || chargingStop; }
+    }
+
+    /**
+     * Whether a finished ride is kept: at least {@link #MIN_KEEP_MS} long by its shown duration, and at least
+     * {@link #MIN_KEEP_KM} by distance when a distance is known. The distance is the larger of the odometer's (the one
+     * Rides shows) and the speed-integrated one: the odometer counts in tenths of a km (whole km on older models), so a
+     * real 90 m ride can show 0.0 on it alone. With neither known, the duration decides alone.
+     */
+    public static boolean kept(Summary s) {
+        if (s.shownElapsedMs < MIN_KEEP_MS) return false;
+        Double odometer = s.distanceKm, integrated = s.speedIntegratedDistanceKm;
+        if (odometer == null && integrated == null) return true;
+        double distance = Math.max(odometer == null ? 0 : odometer, integrated == null ? 0 : integrated);
+        return distance + 1e-9 >= MIN_KEEP_KM;
     }
 
     private final File directory;
@@ -420,7 +450,7 @@ public final class RideStore {
     /** The id of every journal found at this load whose STOP row names an automatic end. */
     private final ArrayList<String> automaticStops = new ArrayList<>();
     private void noteStop(String rideId, String details) {
-        if (STOP_AUTO_PARKED.equals(details) || STOP_AUTO_NO_MOTION.equals(details) || isQuietStop(details)) automaticStops.add(rideId);
+        if (STOP_AUTO_PARKED.equals(details) || STOP_AUTO_NO_MOTION.equals(details) || STOP_CHARGING.equals(details) || isQuietStop(details)) automaticStops.add(rideId);
     }
     /** See {@link RideAutoEnds}: what the journals themselves recorded, as of this store's load. */
     String[] automaticStopsAtLoad() { return automaticStops.toArray(new String[0]); }
@@ -567,14 +597,25 @@ public final class RideStore {
     }
     /** Stops at the given (current) time; the reason never moves the end or adds samples. */
     public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason) throws IOException {
+        return stop(wallMillis, monotonicMillis, reason, false);
+    }
+    /**
+     * As {@link #stop(long, long, String)}; with discardShort, a ride that is not {@link #kept} is removed at once, its
+     * journal and any saved summary, and {@link #lastStopDiscarded} says so. A discarded ride leaves
+     * {@link #lastStopWallMs} and {@link #lastStopAutomatic} as they were, so nothing reads it as a saved ride. If the
+     * journal can't be deleted, the ride is kept.
+     */
+    public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason, boolean discardShort) throws IOException {
         if (active == null) return null;
-        String details = STOP_AUTO_PARKED.equals(reason) || STOP_AUTO_NO_MOTION.equals(reason) ? reason
+        String details = STOP_AUTO_PARKED.equals(reason) || STOP_AUTO_NO_MOTION.equals(reason) || STOP_CHARGING.equals(reason) ? reason
                 : isQuietStop(reason) ? quietDetails(reason, active.readingElapsed >= 0 ? active.readingMono : -1) : "";
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
         Summary result = new Summary(active); active = null;
+        lastStopDiscarded = discardShort && !kept(result) && file(result.id).delete();
+        if (lastStopDiscarded) { forget(result.id); if (index != null) index.remove(result.id); return result; }
         lastStopWallMs = wallMillis;
-        lastStopAutomatic = result.automaticStop || result.noMotionStop;
+        lastStopAutomatic = result.endedByItself();
         // Save the finished ride now, so a restart before Rides opens still finds it. The save replays the journal
         // once on the index's low-priority thread, so the entry is exactly what any later replay gives.
         if (index != null) { final String id = result.id; index.submit(() -> { try { get(id); } catch (IOException | RuntimeException ignored) { } }); }
@@ -661,8 +702,11 @@ public final class RideStore {
     private long lastStopWallMs = -1;
     private boolean lastStopAutomatic;
     public synchronized long lastStopWallMs() { return lastStopWallMs; }
-    /** Whether that stop was automatic (parked, went quiet or no motion) rather than the rider's. */
+    /** Whether that stop was automatic (parked, went quiet, no motion or charging) rather than the rider's. */
     public synchronized boolean lastStopAutomatic() { return lastStopAutomatic; }
+    private boolean lastStopDiscarded;
+    /** Whether the last stop removed its ride as too short (stop with discardShort). */
+    public synchronized boolean lastStopDiscarded() { return lastStopDiscarded; }
     public synchronized Summary activeSummary() { return active == null ? null : new Summary(active); }
     /**
      * The active ride is answered from memory. A finished journal comes from the shared cache while its length and

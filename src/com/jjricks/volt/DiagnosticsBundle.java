@@ -547,6 +547,7 @@ final class DiagnosticsBundle {
         if (reason == null) return "recording";
         if (reason.isEmpty()) return "rider";
         if (reason.equals(RideStore.STOP_AUTO_NO_MOTION)) return "automatic_no_motion";
+        if (reason.equals(RideStore.STOP_CHARGING)) return "automatic_charging";
         if (reason.equals(RideStore.STOP_AUTO_PARKED) || reason.startsWith(RideStore.STOP_AUTO_PARKED + ";")) return "auto_parked_disconnect";
         if (reason.equals(RideStore.STOP_AUTO_QUIET) || reason.startsWith(RideStore.STOP_AUTO_QUIET + ";")) return "auto_quiet_disconnect";
         return "other";

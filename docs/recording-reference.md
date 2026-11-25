@@ -298,7 +298,45 @@ background, also off by default. Anything that pauses Volt counts as
 background: a window over it, a locked or dark screen, Home or another app.
 Known limit: on Android 8 and 9 a Volt in split screen without focus is paused,
 so it counts as background too. Android doesn't let Volt turn on location from
-the background, so such a ride has no GPS route. An explicitly
+the background, so such a ride has no GPS route.
+
+Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
+2026):
+
+- **Hand stop.** A ride stopped by hand holds Record rides automatically, and
+  backing out of riding mode holds Open automatically, until the riding session
+  ends: the scooter is seen switched off (ScooterPowerState), no link for 2
+  minutes (AutoStartPolicy.SESSION_END_MS), or the rider's Disconnect. The holds
+  clear at the first look after that with a link up to a scooter that is on.
+  Volt's own reconnects are not an end: the background pause and the reconnect
+  when Volt comes back, connect retries and timeouts, and any shorter drop. Two
+  minutes is longer than any of those (seconds; one connect timeout and retry
+  under 20 s) and matches the time after which an automatic charge recording
+  counts a charge as over. The holds live for the process, so a service that
+  stopped while Volt was out of sight keeps them. A failed automatic start and
+  riding mode's automatic open still hold only until the next connection.
+- **A charge ends the ride.** A fresh charging reading from the selected scooter
+  (ChargeAutoRecordPolicy.liveCharging, at most 5 s old) ends a recording ride
+  at once, unless a fresh speed reading is above 4.8 km/h. It is saved with the
+  end `automatic_charging` (older builds read it as a rider's stop) and sets no
+  hold, so Record charges automatically and the live charging card follow once
+  the ride's files are saved. A ride the rider started by hand while the scooter
+  already charged is exempt. Record rides automatically starts nothing while
+  charging or within 30 seconds of the last charging reading (so an unplug
+  and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
+  rule is unchanged: a ride started by hand ends an automatic charge recording. They can't loop: that
+  ride is exempt, an automatic ride never starts while charging, and the charge's
+  end of a ride holds nothing.
+- **Short rides aren't kept.** When a ride ends, by any end, it is deleted with
+  its phone GPS and motion files if its shown duration is under 20 s or its
+  distance under 0.01 mi (16.09 m): the larger of the odometer distance and the
+  speed-integrated one (the odometer counts tenths of a km, whole km on older
+  models); with neither known, the duration decides. It leaves no journal, no
+  saved summary, no auto-save copy and no Ride saved automatically notice, and
+  the last saved ride stays the one Home and riding mode show. Rides saved before
+  this rule are not touched.
+
+An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from

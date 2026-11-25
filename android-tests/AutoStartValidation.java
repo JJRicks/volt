@@ -32,7 +32,8 @@ import com.jjricks.volt.tests.HubTestPages;
  * Bluetooth stays off. Needs hidden_api_policy 1 for the stand-in.
  *
  * <p>No arguments runs the full pass on a fresh install. {@code -e only gates}, {@code gps-grant}, {@code gps-decline},
- * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant} and {@code restored-decline} are
+ * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant}, {@code restored-decline} and
+ * {@code own-pause} (a hand stop and a back-out survive Volt's own background pause and reconnect; owner, Nov 24 2026) are
  * single runs on a fresh install too. The release sweep runs all of these. The remaining {@code -e only} scenarios follow a
  * permission across runs of one install, so whoever runs them changes it between runs with {@code pm} (see
  * {@link #permissionState}). In order, with cleared app data at the start: expiry-first; revoke location, again-offer-grant;
@@ -82,6 +83,7 @@ public final class AutoStartValidation extends ValidationInstrumentation {
             if ("gps-riding".equals(only)) { gpsDuringRide(); result.putString("result", "PASS"); return; }
             if ("cadence".equals(only)) { backgroundCadence(); result.putString("result", "PASS"); return; }
             if ("location".equals(only)) { locationChoice(); result.putString("result", "PASS"); return; }
+            if ("own-pause".equals(only)) { ownPauseKeepsHolds(); result.putString("result", "PASS"); return; }
             switchesOffDoNothing();
             autoRecord();
             autoRecordInBackground();
@@ -240,6 +242,61 @@ public final class AutoStartValidation extends ValidationInstrumentation {
         returnToVolt();
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false);
         enable(AutoStartPolicy.AUTO_RECORD_BACKGROUND_KEY, false);
+    }
+
+    /**
+     * The owner's report (Nov 24 2026): a ride stopped by hand, then Volt's own background pause (Stay connected in
+     * background off: the ten-second stop closes the link) and the reconnect when Volt comes back. Rolling the scooter
+     * must not start a ride, and riding mode backed out of must not reopen. A link gone for AutoStartPolicy.SESSION_END_MS
+     * is a real end: both start again.
+     */
+    private void ownPauseKeepsHolds() throws Exception {
+        stopped(); settle();
+        enable(AutoStartPolicy.AUTO_RIDE_MODE_KEY, true);
+        moving(); await(this::ridingOpen, "Moving with Volt on screen opens riding mode");
+        main(() -> invoke(activity, "navigateBack", new Class<?>[0]));
+        await(() -> !ridingOpen(), "Back out closes riding mode");
+        enable(AutoStartPolicy.AUTO_RECORD_KEY, true);
+        moving(); await(this::recording, "Speed above zero starts a recording");
+        moving(); main(() -> service.stopRide());
+        require(!recording(), "Manual stop stops");
+        moving(); settle(); moving(); settle();
+        require(!recording() && !ridingOpen(), "Held while still connected");
+        // Volt's own pause: Stay connected in background off, so leaving closes the link after ten seconds.
+        enable("background_connection", false);
+        goHome();
+        awaitFor(() -> !onMain(() -> ble.connected()), 25000, "Volt's own pause never closed the link");
+        require(lastLinkEvent().equals("BACKGROUND_PAUSE"), "The link closed some other way: " + lastLinkEvent());
+        SystemClock.sleep(3000);
+        returnToVolt();
+        connect();
+        stopped(); settle();
+        for (int i = 0; i < 4; i++) { moving(); settle(); }
+        require(!recording(), "After Volt's own background pause and reconnect, rolling the scooter started a ride: the hand stop was not held");
+        require(!ridingOpen(), "After Volt's own background pause and reconnect, riding mode reopened after a back-out");
+        shot("own-pause-reconnect-held");
+        // A real end of the session: no link for SESSION_END_MS.
+        goHome();
+        awaitFor(() -> !onMain(() -> ble.connected()), 25000, "The second pause never closed the link");
+        long gone = SystemClock.elapsedRealtime();
+        SystemClock.sleep(AutoStartPolicy.SESSION_END_MS + 3000);
+        returnToVolt();
+        connect();
+        stopped(); settle();
+        moving(); await(this::recording, "After " + (SystemClock.elapsedRealtime() - gone) / 1000 + " s without a link, moving starts a ride again");
+        await(this::ridingOpen, "and riding mode opens again");
+        shot("own-pause-session-ended");
+        moving(); main(() -> service.stopRide());
+        main(() -> invoke(activity, "navigateBack", new Class<?>[0]));
+        await(() -> !ridingOpen(), "Back out at the end");
+        enable(AutoStartPolicy.AUTO_RECORD_KEY, false); enable(AutoStartPolicy.AUTO_RIDE_MODE_KEY, false);
+        enable("background_connection", true);
+    }
+    /** The newest connection log reason, as Report diagnostics keeps it. */
+    private String lastLinkEvent() {
+        final String[] out = {""};
+        main(() -> { java.util.List<ConnectionEventLog.Record> events = ble.diagnosticEvents(); if (!events.isEmpty()) out[0] = events.get(events.size() - 1).reason.name(); });
+        return out[0];
     }
 
     /** Turning the switch on is the location choice; a backup-restored switch or a Phone GPS that is off never prompts. */
@@ -728,6 +785,7 @@ public final class AutoStartValidation extends ValidationInstrumentation {
     private void require(boolean ok, String message) { checks++; if (!ok) throw new AssertionError(message); }
     private void main(Runnable task) { final Throwable[] failure = {null}; runOnMainSync(() -> { try { task.run(); } catch (Throwable error) { failure[0] = error; } }); if (failure[0] != null) throw new IllegalStateException(failure[0]); }
     private boolean onMain(BooleanSupplier query) { final boolean[] result = {false}; main(() -> result[0] = query.getAsBoolean()); return result[0]; }
+    private void awaitFor(BooleanSupplier query, long ms, String message) { long end = SystemClock.uptimeMillis() + ms; while (SystemClock.uptimeMillis() < end) { if (query.getAsBoolean()) { checks++; return; } SystemClock.sleep(40); } throw new AssertionError(message); }
     private void await(BooleanSupplier query, String message) { long end = SystemClock.uptimeMillis() + 8000; while (SystemClock.uptimeMillis() < end) { if (query.getAsBoolean()) { checks++; return; } SystemClock.sleep(40); } throw new AssertionError(message); }
     private void settle() { SystemClock.sleep(350); waitForIdleSync(); }
     private static Field reflected(Object object, String name) { Class<?> type = object.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f; } catch (NoSuchFieldException missing) { type = type.getSuperclass(); } } throw new IllegalStateException("Missing field " + name); }

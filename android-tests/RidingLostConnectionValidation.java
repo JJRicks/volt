@@ -455,7 +455,8 @@ public final class RidingLostConnectionValidation extends ValidationInstrumentat
     private boolean connected() { return read(() -> service.ble.connected()); }
     private boolean recording() { return read(() -> service.isRecording()); }
     private boolean away() { return read(() -> (Boolean) call(field(activity, "riding"), "away", new Class<?>[]{})); }
-    private boolean held() { return read(() -> (Boolean) field(field(service, "autoStart"), "rideModeHeld")); }
+    /** Either of auto ride mode's holds: a back-out (until the session ends) or the automatic open (until the next connection). */
+    private boolean held() { return read(() -> (Boolean) call(field(service, "autoStart"), "rideModeHeld", new Class<?>[]{})); }
     private String screenName() { AtomicReference<String> s = new AtomicReference<>(); main(() -> { Object v = field(activity, "screen"); s.set(v == null ? "null" : v.getClass().getSimpleName()); }); return s.get(); }
     private boolean read(BooleanSupplier value) { AtomicReference<Boolean> v = new AtomicReference<>(); main(() -> v.set(value.getAsBoolean())); return v.get(); }
 

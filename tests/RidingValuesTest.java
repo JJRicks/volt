@@ -1587,7 +1587,7 @@ public final class RidingValuesTest {
         long t = 3_000_000L, back = t + 60_000;
         RidingLink.Log log = upLog();
         AutoStartPolicy policy = new AutoStartPolicy();
-        policy.observeLink(true, 1);
+        policy.observeLink(true, 1, t, false, 0);
         policy.rideModeOpened();
         RidingSession old = connectedSession(t);
         trip(old, 10, t);
@@ -1596,12 +1596,12 @@ public final class RidingValuesTest {
         check(near(old.trip().km, 3, 1e-9) && old.maxKmh() == 30, "the old riding mode has distance and Max");
         old.left(log.now(), t + 40_000);
         log.observe(false, false);
-        policy.observeLink(false, 1);
+        policy.observeLink(false, 1, t + 40_000, false, 0);
         log.observe(true, false);
-        policy.observeLink(true, 2);
+        policy.observeLink(true, 2, back - 1000, false, 0);
         check(old.lostOnReturn(log.now(), false, back), "a real drop and reconnect while away: Home on return");
         boolean clear = AutoStartPolicy.screenClear(true, true, false, false, false, false);
-        check(!policy.rideModeHeld(), "the reconnect ended the hold, as it always has");
+        check(!policy.rideModeHeld(), "the reconnect ended the automatic open's hold, as it always has (any new connection)");
         check(policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 25, back - 500, back), clear), "auto ride mode on and moving: it opens");
         check(!policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 0, back - 500, back), clear), "not moving: stays Home");
         check(!policy.shouldOpenRidingMode(true, AutoStartPolicy.moving(true, 25, back - 5000, back), clear), "a stale moving sample: stays Home");
@@ -1625,16 +1625,19 @@ public final class RidingValuesTest {
         after.observe(true, false);
         check(RidingSession.Resume.restoresHome(left, 0, after.now(), false, back), "process death after a connection: Home");
 
-        // Hold rules unchanged: a rider's back-out holds until the next connection, even with a Home return in between.
+        // A rider's back-out holds until the next real connection (AutoStartPolicy.SESSION_END_MS), even with a Home return in between.
         AutoStartPolicy held = new AutoStartPolicy();
-        held.observeLink(true, 1);
+        held.observeLink(true, 1, t, false, 0);
         held.riderLeftRidingMode();
         check(!held.shouldOpenRidingMode(true, true, clear), "a back-out holds auto ride mode");
-        held.observeLink(true, 1);
+        held.observeLink(true, 1, t + 1000, false, 0);
         check(held.rideModeHeld(), "the same link doesn't end it");
-        held.observeLink(false, 1);
-        held.observeLink(true, 2);
-        check(held.shouldOpenRidingMode(true, true, clear), "the next connection does");
+        held.observeLink(false, 1, t + 2000, false, 0);
+        held.observeLink(true, 2, t + 7000, false, 0);
+        check(held.rideModeHeld(), "nor does Volt's own quick reconnect");
+        held.observeLink(false, 2, t + 8000, false, 0);
+        held.observeLink(true, 3, t + 8000 + AutoStartPolicy.SESSION_END_MS, false, 0);
+        check(held.shouldOpenRidingMode(true, true, clear), "the next real connection does");
         // A Home return from Volt's own pause past the grace has no link: nothing can be moving.
         RidingLink.Log paused = upLog();
         RidingSession idle = connectedSession(t);
