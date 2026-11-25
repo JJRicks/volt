@@ -539,8 +539,8 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             if (ribbon.isShown()) require(top.contains(windowRect(ribbon)) && ribbon.getHeight() >= dp(RecordingFit.MIN_RIBBON_DP) - 1,
                     "The ribbon " + windowRect(ribbon) + " is not whole in the area or under its least height");
             TextView label = (TextView) field(moment, "label");
-            // While saving is paused, "Recording" may give way to the paused words (RecordingFit.headLadder) on a narrow row.
-            if (field(moment, "pause") == RecordingFit.Pause.NONE || label.isShown()) require(label.isShown() && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0
+            // While saving is paused or the link has a problem, "Recording" may give way to those words (RecordingFit.headLadder).
+            if ((field(moment, "pause") == RecordingFit.Pause.NONE && field(moment, "problemFull") == null) || label.isShown()) require(label.isShown() && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0
                     && label.getPaint().measureText(label.getText().toString()) <= label.getWidth() + 1, "\"Recording\" is not whole");
             TextView clock = (TextView) field(moment, "clock");
             require(clock.getPaint().measureText(clock.getText().toString()) <= moment.getWidth() + 1, "The time is wider than the area");
