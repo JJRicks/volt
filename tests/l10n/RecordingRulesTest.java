@@ -1029,8 +1029,8 @@ public final class RecordingRulesTest {
         check(src.contains("static final long UNDO_NOTICE_MS=10*60_000L;") && RideHold.KEEP_MS == 24L * 3_600_000, "the notice goes after 10 minutes, the ride after a day");
         // #651 F04-F06: the notice's body hands its ride to the bar, an offer made out of sight is live while its notice is,
         // the bar retires the notice, and the notice's Undo always takes the notice away.
-        int o = src.indexOf("public String undoOffer(){");
-        check(src.substring(o, src.indexOf("\n    }", o)).contains("undoOfferOnScreen||SystemClock.elapsedRealtime()-undoOfferedAt<=UNDO_NOTICE_MS?undoOffer:null;"),
+        int live = src.indexOf("public String undoOffer(){");
+        check(src.substring(live, src.indexOf("\n    }", live)).contains("undoOfferOnScreen||SystemClock.elapsedRealtime()-undoOfferedAt<=UNDO_NOTICE_MS?undoOffer:null;"),
                 "an offer made out of sight stays live for the notice's 10 minutes, so Volt coming on screen shows it");
         int b = src.indexOf("public boolean undoOfferOnScreen(String id){");
         String toBar = src.substring(b, src.indexOf("\n    }", b));
