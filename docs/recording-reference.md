@@ -298,7 +298,108 @@ background, also off by default. Anything that pauses Volt counts as
 background: a window over it, a locked or dark screen, Home or another app.
 Known limit: on Android 8 and 9 a Volt in split screen without focus is paused,
 so it counts as background too. Android doesn't let Volt turn on location from
-the background, so such a ride has no GPS route. An explicitly
+the background, so such a ride has no GPS route.
+
+Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
+2026):
+
+- **Hand stop.** A ride stopped by hand holds Record rides automatically, and
+  backing out of riding mode holds Open automatically, until the riding session
+  ends: the scooter is seen switched off (ScooterPowerState), the link lost for
+  real for 2 minutes (AutoStartPolicy.SESSION_END_MS: down while Volt is on
+  screen or Stay connected in background is on), Volt's own background pause
+  lasting 30 minutes (OWN_PAUSE_END_MS), or the rider's Disconnect. The holds
+  clear at the first look after that with a link up to a scooter that is on.
+  Volt's own reconnects are not an end: a shorter background pause and the
+  reconnect when Volt comes back, connect retries and timeouts, and any shorter
+  drop. Two minutes is longer than any of those (seconds; one connect timeout
+  and retry under 20 s) and matches the time after which an automatic charge
+  recording counts a charge as over. Through its own pause Volt can't see the
+  scooter switch off, and the scooter reports nothing that resets only at
+  power-on (its trip distance and time can read 0 minutes after a ride with no
+  power cycle), so half an hour stands for a scooter parked and left. After a
+  reconnect that followed Volt's own pause, a fresh speed above 10 km/h held
+  for 3 s of samples (RIDE_ON_KMH, RIDE_ON_MS) ends both holds too: a
+  switch-off and on during the pause (a coffee stop) is otherwise unseen. A
+  scooter walked in goes 3 to 6 km/h, and 3 s above 10 km/h is at least 8 m
+  ridden. Each hold has its own release: a hand stop made after the reconnect
+  keeps the recording hold through a ride-off, and a back-out made then keeps
+  riding mode's; neither touches the other's. With no own pause at all (Volt on
+  screen throughout), riding on after a hand stop stays held. The holds
+  live for the process, so a service that stopped while Volt was out of sight
+  keeps them; a new service's Disconnect count is a new baseline, not a
+  Disconnect. A failed automatic start and riding mode's automatic open still
+  hold only until the next connection.
+- **A charge ends the ride.** A fresh charging reading from the selected scooter
+  (ChargeAutoRecordPolicy.liveCharging, at most 5 s old) ends a recording ride
+  at once, unless a fresh speed reading is above 4.8 km/h. It is saved with the
+  end `automatic_charging` (older builds read it as a rider's stop) and sets no
+  hold, so Record charges automatically and the live charging card follow once
+  the ride's files are saved; the link is held for up to a minute meanwhile
+  (out of sight with Stay connected off too). Only a reading taken after the
+  ride started counts. A ride the rider started by hand while the scooter
+  already charged is exempt until a fresh not-charging reading or a fresh speed
+  above 4.8 km/h (with no fresh reading at its start, the first one decides);
+  its journal keeps the standing as a CHARGE row, so a recovered ride keeps it
+  (older builds skip the row); a fresh speed above 4.8 km/h before any fresh
+  reading decides it isn't exempt. A charge-ended stop that fails (storage
+  full) is tried once per ride: its toast asks the rider to free space and
+  Retry save, and the rider's Stop is that retry. The 30-second wait belongs to the scooter that
+  charged, and is saved (ride_charge_wait, this phone only; the boot count
+  and the last charging reading's elapsed time: exact when saved as the wait
+  begins, by the first reading that isn't charging; saved at once when
+  charging starts again, then at most every 5 s mid-charge, and then restored as 5 s later, the latest a charging reading
+  could have come before a process death), so a service restarted inside it
+  still waits. Record rides automatically starts nothing while
+  charging or within 30 seconds of the last charging reading (so an unplug
+  and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
+  rule is unchanged: a ride started by hand ends an automatic charge recording. They can't loop: that
+  ride is exempt, an automatic ride never starts while charging, and the charge's
+  end of a ride holds nothing.
+- **Short rides aren't kept** (RideStore.kept). When a ride ends, by any end,
+  it is deleted with its phone GPS and motion files only on positive evidence
+  that it is under 20 s or 0.01 mi (16.09 m); otherwise it is kept.
+  - Covered (RideStore.covered): the speed integrator itself measured the
+    whole ride, from its start to its end, with no interval it skipped. It
+    integrates only between two samples that both hold a speed no older than
+    3 s (MAX_SENSOR_AGE_MS), so a gap it skips is a gap in coverage; the UT5
+    MAX pushes its speed about once a second, parked too. Odometer readings
+    never count (a flat one proves nothing at a tenth of a km), nor do battery,
+    voltage, current, temperature or charging values; a ride with no speed
+    reading isn't covered. The window starts with a speed reading within 3 s
+    of the start, and ends at the last speed reading (0 included) before the
+    end cause's wait began: for the rider's stop and a charge that is the stop
+    itself, so the reading must still be fresh then; for the no-motion end and
+    the switch-off it is the last one at or before the last movement (the last
+    of all with none), so the verdict's wait and its battery polls are no gap.
+    A link gap that reconnected anywhere before the end cause, after the last
+    movement too, leaves the ride uncovered, since a gap can hide motion; the
+    end cause's own final drop (the switch-off the verdict judges) isn't one.
+    A went-quiet end and the parked end (a link loss plus its grace) prove the
+    link went, not that the scooter stopped: they are never covered.
+  - A covered ride is deleted when its shown duration is under 20 s, whatever
+    the phone's track says, or when both its measured distance and the phone's
+    track are under 16 m. Measured is the larger of the odometer's (two or
+    more readings; tenths of a km, whole km on older models) and the
+    speed-integrated one, with the window's two end intervals (the start to
+    the first speed reading, and the last to a rider's stop or a charge) held
+    at those readings' speeds.
+  - A ride that isn't covered is kept when the phone's track is 16 m or more,
+    and otherwise deleted only when the whole recording, start to stop, is
+    under 20 s.
+  - The phone's track is its saved journal, read at the stop after the
+    recorder flushes its last second, with the track's own rule
+    (PhoneRideStore.load: moving steps, speeds no less sure than 1.5 m/s), so a
+    ride recovered after a restart counts its whole track.
+  - Phone files still to delete are noted (ride_discard_pending, this phone
+    only) before the journal is deleted, and finished at the next service
+    start after a process death; only a ride whose journal is gone loses them.
+    If the note can't be saved, the ride is kept. A deleted ride leaves no journal, no
+  saved summary, no auto-save copy and no Ride saved automatically notice, and
+  the last saved ride stays the one Home and riding mode show. Rides saved before
+  this rule are not touched.
+
+An explicitly
 started charge capture retries a temporary loss for up to five minutes, resuming
 the same journal only after the same scooter authenticates and provides fresh
 charging readings. Missing intervals stay marked as gaps and are excluded from

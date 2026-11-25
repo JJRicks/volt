@@ -1199,8 +1199,24 @@ automatically (also in riding mode's tune menu) opens riding mode the same
 way, only while Volt is in front and no dialog or sheet is open; of the
 scooter pages, only over the subject list, Controls, Battery & charging and
 Lights & sound (not their sub-pages, Security or Service). A manual stop or
-backing out holds that switch until the scooter reconnects; a ride that ends by itself does not.
-Emulator-tested.
+backing out holds that switch until the riding session ends: the scooter
+switched off, the link lost for 2 minutes while Volt tries, Volt's own
+background pause lasting 30 minutes, or the rider's Disconnect. Volt's own
+reconnects (a shorter background pause and its reconnect, connect retries) don't
+end it, but riding off above 10 km/h for 3 s after such a pause does (a
+switch-off and on isn't seen through a paused link). A ride that ends by itself
+sets no hold. No ride starts by itself while the
+scooter charges, or within 30 s of its last charging reading, unless it is
+ridden off above about 3 mph. A charge ends a recording ride at once (saved as
+ended by charging) so Record charges automatically and the live charging card
+can take over, with the link held meanwhile; a ride started by hand while
+already charging is exempt until unplugged or ridden off. A ride
+recording under 20 s or 0.01 mi is not kept, however it ended, but only on
+positive evidence: a ride the scooter's speed readings covered to its end
+goes when it shows under 20 s, or when both its distance and the
+phone's GPS route are under 16 m; any other ride is kept with 16 m of GPS and
+otherwise judged by its whole recording time (2.0.6; earlier rides
+untouched). Emulator-tested.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size
 (Volt's Text size times the system font scale), so a 725 dp unfolded phone uses

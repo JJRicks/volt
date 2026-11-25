@@ -305,6 +305,20 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
         }
     }
 
+    /**
+     * Writes what is buffered now, on the recorder's own thread as its 1 s flush does, and waits up to timeoutMs for it, so
+     * a reader of the saved journal sees the last fixes: RideStore.kept reads the track at the ride's stop (#643 round 4,
+     * F06). Returns whether the flush ran; false when nothing records or the wait ran out.
+     */
+    public boolean flushAndWait(long timeoutMs) {
+        Handler h = worker;
+        if (h == null || !active) return false;
+        final java.util.concurrent.CountDownLatch done = new java.util.concurrent.CountDownLatch(1);
+        if (!h.post(() -> { if (active) flushNow(); done.countDown(); })) return false;
+        try { return done.await(timeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS); }
+        catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); return false; }
+    }
+
     private final Runnable flush =
             new Runnable() {
                 @Override

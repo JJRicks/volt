@@ -113,8 +113,19 @@ public final class ScooterService extends Service {
     private long wakeLockRenewedMs;
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
     private String trendProfile = "", recordingError;
+    /**
+     * Auto-record's and auto ride mode's holds, one for the whole process: a hand stop or a back-out made before Volt's own
+     * background pause still stands when a new service starts and reconnects (AutoStartPolicy.observeLink).
+     */
+    private static final AutoStartPolicy AUTO_START=new AutoStartPolicy();
+    final AutoStartPolicy autoStart=AUTO_START;
+    /** A ride and a charge never overlap (RideChargeRule). */
+    private final RideChargeRule rideCharge=new RideChargeRule();
+    /** A charging end of the ride is posted and not yet run (observeChargeEndsRide). */
+    private boolean chargeEndPosted;
+    /** Charge-ended stops tried in this process (RideChargeRule.stopTried: one per ride). Validations read it. */
+    private int chargeEndStopsTried;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
-    final AutoStartPolicy autoStart=new AutoStartPolicy();
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
     /** Opt-in copies of finished rides to the rider's folder (RideAutoExport); null when the service never started. */
     private RideAutoExportRunner rideAutoExport;
@@ -246,6 +257,10 @@ public final class ScooterService extends Service {
         try{
             phoneRides = new PhoneRideStore(new File(getFilesDir(), "phone-rides"));
         }catch(IOException ignored){}
+        finishPhoneDiscards();
+        // The charging wait a previous service saw (RideChargeRule.WAIT_KEY): a restart inside it still waits.
+        rideCharge.restoreWait(settings.getString(RideChargeRule.WAIT_KEY,null),bootCount(),SystemClock.elapsedRealtime());
+        chargeWaitSaved=-1; // saved again at the first look, as this service sees it
         PowerManager pm=getSystemService(PowerManager.class);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Volt:Recorder");
         wakeLock.setReferenceCounted(false);
@@ -1376,7 +1391,16 @@ public final class ScooterService extends Service {
         if(!destroyed)endChargeMeasureWork();
     }
     /** Charge done by's measuring window or a Scheduled charging test keeps the connection, each for a bounded few minutes. */
-    private boolean holding(){return chargeMeasure.active()||scheduleTesting();}
+    private boolean holding(){return chargeMeasure.active()||scheduleTesting()||chargeEndHolds();}
+    /**
+     * A charge just ended the ride (observeChargeEndsRide) and its charge recording hasn't started: Volt keeps the link and
+     * its reads up for CHARGE_END_KEEP_MS, out of sight too, as for its own work, so Record charges automatically can start
+     * once the ride's files are saved. Otherwise a hidden Volt with Stay connected in background off would let the link go
+     * with the ride (#643 round 1, finding 4).
+     */
+    private boolean chargeEndHolds(){return chargeEndKeepUntil>SystemClock.elapsedRealtime()&&!isChargeRecording();}
+    private static final long CHARGE_END_KEEP_MS=60_000;
+    private long chargeEndKeepUntil;
     public boolean scheduleTesting(){return chargeScheduleController!=null&&chargeScheduleController.testing();}
     /** UT5 MAX only: other models' whole-hour starts are too coarse to time a two-minute resume. */
     public boolean scheduleTestOffered(){
@@ -2650,12 +2674,15 @@ public final class ScooterService extends Service {
                             this, T.serviceRideFinishing(), android.widget.Toast.LENGTH_SHORT)
                     .show();
             return;}if(rides==null||!ble.ready()||isRecording())return;try{beginRide(label);
+            // Started by hand while the scooter charges: the rider's choice, so that charge doesn't end it (RideChargeRule).
+            noteRideStart(true);
             // Re-evaluate START_STICKY after the user starts a ride, rather than retaining
             // the idle service's earlier START_NOT_STICKY result.
             startService(new Intent(this,ScooterService.class).setAction("RECORDING_STARTED"));ble.refresh(false);}catch(IOException|IllegalStateException e){android.widget.Toast.makeText(this,e.getMessage(),android.widget.Toast.LENGTH_LONG).show();}}
     /** Starts the recording: startRide and auto-record both come through here, the caller having done every check. */
     private void beginRide(String label)throws IOException{rides.setCurrentDirection(RideStore.CurrentDirection.POSITIVE_IS_DRAW);
-            rides.start(profiles.active().id,label,System.currentTimeMillis(),SystemClock.elapsedRealtime(),TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);}
+            rideStartMono=SystemClock.elapsedRealtime();
+            rides.start(profiles.active().id,label,System.currentTimeMillis(),rideStartMono,TimeZone.getDefault().getID());invalidateCapacityEstimate();recordingError=null;gapMarked=false;samples=0;rideAutoStop=null;cancelAutoStopNotice();applyWorkPolicy(false);}
 
     public void stopRide(){stopRide("");}
     /**
@@ -2680,8 +2707,16 @@ public final class ScooterService extends Service {
      * but says nothing; one that fails is held until the next connection, not retried on the next speed sample.
      */
     private void observeAutoStart(long mono){
-        autoStart.observeLink(ble.connected()&&!simulating(),ble.connectionGeneration());
+        boolean linkUp=ble.connected()&&!simulating();
+        // Volt's own background pause, out of sight: counts toward AutoStartPolicy.OWN_PAUSE_END_MS, not the 2 minutes.
+        autoStart.observeLink(linkUp,ble.connectionGeneration(),mono,ble.scooterOff(),ble,ble.intentionalDisconnectSequence(),!linkUp&&!visible&&LINK_LOG.now().paused());
+        // Ridden off after that pause (above AutoStartPolicy.RIDE_ON_KMH for RIDE_ON_MS): a new ride, so the holds end.
+        autoStart.observeSpeed(linkUp,ble.speedRaw(),ble.motionSampleMs(),mono);
         if(dataMaintenance||rides==null)return;
+        // Never while the scooter charges, or just did (an unplug and replug), unless it is ridden off (RideChargeRule).
+        Boolean liveCharging=selectedLiveCharging(mono);
+        rideCharge.observe(activeProfileId(),liveCharging,mono);keepChargeWait(liveCharging);
+        if(rideCharge.blocksAutoRecord(activeProfileId(),mono,chargeRideFast(mono)))return;
         ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
         // linked(), not ready(): out of sight the status poll runs every 15 s, so a healthy authenticated link is past
         // ready()'s 7 s window for half of each cycle. The speed sample's own freshness is checked by autoStartMoving.
@@ -2690,6 +2725,7 @@ public final class ScooterService extends Service {
         if(!autoStart.shouldRecord(enabled,autoStartMoving(mono),isRecording(),isChargeRecording(),simulating(),phoneSaving(),canStart))return;
         try{
             beginRide(RidesScreen.defaultRideName(this));
+            noteRideStart(false);
             // Any action but a stop re-evaluates START_STICKY, like the rider's start.
             startService(new Intent(this,ScooterService.class).setAction("auto_record_started"));ble.refresh(false);
         }catch(IOException|IllegalStateException ignored){/* said nothing, on purpose; held below */}
@@ -2721,15 +2757,113 @@ public final class ScooterService extends Service {
         // notice, which would otherwise start a new recording while the scooter is still moving.
         if(reason.isEmpty())autoStart.riderStoppedRecording();
         // rides.stop clears the active id: keep it for the automatic copy.
-        String stopping=rides.activeId();
-        try{rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+        String stopping=rides.activeId();RideStore.Summary stopped;
+        // Too short to keep (RideStore.kept: under 0.01 mi or 20 s), whatever ended it: removed at once, no summary row.
+        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),()->phoneSavedKm(stopping),id->pendingPhoneDiscard(id,true));invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
-        // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved).
-        RideAutoExportFolder.queue(settings,stopping);
-        if(rides.lastStopAutomatic())autoEnds.stopped(stopping);
-        stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
+        boolean discarded=rides.lastStopDiscarded();
+        // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved). A discarded one has none.
+        if(!discarded)RideAutoExportFolder.queue(settings,stopping);
+        // Counted kept or not: a riding mode open for it closes either way.
+        if(stopped!=null&&stopped.endedByItself())autoEnds.stopped(stopping);
+        // Noted before its journal went (RideStore.stop's discarding); a note that couldn't be saved, or a journal that couldn't be
+        // deleted, keeps the ride, files and all.
+        if(!discarded)pendingPhoneDiscard(stopping,false);
+        phoneDiscard=discarded?stopping:null;stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
+    /** The charging wait last saved (RideChargeRule.WAIT_KEY), -1 for none, and whether it was saved mid-charge. */
+    private long chargeWaitSaved=-1;
+    private boolean chargeWaitSavedCharging;
+    /** Saves the charging wait when RideChargeRule.saveDue says so, so a new service (a restart inside the 30 s) still waits. */
+    private void keepChargeWait(Boolean live){
+        if(settings==null||!RideChargeRule.saveDue(rideCharge.chargingSeenMs(),chargeWaitSaved,chargeWaitSavedCharging,live))return;
+        boolean charging=Boolean.TRUE.equals(live);
+        String saved=rideCharge.savedWait(bootCount(),charging);
+        if(saved==null)return;
+        settings.edit().putString(RideChargeRule.WAIT_KEY,saved).apply();chargeWaitSaved=rideCharge.chargingSeenMs();chargeWaitSavedCharging=charging;
+    }
+    /** Android's boot count, -1 when unavailable: a saved monotonic time is only good within the boot it came from. */
+    private int bootCount(){return android.provider.Settings.Global.getInt(getContentResolver(),android.provider.Settings.Global.BOOT_COUNT,-1);}
+    /** The selected scooter's charging state reading, or null: not connected to the selected scooter, or the simulator. */
+    private ChargeSessionStore.Value selectedChargingState(long mono){
+        if(simulating()||!ble.connected()||!ble.linked()||profiles==null)return null;
+        ScooterProfiles.Profile active=profiles.active(),bound=ble.profile();
+        if(active==null||bound==null||!active.id.equals(bound.id))return null;
+        return chargeFrame(mono,System.currentTimeMillis()).state;
+    }
+    /**
+     * The selected scooter's charging reading as Record charges automatically reads it (ChargeAutoRecordPolicy.liveCharging,
+     * 5 s fresh), or null: stale, not connected to the selected scooter, or the simulator.
+     */
+    private Boolean selectedLiveCharging(long mono){
+        ChargeSessionStore.Value state=selectedChargingState(mono);
+        return state==null?null:ChargeAutoRecordPolicy.liveCharging(state,mono);
+    }
+    /** A fresh speed reading above ChargeAutoRecordPolicy.END_SPEED_KMH: ridden off, not jostled at the charger. */
+    private boolean chargeRideFast(long mono){return ChargeAutoRecordPolicy.movedAway(ble.connected()&&!simulating(),ble.speedRaw(),ble.motionSampleMs(),mono);}
+    /** How long a stop waits for the phone recorder's last flush: one flush is a single small append. */
+    private static final long PHONE_FLUSH_WAIT_MS=500;
+    /**
+     * The ride's phone GPS distance in km as its saved journal reads (PhoneRideStore.load: moving steps, speeds no less sure
+     * than 1.5 m/s), or null for none: RideStore.kept's phone evidence, asked only for a ride the scooter's evidence would
+     * discard. Read from disk, so a ride recovered after a restart counts its whole track; the recorder writes it every second.
+     */
+    private Double phoneSavedKm(String id){
+        if(id==null||phoneRides==null)return null;
+        // The recorder writes every second; flush what it holds now, so the last fixes count too (#643 round 4, F06).
+        // Once more if the first didn't run in time (#643 round 6, F06).
+        if(phoneRecorder!=null&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS);
+        try{PhoneRideStore.Track track=phoneRides.load(id);return track==null||track.distanceMeters==null?null:track.distanceMeters/1000.0;}
+        catch(IOException|RuntimeException unreadable){return null;}
+    }
+    /** When the recording ride started (monotonic ms; beginRide). */
+    private long rideStartMono;
+    /** The new ride's standing against a charge (RideChargeRule), from the reading at its start; kept in its journal. */
+    private void noteRideStart(boolean byHand){
+        if(!isRecording())return;
+        keepChargeStanding(rideCharge.rideStarted(rides.activeId(),rideStartMono,byHand,selectedLiveCharging(SystemClock.elapsedRealtime())));
+    }
+    /** Writes the ride's standing to its journal when it changed (none written means NO), so a recovered ride keeps it. */
+    private void keepChargeStanding(RideChargeRule.Exempt standing){
+        String stored=rides.activeChargeExemption();
+        if(stored==null?standing==RideChargeRule.Exempt.NO:stored.equals(standing.name()))return;
+        try{rides.markChargeExemption(standing.name());}catch(IOException unsaved){/* kept in memory; a recovery reads the last one saved */}
+    }
+    /**
+     * A charge ends the ride (RideChargeRule): on every change, before Record charges automatically looks. Posted, so the
+     * stop's own change notice doesn't run inside this one; it saves with RideStore.STOP_CHARGING and sets no hold, and once
+     * the ride is saved (its phone files too), the automatic charge recording and the live charging card follow on their
+     * own paths, with the link kept up meanwhile (chargeEndHolds). Charging that goes off and on (an unplug and replug)
+     * can't end a ride twice: it is over, and no ride starts meanwhile. A recovered ride takes its journal's standing. A stop
+     * that fails (storage full) is tried once: its toast asks the rider to free space and Retry save, and their Stop is the retry.
+     */
+    private void observeChargeEndsRide(long mono){
+        if(destroyed||dataMaintenance||rides==null||simulating())return;
+        ChargeSessionStore.Value state=selectedChargingState(mono);
+        Boolean live=state==null?null:ChargeAutoRecordPolicy.liveCharging(state,mono);
+        rideCharge.observe(activeProfileId(),live,mono);keepChargeWait(live);
+        if(!isRecording())return;
+        final String id=rides.activeId();
+        if(!rideCharge.tracks(id))rideCharge.rideRecovered(id,-1,RideChargeRule.Exempt.of(rides.activeChargeExemption()));
+        boolean ends=rideCharge.endsRide(id,live,live==null?-1:state.mono,chargeRideFast(mono));
+        keepChargeStanding(rideCharge.exempt(id));
+        if(!ends||chargeEndPosted)return;
+        chargeEndPosted=true;
+        handler.post(()->{
+            chargeEndPosted=false;long now=SystemClock.elapsedRealtime();
+            if(destroyed||!isRecording()||!id.equals(rides.activeId()))return;
+            ChargeSessionStore.Value again=selectedChargingState(now);
+            Boolean still=again==null?null:ChargeAutoRecordPolicy.liveCharging(again,now);
+            if(!rideCharge.endsRide(id,still,still==null?-1:again.mono,chargeRideFast(now)))return;
+            // Before the stop's work policy: the link stays for the charge recording (chargeEndHolds), then the policy runs again.
+            chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;
+            handler.postDelayed(()->{if(!destroyed)applyWorkPolicy(false);},CHARGE_END_KEEP_MS+250);
+            // One try per ride, marked first: a failed stop's own change notice comes straight back here (#643 round 2, F07).
+            rideCharge.stopTried(id);chargeEndStopsTried++;
+            stopRide(RideStore.STOP_CHARGING);
+        });
+    }
     /**
      * Feeds the forgotten-ride policy from the current authenticated transport, never from cached
      * readings. Runs on every BLE change (so a loss is seen as it happens) and every service tick,
@@ -2789,6 +2923,8 @@ public final class ScooterService extends Service {
         if(destroyed||policy!=rideAutoStop||!isRecording()||!policy.owns(rides.activeId()))return;
         String id=policy.rideId;
         if(stopRide(RideStore.STOP_AUTO_NO_MOTION)){
+            // A ride too short to keep is gone: nothing says it was saved.
+            if(rides.lastStopDiscarded())return;
             if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
             showAutoStopNotice(id,RideStore.STOP_AUTO_NO_MOTION);
         }
@@ -2808,8 +2944,11 @@ public final class ScooterService extends Service {
         if(stopRide(reason)){
             // Switched off or gone: stop reconnecting to it by itself until the rider connects, Volt opens or it pushes (OffReconnectHold).
             ble.rideEndedAutomatically(policy.profile,reason,policy.seenOffWhileLinked());
-            if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
-            showAutoStopNotice(id,reason);
+            // A ride too short to keep is gone: nothing says it was saved.
+            if(!rides.lastStopDiscarded()){
+                if(visible)android.widget.Toast.makeText(this,T.serviceRideSavedAuto(),android.widget.Toast.LENGTH_SHORT).show();
+                showAutoStopNotice(id,reason);
+            }
         }
     }
     /** Separate from the foreground notice, which Android removes once nothing is recording. */
@@ -2885,12 +3024,42 @@ public final class ScooterService extends Service {
                 gps,
                 settings.getBoolean("phone_motion", true));
     }
-    private void stopPhoneRecording(){if(phoneRecorder!=null){PhoneRideRecorder finishing=phoneRecorder;phoneRecorder=null;phoneSavingCount++;finishing.stop(()->handler.post(()->{phoneSavingCount=Math.max(0,phoneSavingCount-1);phoneFinalStatus=finishing.status();phoneFinalFlags=finishing.statusFlags();if(!destroyed){rideFullySaved();if(!isRecording()&&!phoneSaving()&&wakeLock.isHeld())wakeLock.release();applyWorkPolicy(false);changed();}}));}
+    /** The ride stopRide just found too short to keep (RideStore.kept), whose phone files go once they are saved; else null. */
+    private String phoneDiscard;
+    private void stopPhoneRecording(){final String discard=phoneDiscard;phoneDiscard=null;if(phoneRecorder!=null){PhoneRideRecorder finishing=phoneRecorder;phoneRecorder=null;phoneSavingCount++;finishing.stop(()->handler.post(()->{phoneSavingCount=Math.max(0,phoneSavingCount-1);phoneFinalStatus=finishing.status();phoneFinalFlags=finishing.statusFlags();discardPhoneRide(discard);if(!destroyed){rideFullySaved();if(!isRecording()&&!phoneSaving()&&wakeLock.isHeld())wakeLock.release();applyWorkPolicy(false);changed();}}));}
         // No phone recorder (simulation, no phone storage): the ride's files are already complete. Start the copy
         // now, not posted: its busy() hold must exist before stopRide's applyWorkPolicy, or a hidden idle service
         // drops the foreground and stops itself before the copy starts.
-        else rideFullySaved();
+        else{discardPhoneRide(discard);rideFullySaved();}
         phoneLocationForeground=false;}
+    /** Removes a discarded ride's phone GPS and motion files (none for null). A failure leaves them, as unlinked files. */
+    private void discardPhoneRide(String id){
+        if(id==null||phoneRides==null)return;
+        try{phoneRides.delete(id);pendingPhoneDiscard(id,false);}catch(IOException|RuntimeException ignored){/* left pending for the next start */}
+    }
+    /**
+     * Notes (or forgets) a discarded ride whose phone files are still to go, committed so a process death can't lose it.
+     * Returns whether the note stands as asked: false when it couldn't be saved, and then RideStore.stop keeps the ride.
+     */
+    private boolean pendingPhoneDiscard(String id,boolean add){
+        java.util.LinkedHashSet<String> ids=new java.util.LinkedHashSet<>();
+        for(String one:settings.getString(RideStore.DISCARD_PENDING_KEY,"").trim().split(" +"))if(one.matches("[A-Za-z0-9-]{1,64}"))ids.add(one);
+        if(add?!ids.add(id):!ids.remove(id))return true;
+        if(ids.isEmpty())return settings.edit().remove(RideStore.DISCARD_PENDING_KEY).commit();
+        return settings.edit().putString(RideStore.DISCARD_PENDING_KEY,String.join(" ",ids)).commit();
+    }
+    /**
+     * At service start: phone files of discarded rides a process death left behind. Only a ride whose journal is gone (the
+     * short-ride rule deleted it) loses its phone files; any other id is just forgotten, so no saved ride is ever touched.
+     */
+    private void finishPhoneDiscards(){
+        if(settings==null||rides==null||phoneRides==null||!settings.contains(RideStore.DISCARD_PENDING_KEY))return;
+        for(String id:settings.getString(RideStore.DISCARD_PENDING_KEY,"").trim().split(" +")){
+            if(!id.matches("[A-Za-z0-9-]{1,64}"))continue;
+            if(rides.journal(id).exists()){pendingPhoneDiscard(id,false);continue;}
+            discardPhoneRide(id);
+        }
+    }
     private void recordPhoneTelemetry(long now){
         if (simulating()) return;
         if(phoneRecorder==null)return;Telemetry.Metric speedMetric=null,volts=null,amps=null,battery=null;
@@ -3012,7 +3181,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}observeEvidence();updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());if(workPolicyAfterAutoStart){workPolicyAfterAutoStart=false;applyWorkPolicy(false);}observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(simulating())ble.setSimulationFastCharger(chargeCharger()==ChargeSessionStore.Charger.HIGH_SPEED);observeLink();if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();retireStartSentNotice();}observeEvidence();updateChargerDetection();updateChargeAlerts();updateChargeLive();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeChargeEndsRide(SystemClock.elapsedRealtime());observeAutoCharge(SystemClock.elapsedRealtime());observeRideAutoStop(SystemClock.elapsedRealtime());observeAutoStart(SystemClock.elapsedRealtime());if(workPolicyAfterAutoStart){workPolicyAfterAutoStart=false;applyWorkPolicy(false);}observeTelemetry();observeMaintenance();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }

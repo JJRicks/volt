@@ -51,6 +51,18 @@ import com.jjricks.volt.tests.TextCensus;
  * Its review of 8be6104f, in #416: a guessed charger is marked as guessed ("· charger guessed") in the status line, the
  * notification, the saved list and the recording's detail.
  *
+ * Only "riderules" (owner, Nov 24 2026): plugging in ends a recording ride at once, and the automatic charge recording and
+ * the live card follow; unplugging and replugging starts no ride; a ride under 20 s is not kept (see rideRules).
+ *
+ * Only "riderulesaway" (#643 round 1, finding 4): the owner's main case out of sight. Volt in the background with Stay
+ * connected in background off, a ride recording (which keeps the link), then the plug-in: the ride ends, and the link stays
+ * up until the automatic charge recording starts and the live card shows. (The "riderules" run is with Volt on screen and
+ * Stay connected on, as the class's setup leaves it.)
+ *
+ * Only "riderulesfull" (#643 round 2, F07): storage full when the plug-in ends a ride (the ride's journal made read-only).
+ * The charge-ended stop is tried once, fails with one "Storage full" toast, and the ride keeps recording: no loop of failed
+ * writes and toasts while the charging readings keep coming. The rider's Stop (Retry save) then saves it.
+ *
  * Only "livecard" (owner, Nov 20 2026): a charge recording, by hand or automatic, in front or out of sight, shows the live
  * charging card as the same charge without one does, promoted to a Live Update or not alike; screenshots of the shade.
  *
@@ -102,6 +114,9 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 else if ("away".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); outOfSightStartAndNotificationStop(); }
                 else if ("rideaway".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); rideAwayOutOfSight(); }
                 else if ("livecard".equals(args.getString("only", ""))) liveCardWhileRecording();
+                else if ("riderules".equals(args.getString("only", ""))) rideRules();
+                else if ("riderulesaway".equals(args.getString("only", ""))) rideRulesOutOfSight();
+                else if ("riderulesfull".equals(args.getString("only", ""))) rideRulesStorageFull();
                 else {
                     offByDefault();
                     onScreenSettingThenDetectedAndShortChargeNotKept();
@@ -112,7 +127,9 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     outOfSightStartAndNotificationStop();
                     rideAwayOutOfSight();
                 }
-                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))) fullFolderRotates();
+                if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))
+                        && !"riderules".equals(args.getString("only", "")) && !"riderulesaway".equals(args.getString("only", ""))
+                        && !"riderulesfull".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -459,6 +476,187 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         main(() -> settings().edit().putBoolean(KEY, false).commit());
         for (File file : saved()) file.delete();
     }
+    /**
+     * Only "riderules" (owner, Nov 24 2026), his report's sequence on the real service: Record rides automatically and
+     * Record charges automatically on, the live charging card on (the default). A ride recording runs; the scooter is
+     * plugged in: the ride ends at once, saved as ended by charging, the automatic charge recording starts and the live
+     * card shows. The charger is unplugged and replugged (1, 0, 1) with the scooter jostled: no ride starts. A ride under 20 s is not kept,
+     * stopped by hand or ended by a charge: no journal, no phone sensor files, no auto-save entry.
+     */
+    private void rideRules() throws Exception {
+        discardShortRides();
+        main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).putBoolean(RideAutoExport.ON, true).commit());
+        ensureFront();
+        // 1. A kept ride (35 s at 12 km/h, about 117 m), then plugged in.
+        int before = ridesSaved();
+        String ride = autoRide(35);
+        for (int i = 0; i < 3; i++) { main(() -> link.motion(0)); SystemClock.sleep(S); }
+        require(onMain(() -> service.isRecording()), "The ride ended before the plug-in");
+        long plugged = SystemClock.elapsedRealtime();
+        plugIn();
+        await(() -> onMain(() -> !service.isRecording()), 5 * S, "Plugging in did not end the ride");
+        long ended = SystemClock.elapsedRealtime() - plugged;
+        RideStore.Summary saved = rideSummary(ride);
+        require(saved != null && saved.chargingStop && !saved.automaticStop && ridesSaved() == before + 1, "The ride was not saved as ended by charging: " + (saved == null ? "missing" : saved.stopReason));
+        require(onMain(() -> !((Boolean) field(field(service, "autoStart"), "recordHeld"))), "The charge's end of the ride held Record rides automatically");
+        require(pendingExport().contains(ride), "The kept ride is not waiting for its auto-save copy");
+        log("plugged in mid-ride: ride ended in " + ended + " ms, saved as " + saved.fields().get("stopReason") + ", " + Math.round(saved.shownElapsedMs / 1000.0) + " s");
+        awaitRecording(15 * S, "after the charge ended the ride");
+        await(() -> liveCardPosted(), 20 * S, "No live charging card after the charge ended the ride: " + noticeTexts());
+        log("automatic charge recording started " + (SystemClock.elapsedRealtime() - plugged) + " ms after the plug-in, live card: " + notice());
+        screenshot("riderules-charge-after-ride");
+        // 2. Unplugged and replugged, jostled: no ride, the charge recording carries on.
+        for (int round = 0; round < 2; round++) {
+            main(() -> { link.charging(OFF); link.home(); link.battery(); link.motion(2); });
+            for (int i = 0; i < 5; i++) { main(() -> link.motion(2)); SystemClock.sleep(S); }
+            require(onMain(() -> !service.isRecording()), "An unplug and replug started a ride");
+            main(() -> { link.charging(ON); link.home(); link.battery(); });
+            SystemClock.sleep(3 * S);
+        }
+        require(onMain(() -> service.isChargeRecording() && !service.isRecording()), "After the replugs: the charge recording ended or a ride started");
+        log("charger 1-0-1 twice, jostled at 2 km/h: no ride, charge recording running");
+        // Without a charge recording to block it (Record charges automatically off), the unplug and replug alone must not start a ride.
+        main(() -> { service.stopChargeRecording(); settings().edit().putBoolean(KEY, false).commit(); });
+        for (int round = 0; round < 2; round++) {
+            main(() -> { link.charging(OFF); link.home(); link.battery(); });
+            for (int i = 0; i < 6; i++) { main(() -> { link.motion(2); link.status(); }); SystemClock.sleep(S); }
+            require(onMain(() -> !service.isRecording() && !service.isChargeRecording()), "An unplug and replug started a ride with no charge recording running");
+            main(() -> { link.charging(ON); link.home(); link.battery(); });
+            SystemClock.sleep(3 * S);
+        }
+        log("Record charges automatically off, charger 1-0-1 twice, jostled at 2 km/h: no ride");
+        unplugAndSettle();
+        long unplugged = SystemClock.elapsedRealtime();
+        for (int i = 0; i < 15; i++) { main(() -> { link.motion(2); link.status(); }); SystemClock.sleep(S); }
+        require(onMain(() -> !service.isRecording()), "A ride started within 30 s of the last charging reading at 2 km/h");
+        await(() -> { main(() -> { link.motion(2); link.status(); }); SystemClock.sleep(300); return onMain(() -> service.isRecording()); }, 30 * S,
+                "Record rides automatically never started again after the charger settled off");
+        log("unplugged: 2 km/h started a ride again " + (SystemClock.elapsedRealtime() - unplugged) + " ms after the unplug (30 s wait)");
+        main(() -> service.stopRide());
+        release();
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
+        await(() -> onMain(() -> !service.phoneSaving()), 10 * S, "That ride never finished saving");
+
+        // 3. A 6 s ride stopped by hand is not kept, nor its phone files or an auto-save entry.
+        before = ridesSaved();
+        String handShort = autoRide(6);
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "The short ride never finished saving");
+        shortGone(handShort, before, "stopped by hand after 6 s");
+        release();
+
+        // 4. An 8 s ride ended by a plug-in is not kept either, and the charge recording still starts.
+        String plugShort = autoRide(8);
+        main(() -> link.motion(0));
+        plugIn();
+        await(() -> onMain(() -> !service.isRecording()), 5 * S, "Plugging in did not end the short ride");
+        await(() -> onMain(() -> !service.phoneSaving()), 10 * S, "The short ride never finished saving");
+        shortGone(plugShort, before, "ended by the plug-in after 8 s");
+        awaitRecording(15 * S, "after the charge ended a short ride");
+        main(() -> service.stopChargeRecording());
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).putBoolean(RideAutoExport.ON, false).remove(RideAutoExport.PENDING).commit());
+        for (File file : saved()) file.delete();
+    }
+    private void rideRulesOutOfSight() throws Exception {
+        main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).putBoolean("background_connection", false).commit());
+        try {
+            ensureFront();
+            String ride = autoRide(25);
+            leaveVolt();
+            for (int i = 0; i < 14; i++) { main(() -> link.motion(12)); SystemClock.sleep(S); }
+            require(onMain(() -> service.isRecording() && ble.connected() && !service.isVisible()), "Out of sight past the ten-second stop, the ride kept recording and the link");
+            for (int i = 0; i < 4; i++) { main(() -> link.motion(0)); SystemClock.sleep(S); }
+            long plugged = SystemClock.elapsedRealtime();
+            plugIn();
+            await(() -> onMain(() -> !service.isRecording()), 20 * S, "Out of sight, plugging in did not end the ride");
+            RideStore.Summary saved = rideSummary(ride);
+            require(saved != null && saved.chargingStop, "The ride was not saved as ended by charging");
+            log("out of sight, Stay connected off: the plug-in ended the ride in " + (SystemClock.elapsedRealtime() - plugged) + " ms");
+            SystemClock.sleep(12 * S);
+            require(onMain(() -> ble.connected()), "The link was let go with the ride: " + onMainText(() -> ble.state() + " " + ble.message()));
+            awaitOr(() -> onMain(() -> service.isChargeRecording()), StatusCadence.POLL_SLOW_MS + 30 * S, "Out of sight, no automatic charge recording after the charge ended the ride");
+            await(() -> liveCardPosted(), 20 * S, "Out of sight, no live charging card after the charge ended the ride: " + noticeTexts());
+            log("out of sight: charge recording started " + (SystemClock.elapsedRealtime() - plugged) + " ms after the plug-in, link kept; card: " + notice());
+            shade("riderules-away-live-card");
+        } finally {
+            main(() -> settings().edit().putBoolean("background_connection", true).commit());
+            ensureFront();
+        }
+        main(() -> service.stopChargeRecording());
+        if (!onMain(() -> ble.ready())) { main(() -> link.attach()); await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link not ready again"); }
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
+        for (File file : saved()) file.delete();
+    }
+    private void rideRulesStorageFull() throws Exception {
+        main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).commit());
+        ensureFront();
+        String ride = autoRide(25);
+        File journal = new File(new File(getTargetContext().getFilesDir(), "rides"), ride + ".csv");
+        int before = tried();
+        try {
+            require(journal.exists() && journal.setWritable(false, false) && !journal.canWrite(), "Could not make the ride's journal read-only");
+            for (int i = 0; i < 3; i++) { main(() -> link.motion(0)); SystemClock.sleep(S); }
+            plugIn();
+            // Fifteen seconds of charging readings, each a change the rule looks at.
+            for (int i = 0; i < 15; i++) { main(() -> { link.charging(ON); link.home(); link.status(); }); SystemClock.sleep(S); }
+            int tries = tried() - before;
+            String error = onMainText(() -> String.valueOf(service.recordingError()));
+            require(onMain(() -> service.isRecording() && ride.equals(service.rides.activeId())), "The ride ended although its journal could not be written");
+            require(tries == 1, "Storage full: the charge-ended stop was tried " + tries + " times in 15 s of charging readings, not once");
+            require(error.startsWith("Storage full"), "The failed stop did not say so: " + error);
+            log("storage full, plugged in: the stop was tried " + tries + " time over 15 s of charging readings; the ride still records; error: " + error);
+            screenshot("riderules-storage-full");
+        } finally {
+            journal.setWritable(true, true);
+        }
+        // The rider frees space and taps Stop: that is Retry save.
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording()), 5 * S, "Retry save did not end the ride");
+        RideStore.Summary saved = rideSummary(ride);
+        require(saved != null && !saved.chargingStop && onMainText(() -> String.valueOf(service.recordingError())).equals("null"),
+                "Retry save did not save the ride: " + (saved == null ? "missing" : saved.stopReason));
+        log("Retry save: the ride saved (" + Math.round(saved.shownElapsedMs / 1000.0) + " s); tries still " + (tried() - before));
+        awaitRecording(30 * S, "after Retry save");
+        main(() -> service.stopChargeRecording());
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
+        for (File file : saved()) file.delete();
+    }
+    /** The service's count of charge-ended stops tried (ScooterService.chargeEndStopsTried). */
+    private int tried() { final int[] out = {0}; main(() -> out[0] = (Integer) field(service, "chargeEndStopsTried")); return out[0]; }
+    /** Ends the hand stop's hold once no fresh motion is left, so no ride starts on the last moving sample. */
+    private void release() {
+        main(() -> link.motion(0));
+        SystemClock.sleep(AutoStartPolicy.SPEED_FRESH_MS + 500);
+        require(onMain(() -> !service.isRecording()), "A ride started while held");
+        main(() -> set(field(service, "autoStart"), "recordHeld", false));
+        SystemClock.sleep(S);
+        require(onMain(() -> !service.isRecording()), "A ride started without fresh motion after the hold ended");
+    }
+    /** Starts an automatic ride with motion at 12 km/h and keeps it moving for seconds; returns its id. */
+    private String autoRide(int seconds) {
+        main(() -> link.motion(12));
+        await(() -> onMain(() -> service.isRecording()), 5 * S, "Record rides automatically did not start a ride");
+        String id = onMainText(() -> service.rides.activeId());
+        for (int i = 0; i < seconds; i++) { main(() -> { link.motion(12); link.status(); }); SystemClock.sleep(S); }
+        return id;
+    }
+    private void shortGone(String id, int before, String what) {
+        require(rideSummary(id) == null && ridesSaved() == before, "A ride " + what + " was kept");
+        File phone = new File(getTargetContext().getFilesDir(), "phone-rides");
+        require(!new File(phone, id + "-phone.csv").exists() && !new File(phone, id + "-motion.csv").exists(), "Its phone sensor files were left: " + Arrays.toString(phone.list()));
+        require(!pendingExport().contains(id), "It is waiting for an auto-save copy");
+        log("a ride " + what + ": not kept, no phone files, no auto-save entry");
+    }
+    private int ridesSaved() { File[] files = new File(getTargetContext().getFilesDir(), "rides").listFiles((dir, name) -> name.endsWith(".csv")); return files == null ? 0 : files.length; }
+    private RideStore.Summary rideSummary(String id) {
+        final RideStore.Summary[] out = {null};
+        main(() -> { try { out[0] = service.rides.get(id); } catch (IOException e) { throw new IllegalStateException(e); } });
+        return out[0];
+    }
+    private String pendingExport() { return settings().getString(RideAutoExport.PENDING, ""); }
     private void leaveVolt() {
         getTargetContext().startActivity(new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         await(() -> onMain(() -> !service.isVisible()), 10000, "Volt never left the foreground");

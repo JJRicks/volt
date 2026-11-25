@@ -8,6 +8,10 @@ public final class AutoStartPolicyTest {
         moving();
         recordingGates();
         recordingHolds();
+        ownPauseKeepsTheHold();
+        ownPauseLength();
+        recreatedServiceIsNoDisconnect();
+        rideOffAfterOwnPause();
         rideModeGates();
         rideModeHolds();
         backgroundPrerequisite();
@@ -33,7 +37,7 @@ public final class AutoStartPolicyTest {
 
     private static void recordingGates() {
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         check(record(p), "all gates open: starts");
         check(!p.shouldRecord(false, true, false, false, false, false, true), "switch off: nothing (the default)");
         check(!p.shouldRecord(true, false, false, false, false, false, true), "not moving, or stale: nothing");
@@ -44,44 +48,263 @@ public final class AutoStartPolicyTest {
         check(!p.shouldRecord(true, true, false, false, false, false, false), "link not ready: nothing");
     }
 
+    /** A link at time t (monotonic ms) to a scooter that is on, with no Disconnect from the rider. */
+    private static void link(AutoStartPolicy p, boolean connected, int generation, long t) { p.observeLink(connected, generation, t, false, BLE, 0, false); }
+    /** One transport (BleController) for a service's life; a recreated service brings a new one. */
+    private static final Object BLE = new Object();
+    /** A look with everything: own is Volt's own background pause (out of sight, link closed by Volt). */
+    private static void look(AutoStartPolicy p, boolean connected, int generation, long t, boolean off, Object ble, long disconnects, boolean own) {
+        p.observeLink(connected, generation, t, off, ble, disconnects, own);
+    }
+
+    private static final long MIN = 60_000;
+
     private static void recordingHolds() {
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         p.riderStoppedRecording();
         check(p.recordHeld() && !record(p), "a manual stop holds it while still moving");
-        p.observeLink(true, 1);
+        link(p, true, 1, 1000);
         check(!record(p), "the same connection never clears the hold");
-        p.observeLink(false, 1);
+        link(p, false, 1, 2000);
         check(!record(p) && p.recordHeld(), "the disconnect alone does not clear it");
-        p.observeLink(true, 2);
-        check(!p.recordHeld() && record(p), "disconnect and reconnect clears the hold");
+        link(p, true, 2, 7000);
+        check(p.recordHeld() && !record(p), "Volt's own quick reconnect (5 s) keeps the hold");
+        link(p, false, 2, 10_000);
+        link(p, true, 3, 10_000 + AutoStartPolicy.SESSION_END_MS);
+        check(!p.recordHeld() && record(p), "a link gone for SESSION_END_MS is a real end: the reconnect clears the hold");
 
         p.riderStoppedRecording();
-        p.observeLink(true, 3);
-        check(!p.recordHeld(), "a drop too quick to see still clears it (new connection number)");
+        link(p, true, 4, 10_000 + AutoStartPolicy.SESSION_END_MS + 1000);
+        check(p.recordHeld(), "a drop too quick to see (new connection number) keeps it");
 
-        p.observeLink(false, 3);
+        long t = 600_000;
+        link(p, true, 4, t);
+        link(p, false, 4, t + 1000);
         p.riderStoppedRecording();
         check(p.recordHeld(), "a stop made while disconnected holds");
-        p.observeLink(true, 3);
-        check(!p.recordHeld(), "and the next connection clears it");
+        link(p, true, 5, t + 5000);
+        check(p.recordHeld(), "and a reconnect seconds later keeps it");
+        link(p, false, 5, t + 6000);
+        link(p, false, 5, t + 6000 + AutoStartPolicy.SESSION_END_MS);
+        check(p.recordHeld() && !record(p), "gone long enough ends the session, but nothing starts without a link");
+        link(p, true, 6, t + 10 * MIN);
+        check(!p.recordHeld(), "the next connection after that clears it");
 
-        p.recordingStartFailed();
-        check(p.recordHeld() && !record(p), "a failed start is not retried on the next speed sample");
-        p.observeLink(false, 3);
-        p.observeLink(true, 4);
-        check(record(p), "the next connection may try again");
+        AutoStartPolicy fail = new AutoStartPolicy();
+        link(fail, true, 1, 0);
+        fail.recordingStartFailed();
+        check(fail.recordHeld() && !record(fail), "a failed start is not retried on the next speed sample");
+        link(fail, false, 1, 1000);
+        link(fail, true, 2, 2000);
+        check(record(fail), "any next connection, Volt's own too, may try again");
 
         AutoStartPolicy end = new AutoStartPolicy();
-        end.observeLink(true, 1);
+        link(end, true, 1, 0);
         check(record(end), "nothing but a rider's stop or a failure sets the hold, so an automatic ride end starts again on motion");
+    }
+
+    /**
+     * The owner's report (Nov 24 2026), synthesized: auto-record on, a ride stopped by hand at 16:10, Volt to the background
+     * at 16:11:25 (its own pause closes the link) and back with a reconnect at 16:11:30. Rolling the scooter indoors must
+     * not start a ride. Only a real end of the session clears the hold.
+     */
+    private static void ownPauseKeepsTheHold() {
+        long stop = 1_000_000, pause = stop + 85_000, back = pause + 5000;
+        AutoStartPolicy p = new AutoStartPolicy();
+        look(p, true, 7, stop - 1000, false, BLE, 3, false);
+        p.riderStoppedRecording();
+        p.riderLeftRidingMode();
+        look(p, true, 7, pause - 200, false, BLE, 3, false);
+        look(p, false, 7, pause, false, BLE, 3, true);         // BACKGROUND_PAUSE, out of sight
+        look(p, false, 7, back - 2000, false, BLE, 3, false);  // Volt on screen again: CONNECT_ATTEMPT
+        look(p, true, 8, back, false, BLE, 3, false);          // AUTHENTICATED_READY
+        check(p.recordHeld() && !record(p), "16:11:30 reconnect after Volt's own background pause: rolling the scooter starts no ride");
+        check(p.rideModeHeld() && !ride(p, true), "and the back-out hold stands too");
+        // Connect retries and a timeout: 18 s to connect, a retry, then up.
+        look(p, false, 8, back + 10_000, false, BLE, 3, false);
+        look(p, false, 8, back + 28_000, false, BLE, 3, false);
+        look(p, true, 9, back + 30_000, false, BLE, 3, false);
+        check(p.recordHeld() && p.rideModeHeld(), "connect retries and a timeout keep both holds");
+        // Lost just under the limit: still not an end.
+        look(p, false, 9, back + 31_000, false, BLE, 3, false);
+        look(p, true, 10, back + 31_000 + AutoStartPolicy.SESSION_END_MS - 1, false, BLE, 3, false);
+        check(p.recordHeld(), "a real loss just under SESSION_END_MS keeps the hold");
+
+        // Switched off (ScooterPowerState) while still answering: the session is over; the next look with it on clears.
+        long off = back + 10 * MIN;
+        look(p, true, 10, off, true, BLE, 3, false);
+        check(p.recordHeld(), "while it stays switched off the hold still reads as set");
+        p.riderStoppedRecording(); // a stop made after the switch-off ends with the same session
+        look(p, true, 10, off + 30_000, false, BLE, 3, false);
+        check(!p.recordHeld() && !p.rideModeHeld() && record(p), "switched on again: a new session, both holds clear");
+
+        // The rider's own Disconnect is a real end too: the next connection clears.
+        p.riderStoppedRecording();
+        look(p, false, 10, off + MIN, false, BLE, 4, false);
+        look(p, true, 11, off + MIN + 3000, false, BLE, 4, false);
+        check(!p.recordHeld(), "the rider's Disconnect, then Connect: cleared");
+        // A first look never reads its Disconnect count as a change.
+        AutoStartPolicy fresh = new AutoStartPolicy();
+        fresh.riderStoppedRecording();
+        look(fresh, true, 1, 5, false, BLE, 9, false);
+        check(fresh.recordHeld(), "the first look's Disconnect count is its baseline, not a Disconnect");
+    }
+
+    /** Speed samples, one a second from t to t + seconds - 1 (inclusive), each looked at as it arrives. */
+    private static void samples(AutoStartPolicy p, long t, int seconds, int kmh) {
+        for (int i = 0; i < seconds; i++) { long at = t + i * 1000L; p.observeSpeed(true, kmh * 10, at, at + 100); }
+    }
+
+    /** A hand stop, then Volt's own pause out of sight (BACKGROUND_PAUSE), then the reconnect when Volt comes back. */
+    private static AutoStartPolicy pausedAndBack(long stop, long minutesAway) {
+        AutoStartPolicy p = new AutoStartPolicy();
+        look(p, true, 7, stop - 1000, false, BLE, 3, false);
+        p.riderStoppedRecording();
+        p.riderLeftRidingMode();
+        long pause = stop + 15_000, back = pause + minutesAway * MIN;
+        look(p, false, 7, pause, false, BLE, 3, true);
+        look(p, false, 7, back - 2000, false, BLE, 3, false);
+        look(p, true, 8, back, false, BLE, 3, false);
+        return p;
+    }
+
+    /**
+     * #643 round 2, F01: a switch-off and on during Volt's own pause (a coffee stop) isn't seen through the closed link.
+     * Ridden off after the reconnect (above RIDE_ON_KMH for RIDE_ON_MS), the session ends and the ride records; a roll-in
+     * stays held, and so does riding on after a hand stop with Volt on screen the whole time.
+     */
+    private static void rideOffAfterOwnPause() {
+        check(AutoStartPolicy.RIDE_ON_KMH == 10 && AutoStartPolicy.RIDE_ON_MS == 3000, "above 10 km/h for 3 s");
+        long t = 5_000_000;
+        AutoStartPolicy coffee = pausedAndBack(t, 12);
+        long back = t + 15_000 + 12 * MIN;
+        check(coffee.recordHeld(), "back after a 12-minute coffee stop: still held until it moves");
+        samples(coffee, back + 2000, 3, 18);
+        check(coffee.recordHeld() && !record(coffee), "ridden off, but for under 3 s of samples: still held");
+        samples(coffee, back + 5000, 1, 18);
+        check(!coffee.recordHeld() && !coffee.rideModeHeld() && record(coffee) && ride(coffee, true),
+                "ridden off above 10 km/h for 3 s: a new ride, it records and riding mode opens");
+
+        AutoStartPolicy rollIn = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        samples(rollIn, back + 1000, 30, 5);
+        check(rollIn.recordHeld() && rollIn.rideModeHeld() && !record(rollIn), "walked in at 5 km/h for 30 s after the pause: held");
+        samples(rollIn, back + 40_000, 20, 9);
+        check(rollIn.recordHeld(), "a brisk push at 9 km/h: held");
+        // Fast samples broken by a slow one never add up.
+        for (int i = 0; i < 6; i++) { samples(rollIn, back + 70_000 + i * 4000L, 2, 15); samples(rollIn, back + 72_000 + i * 4000L, 1, 3); }
+        check(rollIn.recordHeld(), "bursts under 3 s, each broken by a slow sample: held");
+        // A stale sample is no evidence: seen 4 s after it arrived.
+        for (int i = 0; i < 5; i++) { long at = back + 100_000 + i * 1000L; rollIn.observeSpeed(true, 200, at, at + AutoStartPolicy.SPEED_FRESH_MS + 1); }
+        check(rollIn.recordHeld(), "stale fast samples: held");
+        samples(rollIn, back + 200_000, 4, 20);
+        check(!rollIn.recordHeld() && record(rollIn), "then ridden off: records");
+
+        // Volt on screen the whole time: no own pause, so riding on after a hand stop stays held (the rider's choice).
+        AutoStartPolicy onScreen = new AutoStartPolicy();
+        look(onScreen, true, 7, t, false, BLE, 3, false);
+        onScreen.riderStoppedRecording();
+        look(onScreen, true, 7, t + 1000, false, BLE, 3, false);
+        samples(onScreen, t + 2000, 60, 25);
+        check(onScreen.recordHeld() && !record(onScreen), "hand stop and riding on with Volt on screen: still held");
+        // A real loss under SESSION_END_MS (on screen) isn't an own pause either.
+        look(onScreen, false, 7, t + 70_000, false, BLE, 3, false);
+        look(onScreen, true, 8, t + 100_000, false, BLE, 3, false);
+        samples(onScreen, t + 101_000, 10, 25);
+        check(onScreen.recordHeld(), "a short real drop, then riding on: still held");
+
+        // A hand stop made after the reconnect is a choice made then: riding on after it keeps the recording hold, and
+        // only that one (#643 round 3, F04): riding mode's release still stands.
+        AutoStartPolicy again = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        again.riderStoppedRecording();
+        samples(again, back + 1000, 10, 20);
+        check(again.recordHeld() && !record(again), "back from the pause, stopped by hand again, ridden on: the recording hold stays");
+        check(!again.rideModeHeld() && ride(again, true), "and the back-out from before the pause is released by the ride-off");
+        // A back-out after the reconnect keeps riding mode's hold only: the ride-off still releases the recording hold.
+        AutoStartPolicy backOut = pausedAndBack(t, 5);
+        backOut.riderLeftRidingMode();
+        samples(backOut, back + 1000, 10, 20);
+        check(!backOut.recordHeld() && record(backOut), "back from the pause, backed out of riding mode, ridden off: it records");
+        check(backOut.rideModeHeld() && !ride(backOut, true), "and riding mode stays held: the back-out was made then");
+        // The link down again: no count runs across it.
+        AutoStartPolicy split = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        samples(split, back + 1000, 2, 20);
+        look(split, false, 8, back + 3000, false, BLE, 3, false);
+        split.observeSpeed(false, 200, back + 3000, back + 3100);
+        look(split, true, 9, back + 4000, false, BLE, 3, false);
+        samples(split, back + 4000, 2, 20);
+        check(split.recordHeld(), "2 s fast, a drop, 2 s fast: held");
+    }
+
+    /**
+     * #643 round 1, finding 1: Stay connected in background off, a hand stop, then minutes with Volt out of sight. Volt's
+     * own pause counts toward OWN_PAUSE_END_MS, never toward SESSION_END_MS; a real loss still ends at SESSION_END_MS.
+     */
+    private static void ownPauseLength() {
+        long t = 5_000_000;
+        AutoStartPolicy p = new AutoStartPolicy();
+        look(p, true, 1, t, false, BLE, 0, false);
+        p.riderStoppedRecording();
+        look(p, false, 1, t + 10_000, false, BLE, 0, true);          // the ten-second stop pauses the link
+        look(p, false, 1, t + 10_000 + 3 * MIN, false, BLE, 0, false); // opened again 3 minutes later
+        look(p, true, 2, t + 10_000 + 3 * MIN + 2000, false, BLE, 0, false);
+        check(p.recordHeld() && !record(p), "3 minutes in a pocket (Volt's own pause), reopened: the hold stands");
+        // A service stopped in the pause: no look until Volt opens again; the gap counts as the pause it was.
+        long u = t + 20 * MIN;
+        look(p, false, 2, u, false, BLE, 0, true);
+        look(p, false, 2, u + AutoStartPolicy.OWN_PAUSE_END_MS - 60_000, false, BLE, 0, false);
+        look(p, true, 3, u + AutoStartPolicy.OWN_PAUSE_END_MS - 58_000, false, BLE, 0, false);
+        check(p.recordHeld(), "a pause just under OWN_PAUSE_END_MS (and the minute's reconnect after it): still held");
+        long v = u + 2 * AutoStartPolicy.OWN_PAUSE_END_MS;
+        look(p, false, 3, v, false, BLE, 0, true);
+        look(p, false, 3, v + AutoStartPolicy.OWN_PAUSE_END_MS, false, BLE, 0, false);
+        look(p, true, 4, v + AutoStartPolicy.OWN_PAUSE_END_MS + 3000, false, BLE, 0, false);
+        check(!p.recordHeld() && record(p), "half an hour in Volt's own pause: a parked scooter, the session is over");
+        // A real loss of 2 minutes (Stay connected on, the scooter out of reach) still ends it.
+        p.riderStoppedRecording();
+        long w = v + 3 * AutoStartPolicy.OWN_PAUSE_END_MS;
+        look(p, true, 4, w, false, BLE, 0, false);
+        look(p, false, 4, w + 1000, false, BLE, 0, false);
+        look(p, true, 5, w + 1000 + AutoStartPolicy.SESSION_END_MS, false, BLE, 0, false);
+        check(!p.recordHeld(), "a real loss of SESSION_END_MS ends it as before");
+        // Lost for real, then paused: the lost minute and the paused minutes are counted apart; neither reaches its limit.
+        p.riderStoppedRecording();
+        long x = w + 10 * MIN;
+        look(p, false, 5, x, false, BLE, 0, false);
+        look(p, false, 5, x + MIN, false, BLE, 0, true);
+        look(p, true, 6, x + MIN + 10 * MIN, false, BLE, 0, false);
+        check(p.recordHeld(), "a minute lost and ten paused: still held");
+    }
+
+    /**
+     * #643 round 1, finding 5: the hold lives for the process, but each service's transport counts Disconnects from 0. A
+     * recreated service is a new count to compare with, not a Disconnect.
+     */
+    private static void recreatedServiceIsNoDisconnect() {
+        long t = 9_000_000;
+        AutoStartPolicy p = new AutoStartPolicy();
+        Object first = new Object(), second = new Object();
+        look(p, true, 1, t, false, first, 0, false);
+        look(p, false, 1, t + 1000, false, first, 1, false);
+        look(p, true, 2, t + 4000, false, first, 1, false);  // the rider's Disconnect and Connect (nothing held yet)
+        p.riderStoppedRecording();
+        look(p, false, 2, t + 10_000, false, first, 1, true);  // out of sight, Volt's pause; the idle service stops
+        look(p, false, 0, t + 70_000, false, second, 0, false); // a new service, its count back at 0
+        look(p, true, 1, t + 72_000, false, second, 0, false);
+        check(p.recordHeld() && !record(p), "a recreated service within the minute: still held");
+        look(p, false, 1, t + 80_000, false, second, 1, false);
+        look(p, true, 2, t + 83_000, false, second, 1, false);
+        check(!p.recordHeld(), "its own Disconnect still counts");
     }
 
     private static boolean ride(AutoStartPolicy p, boolean clear) { return p.shouldOpenRidingMode(true, true, clear); }
 
     private static void rideModeGates() {
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         check(ride(p, true), "all gates open: opens");
         check(!p.shouldOpenRidingMode(false, true, true), "switch off: nothing (the default)");
         check(!p.shouldOpenRidingMode(true, false, true), "not moving, or stale: nothing");
@@ -97,18 +320,21 @@ public final class AutoStartPolicyTest {
 
     private static void rideModeHolds() {
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         p.rideModeOpened();
         check(p.rideModeHeld() && !ride(p, true), "one open per trigger");
-        p.observeLink(false, 1);
-        p.observeLink(true, 2);
-        check(ride(p, true), "the next connection is a new trigger");
+        link(p, false, 1, 1000);
+        link(p, true, 2, 3000);
+        check(ride(p, true), "the next connection, Volt's own included, is a new trigger");
         p.riderLeftRidingMode();
         check(!ride(p, true), "backing out holds while still moving");
-        p.observeLink(false, 2);
+        link(p, false, 2, 4000);
         check(!ride(p, true), "the disconnect alone does not clear it");
-        p.observeLink(true, 3);
-        check(ride(p, true), "reconnect clears the back-out hold");
+        link(p, true, 3, 9000);
+        check(!ride(p, true), "Volt's own quick reconnect keeps the back-out hold");
+        link(p, false, 3, 10_000);
+        link(p, true, 4, 10_000 + AutoStartPolicy.SESSION_END_MS);
+        check(ride(p, true), "a real end of the session clears the back-out hold");
         p.riderStoppedRecording();
         check(ride(p, true) && p.recordHeld(), "the two holds are independent");
     }
@@ -135,7 +361,7 @@ public final class AutoStartPolicyTest {
         boolean background = StatusCadence.linked(true, status, sample, false);
         check(background && !StatusCadence.linked(true, status, sample, true), "9 s into the poll cycle the link is up on its cadence, past the foreground window");
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         check(p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, sample), false, false, false, false, background), "a fresh moving sample between polls starts");
         long nextStatus = status + StatusCadence.POLL_SLOW_MS;
         check(!p.shouldRecord(true, AutoStartPolicy.moving(true, 200, sample, nextStatus), false, false, false, false, StatusCadence.linked(true, nextStatus, nextStatus, false)), "the same sample at the next poll has expired: still no stale start");
@@ -155,7 +381,7 @@ public final class AutoStartPolicyTest {
         check(!AutoStartPolicy.recordsNow(false, false, true), "both off (the default): nothing");
         // Held back in the background, then Volt comes on screen while the scooter still moves: no hold was set, so it starts.
         AutoStartPolicy p = new AutoStartPolicy();
-        p.observeLink(true, 1);
+        link(p, true, 1, 0);
         check(!p.shouldRecord(AutoStartPolicy.recordsNow(true, false, false), true, false, false, false, false, true), "held back in the background");
         check(!p.recordHeld() && p.shouldRecord(AutoStartPolicy.recordsNow(true, false, true), true, false, false, false, false, true),
                 "held back is not a hold: on screen it starts");
