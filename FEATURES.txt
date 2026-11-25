@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 2.0.5 (versionCode 65)
+Current version: 2.0.6 (versionCode 66)
 Recognised: every scooter in NAVEE's model catalog, by the Model ID it
 advertises, and pictured where a photo exists. Controls follow the official
 app's per-model list (the two S2 Model IDs, newer than that list, get the
@@ -29,7 +29,46 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 2.0.5
+NEW IN 2.0.6
+------------
+- Recording rules: a fresh charging reading taken after a ride started ends
+  that ride at once (saved with end code automatic_charging, no hold), so
+  Record charges automatically and the live charging card start; the link
+  is held up to 60 s for it while Volt is out of sight. Never above about
+  3 mph (4.8 km/h). No automatic ride while charging or within 30 s of the
+  last charging reading, unless ridden off above about 3 mph; a ride
+  started by hand while charging is exempt until unplugged or ridden off.
+- Short rides: a recording under 20 s or 0.01 mi (16 m) is not kept, only
+  on positive evidence (speed readings covering the ride, or no 16 m GPS
+  track and a whole recording under 20 s). Ride not saved, too short with
+  Undo for the latest discard only, while its bar (about 8 s) or silent
+  notice (10 min, on Rides and charging) is there; the ride is held 24 h
+  in the app's cache, outside Rides, backups and exports.
+- The hand-stop and back-out holds last until the riding session ends
+  (switched off, 2 min link loss, a 30 min own background pause,
+  Disconnect or a scooter switch; after an own pause, 3 s above 10 km/h),
+  not until Volt's own next reconnect.
+- Charging (UT5 MAX): Charging slowed on any charger below 1.6 A (clears at
+  1.7 A on the stock or an unknown charger, at 0.95 x the expected current
+  on a known high-speed charger; the stock charger's finish excluded), after 20 s low without a
+  rise, from 70 s after plug-in at 35 C or more and 90 s below (2.0.5:
+  120 s); hot named from 35 C (was 38 C); cleared at once when full power
+  arrives. The time tile no longer flashes Estimating time during a page
+  change.
+- Live Updates (Android 16+): a recording ride's notice is promoted, its
+  chip the ride clock; a swiped ride or charging Live Update stays hidden for that
+  ride or charge. The Live charging sheet's In the status bar choice:
+  Level (default) or Finish time. A quiet Rides and charging channel
+  (default importance, no sound, vibration or badge) carries the card, the
+  ride's notice and the short-ride Undo notice, falling back to Scooter
+  connection & recording when only it is off.
+- Clean Home: the Ride clock while a ride records, after charging (time, this ride's speed,
+  Trip, Battery, Range (est.), Open riding mode), with Show the ride while
+  recording in Home style (on by default, backed up); the Ride row's time
+  follows riding mode's REC pill. All new and changed text is translated
+  in all ten beta languages. Full list: CHANGELOG.md.
+
+PREVIOUSLY IN 2.0.5
 ------------
 - Scooter off: a scooter switched off but still answering (status replies,
   no live 0x90/0x91/0x92 push for 10 s; UT5 MAX, or a scooter that pushed
