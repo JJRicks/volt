@@ -11,7 +11,10 @@ TEST_BUILD_DIR="$NAVEE_BUILD_DIR/core-tests"
 # thousands behind. VOLT_KEEP_TEST_TMP=1 keeps it, to look at after a failure.
 TEST_TMP="$(mktemp -d "${TMPDIR:-/tmp}/volt-core-tests.XXXXXX")"
 TEST_SHM_TMP=""
+SITE_TEST_PID=""
 remove_test_tmp() {
+    # A run that stops early (a failed suite) also stops the homepage suite running beside it (below).
+    [[ -z "$SITE_TEST_PID" ]] || kill "$SITE_TEST_PID" 2>/dev/null || true
     if [[ "${VOLT_KEEP_TEST_TMP:-}" == 1 ]]; then
         echo "Kept the tests' temporary files: $TEST_TMP${TEST_SHM_TMP:+ and $TEST_SHM_TMP}" >&2
     else
@@ -20,6 +23,12 @@ remove_test_tmp() {
 }
 trap remove_test_tmp EXIT
 java() { command java -Djava.io.tmpdir="$TEST_TMP" "$@"; }
+# The homepage suite (about two minutes on a CI runner) reads only site/ and a few repository files and builds in
+# its own temporary folders, so it runs beside the Java suites. Its output is printed, and its result checked, where
+# it used to run, near the end; a failure still fails this script.
+SITE_TEST_LOG="$TEST_TMP/site-homepage-test.log"
+python3 -I "$TEST_DIR/site-homepage-test.py" >"$SITE_TEST_LOG" 2>&1 &
+SITE_TEST_PID=$!
 rm -rf -- "$TEST_BUILD_DIR/classes"
 mkdir -p "$TEST_BUILD_DIR/classes"
 sources=()
@@ -312,6 +321,10 @@ for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "co
 # build.sh versionName: dev marker, release flag, trees that aren't their own checkout.
 bash "$TEST_DIR/build-version-test.sh"
 # Homepage variants: site/build.sh contract, variant markup and CSP check, nginx headers, live switch (site/README.md).
-python3 -I "$TEST_DIR/site-homepage-test.py"
+site_status=0
+wait "$SITE_TEST_PID" || site_status=$?
+SITE_TEST_PID=""
+cat "$SITE_TEST_LOG"
+if (( site_status != 0 )); then echo "site-homepage-test.py failed (exit $site_status)" >&2; exit "$site_status"; fi
 # Localization suites from tests/l10n/*.sources (see above), from the repository root.
 for name in ${l10n_tests[@]+"${l10n_tests[@]}"}; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"); done
