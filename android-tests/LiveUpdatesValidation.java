@@ -34,6 +34,8 @@ import java.util.function.BooleanSupplier;
  *     would otherwise repost it; ending the ride posts the next notice.</li>
  * <li>The live charging card out of sight: promoted, its chip the level by default; Finish time shows the finish time
  *     the card's text shows, or the level while the card has none; back to Level.</li>
+ * <li>The live card swiped away (owner, Nov 24): it stays gone while the level moves; opening Volt brings it back and it
+ *     updates; swiped again, the unplug's plain notice posts and the next charge's card shows.</li>
  * <li>Throughout, the foreground service keeps its notice and type, and nothing sounds, vibrates or pops up
  *     (dumpsys notification's own record of the notice).</li>
  * </ul>
@@ -80,6 +82,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             log("link ready, not charging");
             rideLiveUpdate();
             chargeChip();
+            chargeSwipe();
             channelsOff();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -216,6 +219,22 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
 
     /** A person's swipe: the shade open, the ride's card swiped sideways where the shade shows it. */
     private void dismissRide() throws Exception {
+        swipeAway("Ride recording is active", "ride");
+        await(() -> onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), 10 * S, "The delete intent never reached the service");
+        log("ride: dismissed in the shade");
+        shell("cmd statusbar collapse");
+        // A change that reposts a ride's notice (more distance), then the tick: the notice stays away.
+        main(() -> {
+            long now = SystemClock.elapsedRealtime(), wall = System.currentTimeMillis();
+            ride(now, wall, 30);
+            invoke(service, "updateNotification", new Class<?>[]{});
+        });
+        SystemClock.sleep(12 * S);
+        require(connection() == null && onMain(() -> service.isRecording()), "The dismissed ride's notice came back during the ride: " + describe());
+        foregroundValid("ride dismissed");
+    }
+    /** Swipes notice 71 away in the shade: by its title's bounds when the accessibility tree has them, else where the first card sits. */
+    private void swipeAway(String titleText, String what) throws Exception {
         UiAutomation ui = getUiAutomation();
         android.accessibilityservice.AccessibilityServiceInfo info = ui.getServiceInfo();
         info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
@@ -231,7 +250,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             for (android.view.accessibility.AccessibilityWindowInfo window : ui.getWindows()) if (window.getRoot() != null) roots.add(window.getRoot());
             for (AccessibilityNodeInfo root : roots) {
                 if (root == null) continue;
-                for (AccessibilityNodeInfo found : root.findAccessibilityNodeInfosByText("Ride recording is active")) {
+                for (AccessibilityNodeInfo found : root.findAccessibilityNodeInfosByText(titleText)) {
                     android.graphics.Rect r = new android.graphics.Rect(); found.getBoundsInScreen(r);
                     if (r.height() > 0) { bounds = r; break; }
                 }
@@ -243,7 +262,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             StringBuilder seen = new StringBuilder();
             for (android.view.accessibility.AccessibilityWindowInfo window : ui.getWindows()) seen.append(window.getTitle()).append(window.getRoot() == null ? "(no root) " : " ");
             AccessibilityNodeInfo active = ui.getRootInActiveWindow();
-            log("ride: the shade's card not in the accessibility tree; windows: " + seen + "; active: " + (active == null ? null : active.getPackageName()));
+            log(what + ": the shade's card not in the accessibility tree; windows: " + seen + "; active: " + (active == null ? null : active.getPackageName()));
         }
         android.util.DisplayMetrics screen = getTargetContext().getResources().getDisplayMetrics();
         int width = screen.widthPixels;
@@ -252,24 +271,12 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         float[] tries = bounds != null ? new float[]{(float) bounds.centerY() / screen.heightPixels} : new float[]{0.31f, 0.37f, 0.44f, 0.50f};
         for (float at : tries) {
             int y = Math.round(screen.heightPixels * at);
-            log("ride: swiping the card away at y=" + y + (bounds != null ? " (its title's bounds)" : " (where the shade's first card sits)"));
+            log(what + ": swiping the card away at y=" + y + (bounds != null ? " (its title's bounds)" : " (where the shade's first card sits)"));
             shell("input swipe " + width * 2 / 5 + " " + y + " " + (width - 10) + " " + y + " 200");
             SystemClock.sleep(1500);
             if (connection() == null) break;
         }
-        await(() -> connection() == null, 10 * S, "The ride's notice is still posted after the dismiss: " + describe());
-        await(() -> onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), 10 * S, "The delete intent never reached the service");
-        log("ride: dismissed in the shade");
-        shell("cmd statusbar collapse");
-        // A change that reposts a ride's notice (more distance), then the tick: the notice stays away.
-        main(() -> {
-            long now = SystemClock.elapsedRealtime(), wall = System.currentTimeMillis();
-            ride(now, wall, 30);
-            invoke(service, "updateNotification", new Class<?>[]{});
-        });
-        SystemClock.sleep(12 * S);
-        require(connection() == null && onMain(() -> service.isRecording()), "The dismissed ride's notice came back during the ride: " + describe());
-        foregroundValid("ride dismissed");
+        await(() -> connection() == null, 10 * S, "The " + what + "'s notice is still posted after the dismiss: " + describe());
     }
 
     // ---- The live charging card's chip ---------------------------------------------------------------------
@@ -313,6 +320,58 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         quiet("card ended");
         channel("card ended", LiveNotices.SCOOTER_CHANNEL);
         main(() -> settings().edit().remove(ScooterService.CHARGE_LIVE_CHIP).commit());
+    }
+    /** Arms the live card from the front with the scooter charging, then leaves Volt. */
+    private void armCard() {
+        ensureFront();
+        main(() -> settings().edit().remove(ScooterService.CHARGE_LIVE_CHIP).commit());
+        readChargingInFront();
+        leave();
+    }
+    private boolean cardDismissed() { return onMain(() -> ((LiveNotices.Dismissal) field(service, "chargeDismissal")).active()); }
+    private Object cardKey() { return onMainGet(() -> { ChargeLiveState built = (ChargeLiveState) field(service, "chargeLiveBuilt"); return built == null ? null : built.dedupeKey; }); }
+    /**
+     * Owner, Nov 24: a swiped live card stays gone for the rest of that charge, as the ride's does. Swiped, it stays
+     * away while the level moves (a change that would repost it); opening Volt shows it again and it updates; swiped
+     * again, the unplug's plain notice posts and ends the hold, so the next charge's card shows.
+     */
+    private void chargeSwipe() throws Exception {
+        armCard();
+        await(() -> isCard() && promoted(), 30 * S, "The live card was not promoted out of sight: " + describe());
+        swipeAway(title(), "card");
+        await(this::cardDismissed, 10 * S, "The card's delete intent never reached the service");
+        log("card: dismissed in the shade");
+        shell("cmd statusbar collapse");
+        Object before = cardKey();
+        main(() -> link.level = 63);
+        await(() -> before != null && !before.equals(cardKey()), StatusCadence.POLL_SLOW_MS + 15 * S, "The card's values never moved after the swipe");
+        SystemClock.sleep(5 * S);
+        require(connection() == null && onMain(() -> service.chargeLiveAllowed()) && cardDismissed(), "The swiped card came back while the charge went on: " + describe());
+        foregroundValid("card dismissed");
+        log("card: stays gone while the level moves to 63%");
+        // Opening Volt shows it again (startForeground ends the hold); leaving brings the card back, and it updates.
+        ensureFront();
+        await(() -> !cardDismissed(), 10 * S, "Opening Volt didn't end the card's hold");
+        readChargingInFront();
+        leave();
+        await(() -> isCard() && promoted() && "63%".equals(chip()), 30 * S, "After opening Volt, the card didn't come back: " + describe());
+        main(() -> link.level = 64);
+        await(() -> "64%".equals(chip()), StatusCadence.POLL_SLOW_MS + 15 * S, "After opening Volt, the card never updated: " + describe());
+        log("card: back after opening Volt, and updating: " + describe());
+        // Swiped again, then unplugged: the plain notice posts and ends the hold; the next charge's card shows.
+        swipeAway(title(), "card");
+        await(this::cardDismissed, 10 * S, "The second swipe never reached the service");
+        shell("cmd statusbar collapse");
+        main(() -> link.charging(OFF));
+        await(() -> connection() != null && !isCard(), StatusCadence.POLL_SLOW_MS + ChargeLiveHold.UNPLUG_MS + 15 * S, "The unplug's plain notice never posted after the swipe: " + describe());
+        require(!cardDismissed(), "The unplug ended the card's hold");
+        log("card: unplugged after a swipe: " + describe());
+        armCard();
+        await(() -> isCard() && promoted(), 30 * S, "The next charge's card didn't show: " + describe());
+        log("card: the next charge shows: " + describe());
+        main(() -> { link.charging(OFF); link.level = 62; });
+        await(() -> !isCard() && connection() != null, StatusCadence.POLL_SLOW_MS + ChargeLiveHold.UNPLUG_MS + 15 * S, "The card never cleared after unplugging: " + describe());
+        foregroundValid("card swipe done");
     }
     /** The chip Finish time should show now: the time in the card's "Done 4:45 PM · 412 W", else the level. */
     private String finishShown() {
@@ -387,13 +446,6 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         // The app's own change sends no block-state broadcast; the service's handler for that broadcast runs here instead.
         main(() -> service.channelsChanged());
         log("channel " + id + " off");
-    }
-    /** Arms the live card from the front with the scooter charging, then leaves Volt. */
-    private void armCard() {
-        ensureFront();
-        main(() -> settings().edit().remove(ScooterService.CHARGE_LIVE_CHIP).commit());
-        readChargingInFront();
-        leave();
     }
     /**
      * #645 F03. First only "Scooter connection & recording" off: the card may show (no notifications-off warning on the
@@ -474,6 +526,8 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
 
     private final class FakeLink {
         byte charging = OFF;
+        /** The battery level the scooter reports. */
+        int level = 62;
         /** Charging current; 2 A (104 W at 52 V). */
         int milliamps = 2000;
         final Handler handler = new Handler(Looper.getMainLooper());
@@ -510,13 +564,13 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             switch (frame[3] & 255) { case 0x70: status(); break; case 0x72: battery(); break; default: break; }
         }
         void status() { byte[] state = new byte[44]; state[1] = 3; state[3] = 1; state[6] = 2; state[7] = 1; state[19] = 3; state[25] = 50; state[31] = 100; state[34] = 3; packet(0x70, state); }
-        void home() { byte[] data = new byte[12]; data[1] = 1; data[2] = 62; data[4] = charging; packet(0x90, data); }
+        void home() { byte[] data = new byte[12]; data[1] = 1; data[2] = (byte) level; data[4] = charging; packet(0x90, data); }
         /**
          * 62%, 52.000 V and the charging current (sign bit set) or 0 A, little-endian, as Telemetry.electrical reads them;
          * health 100% and a rated 18.00 Ah, so the charging estimate has a capacity and the card a finish time.
          */
         void battery() {
-            byte[] data = new byte[26]; data[1] = 62; data[12] = charging; data[10] = 100; data[23] = (byte) 0x08; data[24] = (byte) 0x07;
+            byte[] data = new byte[26]; data[1] = (byte) level; data[12] = charging; data[10] = 100; data[23] = (byte) 0x08; data[24] = (byte) 0x07;
             int volts = 52000, amps = charging == ON ? milliamps : 0;
             for (int i = 0; i < 4; i++) { data[2 + i] = (byte) (volts >>> (8 * i)); data[6 + i] = (byte) (amps >>> (8 * i)); }
             if (charging == ON) data[9] |= (byte) 0x80;
