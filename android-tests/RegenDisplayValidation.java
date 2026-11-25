@@ -574,18 +574,21 @@ public final class RegenDisplayValidation extends ValidationInstrumentation {
     }
 
     /** The bar's below-zero fill: green only for regen the scooter confirmed (its pixels, so what draws is what's checked). */
+    // Regen deep enough that the fill clears the zero line: a few watts on a 500 W regen scale fill less than the line's
+    // own thickness, so a frame caught at the first fraction of a watt (2.0.6's sweep: -2 W) has no green pixel to count.
+    private static final double VISIBLE_REGEN_W = -25;
     private void barColor(boolean confirmed) throws Exception {
         View bar = find(activity.getWindow().getDecorView(), Class.forName("com.jjricks.volt.RidingScreen$PowerBar"));
         require(bar != null, "No power bar");
-        await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero", 60000);
+        await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < VISIBLE_REGEN_W; }, "The bar never reached a visible regen fill", 60000);
         // Under load the direction can move on between the wait and the drawing: count only a frame drawn while it's still the one under test.
         String want = confirmed ? "REGEN" : "REGEN_INFERRED";
         AtomicReference<int[]> counts = new AtomicReference<>();
         for (int attempt = 0; attempt < 40 && counts.get() == null; attempt++) {
-            if (attempt > 0) await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < -0.02; }, "The bar never went below zero again", 45000);
+            if (attempt > 0) await(() -> { Object smoother = fieldOn(bar, "smoother"); return (double) call(smoother, "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) < VISIBLE_REGEN_W; }, "The bar never reached a visible regen fill again", 45000);
             main(() -> {
                 if (!want.equals(String.valueOf(fieldOn(bar, "direction")))) return;
-                if ((double) call(fieldOn(bar, "smoother"), "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) >= -0.02) return;
+                if ((double) call(fieldOn(bar, "smoother"), "value", new Class<?>[]{long.class}, SystemClock.elapsedRealtime()) >= VISIBLE_REGEN_W) return;
                 Bitmap image = Bitmap.createBitmap(bar.getWidth(), bar.getHeight(), Bitmap.Config.ARGB_8888);
                 bar.draw(new android.graphics.Canvas(image));
                 int ok = (int) fieldOn(fieldOn(fieldOn(bar, "this$0"), "ui"), "ok"), green = 0;
