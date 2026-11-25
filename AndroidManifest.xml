@@ -44,6 +44,9 @@
         <!-- Report emails' diagnostics file only (cache/diagnostics); readable through a send intent's one-time grant. -->
         <provider android:name=".DiagnosticsProvider" android:authorities="com.jjricks.volt.diagnostics"
             android:exported="false" android:grantUriPermissions="true" />
+        <!-- THROWAWAY PROTOTYPE (claude/206-live-updates-proto): posts sample Live Update notifications for renders. -->
+        <activity android:name=".LiveUpdateProtoActivity" android:exported="true" android:excludeFromRecents="true"
+            android:noHistory="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity android:name=".ShizukuSetupActivity" android:exported="false" android:resizeableActivity="true" />
         <activity android:name=".BackupActivity" android:exported="false" android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
