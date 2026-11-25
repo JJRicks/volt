@@ -172,9 +172,43 @@ final class CleanSubjects {
             // TalkBack reads the name and the summary; while a check is due, the name says so, as the tab's dot does.
             names.get(i).setContentDescription(due ? HubText.dueDescription(HubText.title(subject)).render() : null);
         }
+        // The Ride row's own tick while a ride records (tickRide); it stops by itself when the ride does.
+        if (service != null) scheduleRideTick(service);
     }
 
-    void close() { closed = true; }
+    void close() {
+        closed = true;
+        int ride = ids.indexOf(HubPages.RIDE);
+        if (ride >= 0) values.get(ride).removeCallbacks(rideTick);
+    }
+
+    /**
+     * While a ride records, the Ride row's time ticks on the second by itself, as Clean Home's recording moment does
+     * (RecordingFit.untilNextSecond on the same time), so the two change together rather than a refresh apart (the Ride
+     * clock; Ollie's mock-up, Nov 24 2026).
+     */
+    private final Runnable rideTick = this::tickRide;
+
+    private void tickRide() {
+        ScooterService service = host.service();
+        int ride = ids.indexOf(HubPages.RIDE);
+        if (closed || service == null || ride < 0 || !service.isRecording()) return;
+        TextView value = values.get(ride);
+        // Only while the row shows: Home's next refresh arms it again (the app in the background, another page open).
+        if (!value.isShown() || value.getWindowVisibility() != View.VISIBLE) return;
+        CharSequence line = recording(service);
+        if (!TextUtils.equals(line.toString(), value.getText())) value.setText(line);
+        scheduleRideTick(service);
+    }
+
+    private void scheduleRideTick(ScooterService service) {
+        int ride = ids.indexOf(HubPages.RIDE);
+        if (ride < 0) return;
+        TextView value = values.get(ride);
+        value.removeCallbacks(rideTick);
+        if (closed || service == null || service.rides == null || !service.isRecording()) return;
+        value.postDelayed(rideTick, RecordingFit.untilNextSecond(RecordingFit.elapsedMs(service.rides.activeSummary(), System.currentTimeMillis())));
+    }
 
     /**
      * Whether a subject's name has a word wider than the room beside its icon, after layout (the wide Home's page pane,
@@ -236,16 +270,13 @@ final class CleanSubjects {
     }
 
     /**
-     * Ride's line while a ride records: "Recording · 12:40", its time so far as the widget dashboard's recorder card
-     * shows it (0:00 until the recorder has its first summary).
+     * Ride's line while a ride records: "Recording · 12:40", its time so far as Clean Home's recording moment and riding
+     * mode's REC pill show it (RecordingFit.elapsedMs written by RidingFocus.clockText, so the three never disagree).
+     * 0:00 until the recorder has its first summary.
      */
     private static CharSequence recording(ScooterService service) {
         RideStore.Summary summary = service.rides == null ? null : service.rides.activeSummary();
-        long seconds = summary == null ? 0 : Math.max(0, summary.elapsedMs / 1000);
-        String clock = seconds >= 3600
-                ? String.format(Fmt.locale(Locale.US), "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
-                : String.format(Fmt.locale(Locale.US), "%d:%02d", seconds / 60, seconds % 60);
-        return HubText.rideRecording(clock).render();
+        return HubText.rideRecording(RidingFocus.clockText(RecordingFit.elapsedMs(summary, System.currentTimeMillis()))).render();
     }
 
     /** Ride's line from the last scan, written now. */

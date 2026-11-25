@@ -1,0 +1,10 @@
+# Clean Home's recording moment, the Ride clock (Ollie's mock-up, Nov 24 2026): its fit, its ribbon's trace from a real
+# RideStore recording, the one recording time, the range choice and figure it shares with the parked card.
+# RideStore, TopArea, WideLayout and the backup classes are compiled by tests/run.sh.
+src/com/jjricks/volt/RecordingFit.java
+src/com/jjricks/volt/RangeSource.java
+src/com/jjricks/volt/RangeFigure.java
+src/com/jjricks/volt/DisplayUnits.java
+src/com/jjricks/volt/RecordingPill.java
+src/com/jjricks/volt/RidingFocus.java
+tests/l10n/RecordingFitTest.java
