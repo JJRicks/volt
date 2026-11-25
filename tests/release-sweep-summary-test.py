@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Run run-release-sweep.py against a fake emulator's adb and check its closing summary, exit code and the APK identity
 every summary.json record carries; then --merge over synthesized run folders of a split sweep."""
-raise SystemExit('injected failure (CI check, reverted next commit)')
 import hashlib
 import json
 import os
