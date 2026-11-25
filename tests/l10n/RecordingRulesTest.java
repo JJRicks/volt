@@ -27,14 +27,17 @@ public final class RecordingRulesTest {
         waitIsPerScooter();
         riderStartWhileCharging();
         noLoopWithTheReverseRule();
+        failedStopIsTriedOnce();
         chargingEndCode();
         keepRule();
         shortRidesAreNotKept();
         keptRidesStay();
         discardLeavesNoSummary();
         unmeasuredDistance();
+        measuredToTheEnd();
         phoneTrackDistance();
         exemptionInTheJournal();
+        discardNotedFirst();
         serviceWiring();
         System.out.println("RecordingRulesTest: " + checks + " checks passed");
     }
@@ -117,6 +120,11 @@ public final class RecordingRulesTest {
                 && !r.endsRide("blind2", Boolean.FALSE, t + 3000, false) && r.exempt("blind2") == RideChargeRule.Exempt.NO,
                 "the first fresh reading says not charging: an ordinary ride");
         check(r.endsRide("blind2", Boolean.TRUE, t + 60_000, false), "which a later plug-in ends");
+        // #643 round 2, F04: ridden off fast before any fresh charging reading: not exempt, so the plug-in ends it.
+        check(r.rideStarted("blind3", t, true, null) == RideChargeRule.Exempt.UNDECIDED
+                && !r.endsRide("blind3", null, -1, true) && r.exempt("blind3") == RideChargeRule.Exempt.NO,
+                "undecided, then a fresh speed above 3 mph: an ordinary ride");
+        check(r.endsRide("blind3", Boolean.TRUE, t + 60_000, false), "which the plug-in ends");
         check(r.rideStarted("later", t, true, Boolean.FALSE) == RideChargeRule.Exempt.NO && r.endsRide("later", Boolean.TRUE, t + 1000, false),
                 "started by hand before charging: the charge ends it");
         // F09: a recovered ride takes its journal's standing.
@@ -148,6 +156,25 @@ public final class RecordingRulesTest {
         check(rideStarts == 0, "ten minutes on the charger with replugs: no automatic ride ever starts, so nothing ends the charge recording");
         r.rideStarted("hand", t + 11 * 60_000, true, Boolean.TRUE);
         check(!r.endsRide("hand", Boolean.TRUE, t + 11 * 60_000 + 1000, false), "a ride by hand ends the charge recording, and the charge never ends that ride back");
+    }
+
+    /**
+     * #643 round 2, F07: storage full when the charge ends the ride. The service marks the stop tried before stopping, and
+     * the failed stop's own change notice (and every one after) asks again: exactly one try, so one failed write and one toast.
+     */
+    private static void failedStopIsTriedOnce() {
+        long t = 4_000_000;
+        RideChargeRule r = auto("full", t - 60_000);
+        int tries = 0;
+        for (long now = t; now < t + 5 * 60_000; now += 500) {
+            r.observe(A, Boolean.TRUE, now);
+            if (r.endsRide("full", Boolean.TRUE, now, false)) { r.stopTried("full"); tries++; } // stopRide fails: still recording
+        }
+        check(tries == 1, "storage full and plugged in for 5 minutes: one stop tried, not one per change: " + tries);
+        check(r.exempt("full") == RideChargeRule.Exempt.NO, "the ride stays an ordinary one; the rider's Stop (Retry save) is the retry");
+        RideChargeRule next = auto("next", t + 6 * 60_000);
+        next.stopTried("full");
+        check(next.endsRide("next", Boolean.TRUE, t + 7 * 60_000, false), "the next ride ends on a plug-in as usual");
     }
 
     private static void chargingEndCode() throws IOException {
@@ -239,14 +266,54 @@ public final class RecordingRulesTest {
             // Half the ride measured: the odometer's two readings span exactly half.
             t += 100_000;
             rides.start(PROFILE, "", WALL0 + t, t);
-            sample(rides, t, null, 100.0); sample(rides, t + 20_000, null, 100.0);
+            sample(rides, t + 20_000, null, 100.0); sample(rides, t + 40_000, null, 100.0);
             rides.stop(WALL0 + t + 40_000, t + 40_000, "", true, null);
-            check(rides.lastStopDiscarded(), "two odometer readings over half the ride, 0 m: measured, not kept");
+            check(rides.lastStopDiscarded(), "two odometer readings over the second half of the ride, 0 m: measured, not kept");
             t += 100_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             sample(rides, t, null, 100.0); sample(rides, t + 15_000, null, 100.0);
             rides.stop(WALL0 + t + 40_000, t + 40_000, "", true, null);
             check(!rides.lastStopDiscarded(), "two odometer readings over under half of it: not measured, kept");
+        } finally { remove(dir); }
+    }
+
+    /**
+     * #643 round 2, F05: distance is measured only when its readings reach the ride's end (within MEASURED_END_GAP_MS);
+     * a link lost before the end leaves the last stretch unmeasured, and the duration decides.
+     */
+    private static void measuredToTheEnd() throws IOException {
+        File dir = Files.createTempDirectory("volt-measured-end").toFile();
+        try {
+            RideStore rides = new RideStore(dir);
+            check(RideStore.MEASURED_END_GAP_MS == 10_000, "10 s");
+            long t = 10_000;
+            // 30 s of readings at 0 km/h, the link lost, 60 s more before the hand stop: most of it covered, not the end.
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 60_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            rides.stop(WALL0 + t + 75_000, t + 75_000, "", true, null);
+            check(!rides.lastStopDiscarded(), "readings over 80% of a 75 s ride, the last 15 s before the stop: distance unknown, kept");
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 60_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            rides.stop(WALL0 + t + 69_000, t + 69_000, "", true, null);
+            check(rides.lastStopDiscarded(), "the last reading 9 s before the stop: measured (0 m), not kept");
+            // The speed alone, reaching the end: measured; stopping 11 s after it: not.
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 40_000; u += 1000) sample(rides, u, 0.5, null);
+            rides.stop(WALL0 + t + 51_000, t + 51_000, "", true, null);
+            check(!rides.lastStopDiscarded(), "speed readings ending 11 s before the stop: distance unknown, kept");
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 40_000; u += 1000) sample(rides, u, 0.5, null);
+            rides.stop(WALL0 + t + 41_000, t + 41_000, "", true, null);
+            check(rides.lastStopDiscarded(), "speed readings to the end, 6 m: not kept");
+            // A went-quiet automatic stop ends at its last reading (the shown end), so the wait after it isn't a gap.
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, 1.0, 100.0);
+            RideStore.Summary quiet = rides.stop(WALL0 + t + 150_000, t + 150_000, RideStore.quietStopReason(8, false), true, null);
+            check(quiet.shownElapsedMs == 30_000 && rides.lastStopDiscarded(), "went quiet after a 30 s roll at 1 km/h (8 m): measured to its shown end, not kept");
         } finally { remove(dir); }
     }
 
@@ -270,18 +337,22 @@ public final class RecordingRulesTest {
             for (int i = 0; i < 10; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0}; }
             mono += 12_000; lat += 60 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0};
             for (int i = 0; i < 5; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0}; }
+            // #643 round 2, F03: after another gap, 10 steps of 5 m whose speed is no surer than 3 m/s: no speed, so none count.
+            mono += 12_000;
+            for (int i = 0; i < 10; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0, 3.0}; }
             for (int i = 0; i < n; i++) {
                 Object[] f = fixes[i];
                 long m = (Long) f[0];
-                live.fix(m, (Double) f[1], (Double) f[2], (Double) f[3], (Double) f[4]);
-                rows.append(PhoneRideStore.row("GPS", WALL0 + m, m, f[1], f[2], f[3], f[4], null, null, null));
+                Double speedAccuracy = f.length > 5 ? (Double) f[5] : null;
+                live.fix(m, (Double) f[1], (Double) f[2], (Double) f[3], (Double) f[4], speedAccuracy);
+                rows.append(PhoneRideStore.row("GPS", WALL0 + m, m, f[1], f[2], f[3], f[4], speedAccuracy, null, null));
             }
             store.appendBatch("p1", rows.toString(), "");
             store.stop("p1", WALL0 + mono, mono);
             Double saved = store.load("p1").distanceMeters;
             check(saved != null && live.meters() != null && Math.abs(saved - live.meters()) < 0.5,
                     "the running distance matches the saved track's: " + live.meters() + " vs " + saved);
-            check(live.meters() > 200 && live.meters() < 300, "about 40 + 10 + 5 steps of 5 m (jitter, the jump and the gap add nothing): " + live.meters());
+            check(live.meters() > 200 && live.meters() < 300, "about 40 + 10 + 5 steps of 5 m (jitter, the jump, the gaps and the unsure speeds add nothing): " + live.meters());
         } finally { remove(dir); }
     }
 
@@ -302,6 +373,27 @@ public final class RecordingRulesTest {
             check("NO".equals(again.activeChargeExemption()), "the last row wins");
             RideStore.Summary s = again.stop(WALL0 + now, now, "", true);
             check(!again.lastStopDiscarded() && again.get(s.id).sampleCount == s.sampleCount && again.activeChargeExemption() == null, "the row changes nothing else");
+        } finally { remove(dir); }
+    }
+
+    /** #643 round 2, F06: the caller hears of a discard before the journal goes, and never of a kept ride. */
+    private static void discardNotedFirst() throws IOException {
+        File dir = Files.createTempDirectory("volt-discard-first").toFile();
+        try {
+            RideStore rides = new RideStore(dir);
+            final java.util.List<String> heard = new java.util.ArrayList<>();
+            final boolean[] journalThen = {false};
+            long now = 10_000;
+            String id = rides.start(PROFILE, "", WALL0 + now, now);
+            for (; now < 18_000; now += 1000) sample(rides, now, 3.0, 100.0);
+            rides.stop(WALL0 + now, now, "", true, null, rid -> { heard.add(rid); journalThen[0] = rides.journal(rid).exists(); });
+            check(heard.size() == 1 && heard.get(0).equals(id) && journalThen[0] && rides.lastStopDiscarded() && !rides.journal(id).exists(),
+                    "an 8 s ride: noted while its journal was still there, then deleted");
+            heard.clear();
+            String kept = rides.start(PROFILE, "", WALL0 + now, now);
+            for (long end = now + 60_000; now < end; now += 1000) sample(rides, now, 15.0, 100.0 + now / 1e6);
+            rides.stop(WALL0 + now, now, "", true, null, rid -> heard.add(rid));
+            check(heard.isEmpty() && !rides.lastStopDiscarded() && rides.get(kept) != null, "a kept ride: nothing noted");
         } finally { remove(dir); }
     }
 
@@ -367,7 +459,7 @@ public final class RecordingRulesTest {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
         int a = src.indexOf("private boolean stopRide(String reason){"); check(a >= 0, "stopRide found");
         String stop = src.substring(a, src.indexOf("\n    /**", a));
-        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm())") && RideStore.discardsShort(),
+        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm(),id->pendingPhoneDiscard(id,true))") && RideStore.discardsShort(),
                 "every stop, the rider's and the automatic ones, discards a short ride (the validations' hold is off in the app)");
         check(stop.contains("if(!discarded)RideAutoExportFolder.queue(settings,stopping);"), "a discarded ride is never copied out (ride auto-export)");
         check(stop.contains("phoneDiscard=discarded?stopping:null;stopPhoneRecording();"), "its phone GPS files go once saved");
@@ -385,7 +477,12 @@ public final class RecordingRulesTest {
         check(ends.indexOf("chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;") > 0 && ends.indexOf("chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;") < ends.indexOf("stopRide(RideStore.STOP_CHARGING);"),
                 "the link is held for the charge recording before the stop's work policy runs (#643 finding 4)");
         check(src.contains("private boolean holding(){return chargeMeasure.active()||scheduleTesting()||chargeEndHolds();}"), "and the hold keeps the transport up out of sight");
-        check(src.contains("finishPhoneDiscards();") && src.contains("if(discarded)pendingPhoneDiscard(stopping,true);"), "pending phone-file deletes outlive a process death (F11)");
+        check(src.contains("finishPhoneDiscards();") && stop.contains("id->pendingPhoneDiscard(id,true)") && stop.contains("if(!discarded)pendingPhoneDiscard(stopping,false);"),
+                "pending phone-file deletes are noted before the journal goes and outlive a process death (F11, round 2 F06)");
+        check(ends.indexOf("rideCharge.stopTried(id);") > 0 && ends.indexOf("rideCharge.stopTried(id);") < ends.indexOf("stopRide(RideStore.STOP_CHARGING);"),
+                "a charge-ended stop is marked tried before it runs, so a failed one isn't retried in a loop (round 2 F07)");
+        check(auto.indexOf("autoStart.observeSpeed(linkUp,ble.speedRaw(),ble.motionSampleMs(),mono);") > auto.indexOf("autoStart.observeLink("),
+                "riding off after Volt's own pause ends the holds (round 2 F01)");
         check(src.contains("stopRide(RideStore.STOP_CHARGING)"), "the charge end saves with its own code");
         check(src.contains("private static final AutoStartPolicy AUTO_START=new AutoStartPolicy();"), "one hold for the process, so a new service keeps it");
         int n = src.indexOf("private void autoStopNoMotion(RideAutoStopPolicy policy){");

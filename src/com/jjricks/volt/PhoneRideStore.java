@@ -839,7 +839,8 @@ public final class PhoneRideStore {
      * The GPS distance of a track as it is recorded, by the rule load() counts a Track's distance with: fixes over 35 m
      * accuracy or off the globe are skipped, a fix not after the last is skipped, one more than 10 s after it starts a new run, a
      * jump faster than 25 m/s plus both accuracies is rejected and breaks the run, and a step counts only while either
-     * fix reports a speed of 1 m/s or more. The service asks it at a ride's stop (RideStore.kept), before the journal is
+     * fix reports a speed of 1 m/s or more (a speed outside 0 to 25 m/s, or with an accuracy worse than 1.5 m/s, counts as
+     * none, as load reads it). The service asks it at a ride's stop (RideStore.kept), before the journal is
      * on disk. Pure Java.
      */
     static final class MovingDistance {
@@ -848,8 +849,11 @@ public final class PhoneRideStore {
         private Double speed;
         private long mono;
 
-        synchronized void fix(long fixMono, double fixLat, double fixLon, double fixAccuracy, Double fixSpeed) {
+        synchronized void fix(long fixMono, double fixLat, double fixLon, double fixAccuracy, Double fixSpeed, Double fixSpeedAccuracy) {
             if (Math.abs(fixLat) > 90 || Math.abs(fixLon) > 180 || fixAccuracy < 0 || fixAccuracy > 35) return;
+            // The speed as load reads it back: out of range, or less sure than 1.5 m/s, is no speed.
+            if (fixSpeed != null && (fixSpeed < 0 || fixSpeed > 25)) fixSpeed = null;
+            if (fixSpeedAccuracy != null && (fixSpeedAccuracy < 0 || fixSpeedAccuracy > 1.5)) fixSpeed = null;
             boolean gap = !have || breakNext;
             breakNext = false;
             if (have) {

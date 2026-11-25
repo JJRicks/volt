@@ -67,6 +67,12 @@ public final class RideStore {
     /** A ride shorter than this (by its shown duration) is not kept either. */
     public static final long MIN_KEEP_MS = 20_000;
     /**
+     * Distance counts as measured (measuredKm) only when its readings reach this close to the ride's shown end (#643
+     * round 2, F05): a link lost before the end leaves the last stretch unmeasured. Ten seconds is a few readings on
+     * screen, and covers the last interval out of sight (a speed push every few seconds).
+     */
+    static final long MEASURED_END_GAP_MS = 10_000;
+    /**
      * A hold for emulator validations only, like EndlessMotion's: their synthetic rides last seconds, and most of them
      * check what a saved ride does. False in the app, always: nothing in the app sets it and it has no setter; the
      * validations' shared base class (android-tests/ValidationInstrumentation) sets it by reflection in the test
@@ -331,18 +337,23 @@ public final class RideStore {
         return phoneKm != null && phoneKm + 1e-9 >= MIN_KEEP_KM;
     }
     /**
-     * The ride's distance for the keep rule, or null when it wasn't measured over at least half the ride: the odometer's
-     * (the one Rides shows) when two or more readings span half the ride, the speed-integrated one when its intervals
-     * cover half the ride, the larger of the two when both do. The odometer counts in tenths of a km (whole km on older
-     * models), so a real 90 m ride can show 0.0 on it alone; the speed covers that.
+     * The ride's distance for the keep rule, or null when it wasn't measured over at least half the ride and up to its
+     * end: the odometer's (the one Rides shows) when two or more readings span half the ride, the speed-integrated one
+     * when its intervals cover half the ride, the larger of the two when both do; either only when its last reading is
+     * within {@link #MEASURED_END_GAP_MS} of the ride's shown end. The ride is its shown duration (the one kept judges).
+     * The odometer counts in tenths of a km (whole km on older models), so a real 90 m ride can show 0.0 on it alone;
+     * the speed covers that.
      *
      * @param odometerReadings fresh odometer readings in the ride
-     * @param odometerSpanMs from the first of them to the last
+     * @param odometerFirstElapsed ride time (Summary.elapsedMs's clock) at the first of them, odometerLastElapsed at the last
+     * @param speedLastElapsed ride time at the end of the last speed-integrated interval, -1 for none
      */
-    static Double measuredKm(Summary s, int odometerReadings, long odometerSpanMs) {
-        long ride = Math.max(1, s.elapsedMs);
-        Double odometer = s.distanceKm != null && odometerReadings >= 2 && odometerSpanMs * 2 >= ride ? s.distanceKm : null;
-        Double speed = s.speedIntegratedDistanceKm != null && s.speedCoverageMs * 2 >= ride ? s.speedIntegratedDistanceKm : null;
+    static Double measuredKm(Summary s, int odometerReadings, long odometerFirstElapsed, long odometerLastElapsed, long speedLastElapsed) {
+        long end = s.shownElapsedMs, ride = Math.max(1, end);
+        Double odometer = s.distanceKm != null && odometerReadings >= 2 && (odometerLastElapsed - odometerFirstElapsed) * 2 >= ride
+                && end - odometerLastElapsed <= MEASURED_END_GAP_MS ? s.distanceKm : null;
+        Double speed = s.speedIntegratedDistanceKm != null && s.speedCoverageMs * 2 >= ride && speedLastElapsed >= 0
+                && end - speedLastElapsed <= MEASURED_END_GAP_MS ? s.speedIntegratedDistanceKm : null;
         if (odometer == null && speed == null) return null;
         return Math.max(odometer == null ? 0 : odometer, speed == null ? 0 : speed);
     }
@@ -639,15 +650,25 @@ public final class RideStore {
     }
     /** As above, with the phone's GPS track distance so far (km; null for no track) for the keep rule. */
     public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason, boolean discardShort, Double phoneKm) throws IOException {
+        return stop(wallMillis, monotonicMillis, reason, discardShort, phoneKm, null);
+    }
+    /**
+     * As above; discarding, when not null, is told the ride's id once it is judged too short and before its journal is
+     * deleted, so a caller can note what is still to remove (the phone files) before anything is gone (#643 round 2, F06).
+     */
+    public synchronized Summary stop(long wallMillis, long monotonicMillis, String reason, boolean discardShort, Double phoneKm,
+            java.util.function.Consumer<String> discarding) throws IOException {
         if (active == null) return null;
         String details = STOP_AUTO_PARKED.equals(reason) || STOP_AUTO_NO_MOTION.equals(reason) || STOP_CHARGING.equals(reason) ? reason
                 : isQuietStop(reason) ? quietDetails(reason, active.readingElapsed >= 0 ? active.readingMono : -1) : "";
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
         Summary result = new Summary(active);
-        Double measured = measuredKm(result, active.odoReadings, Math.max(0, active.odoLastMono - active.odoFirstMono));
+        Double measured = measuredKm(result, active.odoReadings, active.odoFirstElapsed, active.odoLastElapsed, active.speedLastElapsed);
         active = null;
-        lastStopDiscarded = discardShort && !kept(result, measured, phoneKm) && file(result.id).delete();
+        boolean tooShort = discardShort && !kept(result, measured, phoneKm);
+        if (tooShort && discarding != null) discarding.accept(result.id);
+        lastStopDiscarded = tooShort && file(result.id).delete();
         if (lastStopDiscarded) { forget(result.id); if (index != null) index.remove(result.id); return result; }
         lastStopWallMs = wallMillis;
         lastStopAutomatic = result.endedByItself();
@@ -1015,8 +1036,9 @@ public final class RideStore {
         boolean stopped, recovered, odometerReset;
         /** The last CHARGE row's standing (markChargeExemption), or null. Active rides only: never saved in a summary. */
         String chargeExemption;
-        /** Fresh odometer readings and the first and last one's monotonic time, for the keep rule's distance (kept). */
-        int odoReadings; long odoFirstMono, odoLastMono;
+        /** For the keep rule's distance (measuredKm): fresh odometer readings, the first and last one's ride time, and the
+         *  ride time at the end of the last speed-integrated interval (-1 for none). */
+        int odoReadings; long odoFirstElapsed, odoLastElapsed, speedLastElapsed = -1;
         String stopReason = "";
         /** The last committed sample with any fresh scooter reading; elapsed -1 until one arrives. */
         long readingWall, readingMono, readingElapsed = -1, readingGaps;
@@ -1091,7 +1113,7 @@ public final class RideStore {
             if (voltage != null) { if (startVoltage == null) startVoltage = voltage;
                 minVoltage = min(minVoltage, voltage); maxVoltage = max(maxVoltage, voltage); }
             if (temperature != null) { minTemperature = min(minTemperature, temperature); maxTemperature = max(maxTemperature, temperature); }
-            if (odo != null) { if (odoReadings++ == 0) odoFirstMono = mono; odoLastMono = mono; }
+            if (odo != null) { if (odoReadings++ == 0) odoFirstElapsed = elapsed; odoLastElapsed = elapsed; }
             if (odo != null) { if (startOdo == null) startOdo = odo;
                 if (endOdo != null && odo + 0.000001 < endOdo) odometerReset = true; endOdo = odo; }
             if (speed != null) maxSpeed = max(maxSpeed, speed);
@@ -1125,7 +1147,7 @@ public final class RideStore {
             previousSignUnknown = signUnknown;
             if (shortInterval && previousSpeed != null && speed != null) {
                 double distance = (previousSpeed + speed) / 2 * dt / 3600000.0;
-                speedDistance += distance; speedMs += dt;
+                speedDistance += distance; speedMs += dt; speedLastElapsed = elapsed;
                 if ((previousSpeed + speed) / 2 > 0.5) { movingMs += dt; movingDistance += distance; }
                 else stationaryMs += dt;
             }

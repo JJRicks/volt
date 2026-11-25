@@ -401,7 +401,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                         speedAccuracy,
                         altitude,
                         vertical));
-        gpsDistance.fix(mono, location.getLatitude(), location.getLongitude(), location.getAccuracy(), speed);
+        gpsDistance.fix(mono, location.getLatitude(), location.getLongitude(), location.getAccuracy(), speed, speedAccuracy);
         lastAccuracy = new GpsAccuracy.Fix(mono, location.getAccuracy());
         lastFixMs = mono;
         gpsStatus = GPS_RECORDING;

@@ -33,7 +33,8 @@ import com.jjricks.volt.tests.HubTestPages;
  *
  * <p>No arguments runs the full pass on a fresh install. {@code -e only gates}, {@code gps-grant}, {@code gps-decline},
  * {@code gps-riding}, {@code dialog-guard}, {@code cancel-empty}, {@code restored-grant}, {@code restored-decline} and
- * {@code own-pause} (a hand stop and a back-out survive Volt's own background pause and reconnect; owner, Nov 24 2026) are
+ * {@code own-pause} (a hand stop and a back-out survive Volt's own background pause and reconnect, a walk-in included;
+ * owner, Nov 24 2026; riding off above 10 km/h after the pause ends them, riding on after a hand stop on screen doesn't) are
  * single runs on a fresh install too. The release sweep runs all of these. The remaining {@code -e only} scenarios follow a
  * permission across runs of one install, so whoever runs them changes it between runs with {@code pm} (see
  * {@link #permissionState}). In order, with cleared app data at the start: expiry-first; revoke location, again-offer-grant;
@@ -271,7 +272,8 @@ public final class AutoStartValidation extends ValidationInstrumentation {
         returnToVolt();
         connect();
         stopped(); settle();
-        for (int i = 0; i < 4; i++) { moving(); settle(); }
+        // Walked in through the door: 5 km/h for 6 s (AutoStartPolicy.RIDE_ON_KMH is the ride-off line).
+        for (int i = 0; i < 6; i++) { rolling(); SystemClock.sleep(1000); }
         require(!recording(), "After Volt's own background pause and reconnect, rolling the scooter started a ride: the hand stop was not held");
         require(!ridingOpen(), "After Volt's own background pause and reconnect, riding mode reopened after a back-out");
         shot("own-pause-reconnect-held");
@@ -283,9 +285,21 @@ public final class AutoStartValidation extends ValidationInstrumentation {
         returnToVolt();
         connect();
         stopped(); settle();
-        for (int i = 0; i < 3; i++) { moving(); settle(); }
+        for (int i = 0; i < 6; i++) { rolling(); SystemClock.sleep(1000); }
         require(!recording() && !ridingOpen(), "Volt's own pause of over two minutes ended the hold");
         shot("own-pause-long-pause-held");
+        // #643 round 2, F01: a coffee stop (the scooter switched off and on while the link was paused, which Volt can't
+        // see), then ridden off: 18 km/h for 4 s is a new ride, so it records and riding mode opens.
+        for (int i = 0; i < 5 && !recording(); i++) { moving(); SystemClock.sleep(1000); }
+        await(this::recording, "Ridden off at 18 km/h after Volt's own pause: no recording");
+        await(this::ridingOpen, "Ridden off after Volt's own pause: riding mode didn't open");
+        shot("own-pause-ridden-off");
+        // A hand stop and a back-out with Volt on screen, then riding on fast: the rider's choice, held.
+        moving(); main(() -> service.stopRide());
+        main(() -> invoke(activity, "navigateBack", new Class<?>[0]));
+        await(() -> !ridingOpen(), "Back out after the ride-off");
+        for (int i = 0; i < 6; i++) { moving(); SystemClock.sleep(1000); }
+        require(!recording() && !ridingOpen(), "A hand stop with Volt on screen, then 6 s at 18 km/h: the hold ended");
         // A real end of the session: the link lost for real, with Volt on screen, for SESSION_END_MS.
         stopped(); settle();
         main(() -> link.callbacks.onConnectionStateChange(link.gatt, 0, BluetoothProfile.STATE_DISCONNECTED));
@@ -723,6 +737,8 @@ public final class AutoStartValidation extends ValidationInstrumentation {
     }
     /** A fresh status and motion push, as a riding scooter sends. */
     private void moving() { main(() -> { link.status(); link.motion(1, 18); }); SystemClock.sleep(60); waitForIdleSync(); }
+    /** Walking pace: 5 km/h, under AutoStartPolicy.RIDE_ON_KMH. */
+    private void rolling() { main(() -> { link.status(); link.motion(1, 5); }); SystemClock.sleep(60); waitForIdleSync(); }
     private void stopped() { main(() -> { link.status(); link.motion(0, 0); }); SystemClock.sleep(60); waitForIdleSync(); }
     /** Only a motion push, no status read: what arrives between two background polls. */
     private void motionOnly() { main(() -> link.motion(1, 18)); SystemClock.sleep(60); waitForIdleSync(); }

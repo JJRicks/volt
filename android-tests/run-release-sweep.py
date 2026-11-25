@@ -221,6 +221,8 @@ STEPS += [
     inst('charge-auto-record-ride-rules', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'riderules', hidden_api=True),
     # The same out of sight with Stay connected in background off: the plug-in ends the ride and the link stays for the charge recording.
     inst('charge-auto-record-ride-rules-away', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'riderulesaway', hidden_api=True),
+    # Storage full when the plug-in ends a ride: one try and one toast, no loop; the rider's Stop saves it.
+    inst('charge-auto-record-ride-rules-full', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'riderulesfull', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),

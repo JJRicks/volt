@@ -11,6 +11,7 @@ public final class AutoStartPolicyTest {
         ownPauseKeepsTheHold();
         ownPauseLength();
         recreatedServiceIsNoDisconnect();
+        rideOffAfterOwnPause();
         rideModeGates();
         rideModeHolds();
         backgroundPrerequisite();
@@ -148,6 +149,86 @@ public final class AutoStartPolicyTest {
         fresh.riderStoppedRecording();
         look(fresh, true, 1, 5, false, BLE, 9, false);
         check(fresh.recordHeld(), "the first look's Disconnect count is its baseline, not a Disconnect");
+    }
+
+    /** Speed samples, one a second from t to t + seconds - 1 (inclusive), each looked at as it arrives. */
+    private static void samples(AutoStartPolicy p, long t, int seconds, int kmh) {
+        for (int i = 0; i < seconds; i++) { long at = t + i * 1000L; p.observeSpeed(true, kmh * 10, at, at + 100); }
+    }
+
+    /** A hand stop, then Volt's own pause out of sight (BACKGROUND_PAUSE), then the reconnect when Volt comes back. */
+    private static AutoStartPolicy pausedAndBack(long stop, long minutesAway) {
+        AutoStartPolicy p = new AutoStartPolicy();
+        look(p, true, 7, stop - 1000, false, BLE, 3, false);
+        p.riderStoppedRecording();
+        p.riderLeftRidingMode();
+        long pause = stop + 15_000, back = pause + minutesAway * MIN;
+        look(p, false, 7, pause, false, BLE, 3, true);
+        look(p, false, 7, back - 2000, false, BLE, 3, false);
+        look(p, true, 8, back, false, BLE, 3, false);
+        return p;
+    }
+
+    /**
+     * #643 round 2, F01: a switch-off and on during Volt's own pause (a coffee stop) isn't seen through the closed link.
+     * Ridden off after the reconnect (above RIDE_ON_KMH for RIDE_ON_MS), the session ends and the ride records; a roll-in
+     * stays held, and so does riding on after a hand stop with Volt on screen the whole time.
+     */
+    private static void rideOffAfterOwnPause() {
+        check(AutoStartPolicy.RIDE_ON_KMH == 10 && AutoStartPolicy.RIDE_ON_MS == 3000, "above 10 km/h for 3 s");
+        long t = 5_000_000;
+        AutoStartPolicy coffee = pausedAndBack(t, 12);
+        long back = t + 15_000 + 12 * MIN;
+        check(coffee.recordHeld(), "back after a 12-minute coffee stop: still held until it moves");
+        samples(coffee, back + 2000, 3, 18);
+        check(coffee.recordHeld() && !record(coffee), "ridden off, but for under 3 s of samples: still held");
+        samples(coffee, back + 5000, 1, 18);
+        check(!coffee.recordHeld() && !coffee.rideModeHeld() && record(coffee) && ride(coffee, true),
+                "ridden off above 10 km/h for 3 s: a new ride, it records and riding mode opens");
+
+        AutoStartPolicy rollIn = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        samples(rollIn, back + 1000, 30, 5);
+        check(rollIn.recordHeld() && rollIn.rideModeHeld() && !record(rollIn), "walked in at 5 km/h for 30 s after the pause: held");
+        samples(rollIn, back + 40_000, 20, 9);
+        check(rollIn.recordHeld(), "a brisk push at 9 km/h: held");
+        // Fast samples broken by a slow one never add up.
+        for (int i = 0; i < 6; i++) { samples(rollIn, back + 70_000 + i * 4000L, 2, 15); samples(rollIn, back + 72_000 + i * 4000L, 1, 3); }
+        check(rollIn.recordHeld(), "bursts under 3 s, each broken by a slow sample: held");
+        // A stale sample is no evidence: seen 4 s after it arrived.
+        for (int i = 0; i < 5; i++) { long at = back + 100_000 + i * 1000L; rollIn.observeSpeed(true, 200, at, at + AutoStartPolicy.SPEED_FRESH_MS + 1); }
+        check(rollIn.recordHeld(), "stale fast samples: held");
+        samples(rollIn, back + 200_000, 4, 20);
+        check(!rollIn.recordHeld() && record(rollIn), "then ridden off: records");
+
+        // Volt on screen the whole time: no own pause, so riding on after a hand stop stays held (the rider's choice).
+        AutoStartPolicy onScreen = new AutoStartPolicy();
+        look(onScreen, true, 7, t, false, BLE, 3, false);
+        onScreen.riderStoppedRecording();
+        look(onScreen, true, 7, t + 1000, false, BLE, 3, false);
+        samples(onScreen, t + 2000, 60, 25);
+        check(onScreen.recordHeld() && !record(onScreen), "hand stop and riding on with Volt on screen: still held");
+        // A real loss under SESSION_END_MS (on screen) isn't an own pause either.
+        look(onScreen, false, 7, t + 70_000, false, BLE, 3, false);
+        look(onScreen, true, 8, t + 100_000, false, BLE, 3, false);
+        samples(onScreen, t + 101_000, 10, 25);
+        check(onScreen.recordHeld(), "a short real drop, then riding on: still held");
+
+        // A hand stop made after the reconnect is a choice made then: riding on after it stays held.
+        AutoStartPolicy again = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        again.riderStoppedRecording();
+        samples(again, back + 1000, 10, 20);
+        check(again.recordHeld(), "back from the pause, stopped by hand again, ridden on: held");
+        // The link down again: no count runs across it.
+        AutoStartPolicy split = pausedAndBack(t, 5);
+        back = t + 15_000 + 5 * MIN;
+        samples(split, back + 1000, 2, 20);
+        look(split, false, 8, back + 3000, false, BLE, 3, false);
+        split.observeSpeed(false, 200, back + 3000, back + 3100);
+        look(split, true, 9, back + 4000, false, BLE, 3, false);
+        samples(split, back + 4000, 2, 20);
+        check(split.recordHeld(), "2 s fast, a drop, 2 s fast: held");
     }
 
     /**

@@ -13,7 +13,8 @@ package com.jjricks.volt;
  *       No hold is set, so Record charges automatically starts on its own path and the live charging card shows once
  *       the ride is saved.</li>
  *   <li>Started by hand while charging: the rider's choice, so that charge doesn't end it ({@link Exempt}). The first
- *       fresh reading decides (at the start, or the first one after it when there was none); the exemption ends at the
+ *       fresh reading decides (at the start, or the first one after it when there was none; a fresh speed above
+ *       END_SPEED_KMH decides it isn't exempt, as it ends a standing exemption); the exemption ends at the
  *       first fresh "not charging" reading or a fresh speed above END_SPEED_KMH, so the plug-in at the end of that ride
  *       ends it as any other. The journal keeps it (RideStore.chargeExemption), so a recovered ride keeps it too.</li>
  *   <li>No automatic start: Record rides automatically starts nothing while the scooter charges, nor within
@@ -21,6 +22,9 @@ package com.jjricks.volt;
  *       within 5 to 8 s, the owner replugging to get a recording to start) never starts a ride; riding off faster than
  *       END_SPEED_KMH still starts one, the speed at which an automatic charge recording ends too. The wait belongs to
  *       the scooter that charged: another scooter selected meanwhile doesn't wait.</li>
+ *   <li>One try: a charge-ended stop that fails (storage full) is not tried again for that ride ({@link #stopTried}). The
+ *       failed stop already told the rider to free space and Retry save, and the rider's Stop is that retry; trying on
+ *       every change would toast and fail in a loop.</li>
  *   <li>No loop: starting a ride by hand ends an automatic charge recording (ChargeAutoRecordPolicy.rideEndsRecording)
  *       and holds it, and that ride is exempt from the end above while the charge lasts; an automatic start never
  *       happens while charging, so it never ends a charge recording; and the end above sets no hold of either kind.</li>
@@ -51,6 +55,8 @@ final class RideChargeRule {
     private String ride;
     private long rideStartMs;
     private Exempt exempt = Exempt.NO;
+    /** The ride whose charge-ended stop was tried (stopTried); never ended by this rule again. */
+    private String stopTried;
 
     /** Every change and tick: live is ChargeAutoRecordPolicy.liveCharging for the selected scooter (null: not fresh). */
     void observe(String profile, Boolean live, long nowMs) {
@@ -91,10 +97,17 @@ final class RideChargeRule {
      */
     boolean endsRide(String rideId, Boolean live, long readingMs, boolean movingFast) {
         if (rideId == null || !rideId.equals(ride)) return false;
-        if (exempt == Exempt.UNDECIDED && live != null) exempt = live ? Exempt.YES : Exempt.NO;
+        if (exempt == Exempt.UNDECIDED && movingFast) exempt = Exempt.NO;
+        else if (exempt == Exempt.UNDECIDED && live != null) exempt = live ? Exempt.YES : Exempt.NO;
         else if (exempt == Exempt.YES && (Boolean.FALSE.equals(live) || movingFast)) exempt = Exempt.NO;
-        return exempt == Exempt.NO && Boolean.TRUE.equals(live) && !movingFast && readingMs > rideStartMs;
+        return exempt == Exempt.NO && Boolean.TRUE.equals(live) && !movingFast && readingMs > rideStartMs && !rideId.equals(stopTried);
     }
+
+    /**
+     * The service is about to stop this ride because it charges: called before the stop, since a failed stop's own change
+     * notice comes back here at once. Whatever the outcome, this rule doesn't end the ride again (see the class comment).
+     */
+    void stopTried(String rideId) { stopTried = rideId; }
 
     /** Whether Record rides automatically waits now for this scooter: charging, or within SETTLE_MS, unless ridden off fast. */
     boolean blocksAutoRecord(String profile, long nowMs, boolean movingFast) {

@@ -123,6 +123,8 @@ public final class ScooterService extends Service {
     private final RideChargeRule rideCharge=new RideChargeRule();
     /** A charging end of the ride is posted and not yet run (observeChargeEndsRide). */
     private boolean chargeEndPosted;
+    /** Charge-ended stops tried in this process (RideChargeRule.stopTried: one per ride). Validations read it. */
+    private int chargeEndStopsTried;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
     /** Opt-in copies of finished rides to the rider's folder (RideAutoExport); null when the service never started. */
@@ -2608,6 +2610,8 @@ public final class ScooterService extends Service {
         boolean linkUp=ble.connected()&&!simulating();
         // Volt's own background pause, out of sight: counts toward AutoStartPolicy.OWN_PAUSE_END_MS, not the 2 minutes.
         autoStart.observeLink(linkUp,ble.connectionGeneration(),mono,ble.scooterOff(),ble,ble.intentionalDisconnectSequence(),!linkUp&&!visible&&LINK_LOG.now().paused());
+        // Ridden off after that pause (above AutoStartPolicy.RIDE_ON_KMH for RIDE_ON_MS): a new ride, so the holds end.
+        autoStart.observeSpeed(linkUp,ble.speedRaw(),ble.motionSampleMs(),mono);
         if(dataMaintenance||rides==null)return;
         // Never while the scooter charges, or just did (an unplug and replug), unless it is ridden off (RideChargeRule).
         rideCharge.observe(activeProfileId(),selectedLiveCharging(mono),mono);
@@ -2654,7 +2658,7 @@ public final class ScooterService extends Service {
         // rides.stop clears the active id: keep it for the automatic copy.
         String stopping=rides.activeId();RideStore.Summary stopped;
         // Too short to keep (RideStore.kept: under 0.01 mi or 20 s), whatever ended it: removed at once, no summary row.
-        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm());invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm(),id->pendingPhoneDiscard(id,true));invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
@@ -2663,7 +2667,8 @@ public final class ScooterService extends Service {
         if(!discarded)RideAutoExportFolder.queue(settings,stopping);
         // Counted kept or not: a riding mode open for it closes either way.
         if(stopped!=null&&stopped.endedByItself())autoEnds.stopped(stopping);
-        if(discarded)pendingPhoneDiscard(stopping,true);
+        // Noted before its journal went (RideStore.stop's discarding); a journal that couldn't be deleted keeps the ride, files and all.
+        if(!discarded)pendingPhoneDiscard(stopping,false);
         phoneDiscard=discarded?stopping:null;stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /** The selected scooter's charging state reading, or null: not connected to the selected scooter, or the simulator. */
     private ChargeSessionStore.Value selectedChargingState(long mono){
@@ -2702,7 +2707,8 @@ public final class ScooterService extends Service {
      * stop's own change notice doesn't run inside this one; it saves with RideStore.STOP_CHARGING and sets no hold, and once
      * the ride is saved (its phone files too), the automatic charge recording and the live charging card follow on their
      * own paths, with the link kept up meanwhile (chargeEndHolds). Charging that goes off and on (an unplug and replug)
-     * can't end a ride twice: it is over, and no ride starts meanwhile. A recovered ride takes its journal's standing.
+     * can't end a ride twice: it is over, and no ride starts meanwhile. A recovered ride takes its journal's standing. A stop
+     * that fails (storage full) is tried once: its toast asks the rider to free space and Retry save, and their Stop is the retry.
      */
     private void observeChargeEndsRide(long mono){
         if(destroyed||dataMaintenance||rides==null||simulating())return;
@@ -2725,6 +2731,8 @@ public final class ScooterService extends Service {
             // Before the stop's work policy: the link stays for the charge recording (chargeEndHolds), then the policy runs again.
             chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;
             handler.postDelayed(()->{if(!destroyed)applyWorkPolicy(false);},CHARGE_END_KEEP_MS+250);
+            // One try per ride, marked first: a failed stop's own change notice comes straight back here (#643 round 2, F07).
+            rideCharge.stopTried(id);chargeEndStopsTried++;
             stopRide(RideStore.STOP_CHARGING);
         });
     }

@@ -59,6 +59,10 @@ import com.jjricks.volt.tests.TextCensus;
  * up until the automatic charge recording starts and the live card shows. (The "riderules" run is with Volt on screen and
  * Stay connected on, as the class's setup leaves it.)
  *
+ * Only "riderulesfull" (#643 round 2, F07): storage full when the plug-in ends a ride (the ride's journal made read-only).
+ * The charge-ended stop is tried once, fails with one "Storage full" toast, and the ride keeps recording: no loop of failed
+ * writes and toasts while the charging readings keep coming. The rider's Stop (Retry save) then saves it.
+ *
  * Only "livecard" (owner, Nov 20 2026): a charge recording, by hand or automatic, in front or out of sight, shows the live
  * charging card as the same charge without one does, promoted to a Live Update or not alike; screenshots of the shade.
  *
@@ -112,6 +116,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 else if ("livecard".equals(args.getString("only", ""))) liveCardWhileRecording();
                 else if ("riderules".equals(args.getString("only", ""))) rideRules();
                 else if ("riderulesaway".equals(args.getString("only", ""))) rideRulesOutOfSight();
+                else if ("riderulesfull".equals(args.getString("only", ""))) rideRulesStorageFull();
                 else {
                     offByDefault();
                     onScreenSettingThenDetectedAndShortChargeNotKept();
@@ -123,7 +128,8 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     rideAwayOutOfSight();
                 }
                 if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))
-                        && !"riderules".equals(args.getString("only", "")) && !"riderulesaway".equals(args.getString("only", ""))) fullFolderRotates();
+                        && !"riderules".equals(args.getString("only", "")) && !"riderulesaway".equals(args.getString("only", ""))
+                        && !"riderulesfull".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -583,6 +589,43 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
         for (File file : saved()) file.delete();
     }
+    private void rideRulesStorageFull() throws Exception {
+        main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).commit());
+        ensureFront();
+        String ride = autoRide(25);
+        File journal = new File(new File(getTargetContext().getFilesDir(), "rides"), ride + ".csv");
+        int before = tried();
+        try {
+            require(journal.exists() && journal.setWritable(false, false) && !journal.canWrite(), "Could not make the ride's journal read-only");
+            for (int i = 0; i < 3; i++) { main(() -> link.motion(0)); SystemClock.sleep(S); }
+            plugIn();
+            // Fifteen seconds of charging readings, each a change the rule looks at.
+            for (int i = 0; i < 15; i++) { main(() -> { link.charging(ON); link.home(); link.status(); }); SystemClock.sleep(S); }
+            int tries = tried() - before;
+            String error = onMainText(() -> String.valueOf(service.recordingError()));
+            require(onMain(() -> service.isRecording() && ride.equals(service.rides.activeId())), "The ride ended although its journal could not be written");
+            require(tries == 1, "Storage full: the charge-ended stop was tried " + tries + " times in 15 s of charging readings, not once");
+            require(error.startsWith("Storage full"), "The failed stop did not say so: " + error);
+            log("storage full, plugged in: the stop was tried " + tries + " time over 15 s of charging readings; the ride still records; error: " + error);
+            screenshot("riderules-storage-full");
+        } finally {
+            journal.setWritable(true, true);
+        }
+        // The rider frees space and taps Stop: that is Retry save.
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording()), 5 * S, "Retry save did not end the ride");
+        RideStore.Summary saved = rideSummary(ride);
+        require(saved != null && !saved.chargingStop && onMainText(() -> String.valueOf(service.recordingError())).equals("null"),
+                "Retry save did not save the ride: " + (saved == null ? "missing" : saved.stopReason));
+        log("Retry save: the ride saved (" + Math.round(saved.shownElapsedMs / 1000.0) + " s); tries still " + (tried() - before));
+        awaitRecording(30 * S, "after Retry save");
+        main(() -> service.stopChargeRecording());
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
+        for (File file : saved()) file.delete();
+    }
+    /** The service's count of charge-ended stops tried (ScooterService.chargeEndStopsTried). */
+    private int tried() { final int[] out = {0}; main(() -> out[0] = (Integer) field(service, "chargeEndStopsTried")); return out[0]; }
     /** Ends the hand stop's hold once no fresh motion is left, so no ride starts on the last moving sample. */
     private void release() {
         main(() -> link.motion(0));

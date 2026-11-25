@@ -317,7 +317,13 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   recording counts a charge as over. Through its own pause Volt can't see the
   scooter switch off, and the scooter reports nothing that resets only at
   power-on (its trip distance and time can read 0 minutes after a ride with no
-  power cycle), so half an hour stands for a scooter parked and left. The holds
+  power cycle), so half an hour stands for a scooter parked and left. After a
+  reconnect that followed Volt's own pause, a fresh speed above 10 km/h held
+  for 3 s of samples (RIDE_ON_KMH, RIDE_ON_MS) ends the session too: a
+  switch-off and on during the pause (a coffee stop) is otherwise unseen. A
+  scooter walked in goes 3 to 6 km/h, and 3 s above 10 km/h is at least 8 m
+  ridden. A hand stop or back-out made after the reconnect, or no own pause at
+  all (Volt on screen throughout), leaves riding on held. The holds
   live for the process, so a service that stopped while Volt was out of sight
   keeps them; a new service's Disconnect count is a new baseline, not a
   Disconnect. A failed automatic start and riding mode's automatic open still
@@ -333,7 +339,10 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   already charged is exempt until a fresh not-charging reading or a fresh speed
   above 4.8 km/h (with no fresh reading at its start, the first one decides);
   its journal keeps the standing as a CHARGE row, so a recovered ride keeps it
-  (older builds skip the row). The 30-second wait belongs to the scooter that
+  (older builds skip the row); a fresh speed above 4.8 km/h before any fresh
+  reading decides it isn't exempt. A charge-ended stop that fails (storage
+  full) is tried once per ride: its toast asks the rider to free space and
+  Retry save, and the rider's Stop is that retry. The 30-second wait belongs to the scooter that
   charged. Record rides automatically starts nothing while
   charging or within 30 seconds of the last charging reading (so an unplug
   and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
@@ -344,10 +353,14 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   its phone GPS and motion files if its shown duration is under 20 s or its
   distance under 0.01 mi (16.09 m): the larger of the odometer distance (two or
   more readings spanning at least half the ride) and the speed-integrated one
-  (intervals covering at least half of it); the odometer counts tenths of a km,
-  whole km on older models. With neither measured, the duration decides; a
-  phone GPS track of 16 m or more keeps it. Phone files still to delete are
-  noted (ride_discard_pending, this phone only) and finished at the next service
+  (intervals covering at least half of it), each only when its last reading is
+  within 10 s of the ride's shown end (MEASURED_END_GAP_MS); the odometer counts
+  tenths of a km, whole km on older models. With neither measured, the duration
+  decides; a phone GPS track of 16 m or more keeps it (steps count while a fix
+  reports 1 m/s or more, with a speed accuracy of 1.5 m/s or better, as the
+  saved track counts them). Phone files still to delete are noted
+  (ride_discard_pending, this phone only) before the journal is deleted and
+  finished at the next service
   start after a process death; only a ride whose journal is gone loses them. It leaves no journal, no
   saved summary, no auto-save copy and no Ride saved automatically notice, and
   the last saved ride stays the one Home and riding mode show. Rides saved before

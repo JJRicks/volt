@@ -18,7 +18,8 @@ package com.jjricks.volt;
  * - Backing out of riding mode holds auto ride mode.
  * - Those two holds last until the riding session really ends ({@link #observeLink}): the scooter is
  *   switched off (ScooterPowerState), the link lost for real for {@link #SESSION_END_MS}, Volt's own
- *   background pause lasting {@link #OWN_PAUSE_END_MS}, or the rider's own Disconnect. Volt's own
+ *   background pause lasting {@link #OWN_PAUSE_END_MS}, the scooter ridden off after such a pause
+ *   ({@link #observeSpeed}), or the rider's own Disconnect. Volt's own
  *   reconnects are not an end: a shorter background pause and the reconnect when Volt comes back, a
  *   connect retry or timeout, or any shorter drop (owner, Nov 24 2026: a reconnect 5 s after a background
  *   pause cleared a hand stop, and rolling the scooter indoors started a ride that then blocked the charge
@@ -73,6 +74,17 @@ final class AutoStartPolicy {
      * stand in for a switch-off.
      */
     static final long OWN_PAUSE_END_MS = 30 * 60_000L;
+    /**
+     * After a reconnect that followed Volt's own pause, a fresh speed above RIDE_ON_KMH held for RIDE_ON_MS is a new ride,
+     * so the session ends there (#643 round 2, F01): a switch-off and on during the pause (a coffee stop) isn't seen through
+     * the closed link, and before the hold rule such a ride was recorded. A scooter walked in goes 3 to 6 km/h, a push or a
+     * jog beside it under 10; 3 s above 10 km/h is at least 8 m ridden, which no roll-in through a door does, and long
+     * enough that one stray sample can't. The slow roll in after the pause stays held, and short strays are not kept
+     * anyway (RideStore.kept). Without an own pause (Volt on screen the whole time) riding on after a hand stop stays held:
+     * the rider chose to stop.
+     */
+    static final double RIDE_ON_KMH = 10;
+    static final long RIDE_ON_MS = 3000;
 
     /** recordHeld: a hand stop; rideModeHeld: a back-out. Both end with the session (sessionEnded). */
     private boolean linked, recordHeld, rideModeHeld;
@@ -89,6 +101,9 @@ final class AutoStartPolicy {
     /** The transport whose Disconnect count is riderDisconnects, and that count at the last look. */
     private Object controller;
     private long riderDisconnects;
+    /** The link came back after Volt's own pause and no hold was set since; the first fast sample's time (-1 for none). */
+    private boolean afterOwnPause;
+    private long fastSinceMs = -1;
 
     /** True for a current link reporting a speed above zero, received within {@link #SPEED_FRESH_MS}. */
     static boolean moving(boolean connected, int speedRaw, long sampleMs, long nowMs) {
@@ -125,12 +140,13 @@ final class AutoStartPolicy {
         }
         if (lostMs >= SESSION_END_MS || pausedMs >= OWN_PAUSE_END_MS) sessionEnded = true;
         if (connected) {
+            if (pausedMs > 0) afterOwnPause = true;
             lostMs = pausedMs = 0;
             if (!switchedOff) {
-                if (sessionEnded) recordHeld = rideModeHeld = false;
+                if (sessionEnded) { recordHeld = rideModeHeld = false; afterOwnPause = false; }
                 sessionEnded = false;
             }
-        }
+        } else fastSinceMs = -1;
         // A fall between two looks with a link at both (a new connection number) is too short to count.
         lastDown = !connected && (linked || lastDown);
         lastOwnPause = lastDown && ownPause;
@@ -139,14 +155,33 @@ final class AutoStartPolicy {
         if (connected) this.generation = generation;
     }
 
-    /** The rider ended a recording by hand (not an automatic ride end). */
-    void riderStoppedRecording() { recordHeld = true; }
+    /**
+     * Each speed sample, after observeLink: once the link is back after Volt's own pause, a fresh speed above
+     * {@link #RIDE_ON_KMH} through {@link #RIDE_ON_MS} of samples ends the session and its holds (see RIDE_ON_KMH). Any
+     * slower or stale sample starts the count again.
+     *
+     * @param speedRaw BleController.speedRaw, in 0.1 km/h
+     * @param sampleMs the sample's own time (monotonic ms)
+     */
+    void observeSpeed(boolean connected, int speedRaw, long sampleMs, long nowMs) {
+        boolean fast = connected && speedRaw / 10.0 > RIDE_ON_KMH && sampleMs > 0 && nowMs >= sampleMs
+                && nowMs - sampleMs <= SPEED_FRESH_MS;
+        if (!afterOwnPause || !linked || !fast) { fastSinceMs = -1; return; }
+        if (fastSinceMs < 0 || sampleMs < fastSinceMs) { fastSinceMs = sampleMs; return; }
+        if (sampleMs - fastSinceMs < RIDE_ON_MS) return;
+        recordHeld = rideModeHeld = false;
+        afterOwnPause = false;
+        fastSinceMs = -1;
+    }
+
+    /** The rider ended a recording by hand (not an automatic ride end): a choice made now, so riding on stays held. */
+    void riderStoppedRecording() { recordHeld = true; afterOwnPause = false; fastSinceMs = -1; }
 
     /** An automatic start was tried and failed. */
     void recordingStartFailed() { startFailed = true; }
 
     /** The rider backed out of riding mode. */
-    void riderLeftRidingMode() { rideModeHeld = true; }
+    void riderLeftRidingMode() { rideModeHeld = true; afterOwnPause = false; fastSinceMs = -1; }
 
     /** Riding mode was opened automatically. */
     void rideModeOpened() { autoOpened = true; }
