@@ -46,12 +46,13 @@ tracker and the taper watcher:
   and at least 20 s after charging starts or after a gap or pause in readings of 30 s or more. A
   not-charging reading (an unplug, a charger pause) ends the charge, as before.
 - **Shows** once the current stays below the level above for 20 s without a break and without rising
-  (a reading 0.3 A or more above the one before starts the 20 s again: a charger ramping up is not held
-  low), and no sooner than 70 s after charging starts with the battery at 35 °C or more, 90 s otherwise
+  (a reading 0.3 A or more above the one that began the 20 s begins it again, at that reading: a
+  charger ramping up is not held low, at any spacing of readings), and no sooner than 70 s after charging starts with the battery at 35 °C or more, 90 s otherwise
   (the fast charger's soft start, below). **Clears** once it stays at 0.95 × the expected current (any
   charger: 1.7 A) or more for 60 s; at once on the reading that reaches the charger's normal level within
   30 s of a reading below the show level (fast charger: 0.95 × its expected current after one below
-  0.90 × it; standard charger: its 1.9 A after one below 1.6 A; no charger known: either), whether the
+  0.90 × it; standard charger: its 1.9 A after one below 1.6 A, or below 1.7 A while shown; no charger
+  known: either), whether the
   current jumps or rises over several readings; and at once when the charge leaves eligibility or another
   charger is chosen or detected. The expected current falling at the BMS's 80% step is no rise. A charger that is unknown for a moment changes which level applies, nothing else.
 - **Cause:** cold at 21 °C (70 °F) or below, hot at 35 °C (95 °F) or above, otherwise (or with no fresh
@@ -86,9 +87,10 @@ What changed:
 - **Sooner, by temperature.** With the battery at 35 °C or more: 70 s after plug-in (75 s out of sight,
   where status comes every 15 s). Heat explains a low current, and that is the owner's case; 70 s is past
   the longest soft start in the owner's data (55 s) with 15 s to spare. Below 35 °C, or with no
-  temperature: 90 s (2.0.5: 120 s). Either way the current must sit low for 20 s without rising, so a soft
-  start that ramps slowly to full power (1.28 A for 55 s, then 30 s up to 10 A) shows nothing even at
-  36 °C. Readings come every 2 s with Home open, so 20 s is many readings; a single low reading never
+  temperature: 90 s (2.0.5: 120 s). Either way the current must sit low for 20 s without rising 0.3 A above
+  where the 20 s began (whatever the spacing of readings), so a soft start that ramps to full power
+  (1.28 A for 55 s, then 30 or 60 s up to 10 A) shows nothing even at 36 °C; a level that wobbles by
+  0.2 A restarts the 20 s once at most. Readings come every 2 s with Home open, so 20 s is many readings; a single low reading never
   holds it.
 - **Cleared at once when full power arrives**, in one reading or over several (a soft start or a hot hold
   ending), so the pill doesn't say "slowed" beside 500 W; with no charger known, also when the current
@@ -202,8 +204,9 @@ is touched). The cold bulk time is worked out per stage, not stepped.
 - Since 2.0.6 it also holds a charge shaped like the owner's after-ride one (no charger known, 1.04 A,
   then two replugs at 1.98 and 1.28 A, 34–36 °C, then 10 A; synthesized), the any-charger rule at
   and around 1.6 A on each charger, the standard charger's finish at a 95% gauge, the fast charger's soft
-  start at 25, 34 and 8 °C and with no temperature (nothing shows), a 55 s soft start rising over 30 s at
-  36 °C (nothing shows, at 2, 10 and 15 s readings), a hot throttle held low (shows at 70 s, clears on the
+  start at 25, 34 and 8 °C and with no temperature (nothing shows), a 55 s soft start rising over 30 or 60 s at
+  36 °C (nothing shows, at 1, 2, 10 and 15 s readings), a hot hold wobbling 0.2 A (shows at 70 s) and one
+  0.3 A upswing (20 s later, once), a stretch at 1.65 A before 2.3 A (clears at once), a hot throttle held low (shows at 70 s, clears on the
   reading that reaches full power, in one step or over 30 s), the standard charger back to 2.3 A at 88%
   with no charger known (clears at once), drifts back (60 s), the background pause wiring, a charger detected or lost mid-charge, a replug, and readings every 15 s.
 - The same test replays `data/fast-charge-taper-v7` (no temperatures): only its one cold charge shows

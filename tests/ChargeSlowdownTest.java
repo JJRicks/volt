@@ -727,16 +727,36 @@ public final class ChargeSlowdownTest {
                 check(!new Watch(soft, UT5, charger, 100d).ever(), "An 80 s soft start at " + temp + " C on " + charger + " shows nothing");
             }
         // At 35 C or more a normal soft start still shows nothing: 1.28 A for 55 s (the owner's longest), then a rise to
-        // 10 A over 30 s, at readings every 2 s, every 10 s and every 15 s (review of #642).
-        for (long step : new long[]{2000, STEP, 15_000})
-            for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, FAST}) {
-                List<Sample> rise = new ArrayList<>();
-                for (long t = 0; t <= 3 * MIN; t += step) {
-                    double a = t < 55_000 ? 1.28 : t >= 85_000 ? 10.05 : 1.28 + (10.05 - 1.28) * (t - 55_000) / 30_000.0;
-                    rise.add(new Sample(T0 + t, 40, Sim.bulkVolts(40, a), a, 36d));
+        // 10 A over 30 s or 60 s, at readings every 1, 2, 10 and 15 s (review of #642: a ramp is told from a hold by its
+        // rise since the hold began, not between two readings, so the spacing does not matter).
+        for (long ramp : new long[]{30_000, 60_000})
+            for (long step : new long[]{1000, 2000, STEP, 15_000})
+                for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, FAST}) {
+                    List<Sample> rise = new ArrayList<>();
+                    for (long t = 0; t <= 3 * MIN; t += step) {
+                        double a = t < 55_000 ? 1.28 : t >= 55_000 + ramp ? 10.05 : 1.28 + (10.05 - 1.28) * (t - 55_000) / (double) ramp;
+                        rise.add(new Sample(T0 + t, 40, Sim.bulkVolts(40, a), a, 36d));
+                    }
+                    check(!new Watch(rise, UT5, charger, 100d).ever(), "A 55 s soft start and a " + ramp + " ms rise at 36 C, " + step
+                            + " ms readings, on " + charger + " shows nothing");
                 }
-                check(!new Watch(rise, UT5, charger, 100d).ever(), "A 55 s soft start and a 30 s rise at 36 C, " + step + " ms readings, on " + charger + " shows nothing");
+        // A real hot hold that wobbles 0.2 A either way (1.08 to 1.48 A) still shows at 70 s: the wobble restarts the hold
+        // once at most. One 0.3 A upswing in a hold (1.0 to 1.3 A at 60 s, staying there) delays it once, 20 s from the
+        // upswing, and a second wobble at the new level does not delay it again.
+        for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, FAST}) {
+            List<Sample> wobble = new ArrayList<>();
+            for (long t = 0; t <= 2 * MIN; t += 2000)
+                wobble.add(new Sample(T0 + t, 40, Sim.bulkVolts(40, 1.28), 1.28 + (t / 2000 % 4 == 0 ? -.2 : t / 2000 % 4 == 2 ? .2 : 0), 36d));
+            Watch w = new Watch(wobble, UT5, charger, 100d);
+            check(wobble.get(w.firstShown()).t - T0 == ChargeSlowdown.HOT_START_MS, "A hold wobbling 0.2 A shows at 70 s on " + charger + ": " + (wobble.get(Math.max(0, w.firstShown())).t - T0));
+            List<Sample> upswing = new ArrayList<>();
+            for (long t = 0; t <= 2 * MIN; t += 2000) {
+                double a = t < 60_000 ? 1.0 : 1.3 + (t / 2000 % 2 == 0 ? .02 : -.02);
+                upswing.add(new Sample(T0 + t, 40, Sim.bulkVolts(40, a), a, 36d));
             }
+            Watch u = new Watch(upswing, UT5, charger, 100d);
+            check(upswing.get(u.firstShown()).t - T0 == 80_000, "One 0.3 A upswing at 60 s delays it to 80 s, once, on " + charger + ": " + (upswing.get(Math.max(0, u.firstShown())).t - T0));
+        }
         // Held low at 36 C (a real hot throttle) it shows at 70 s, and a rise to the full current clears it on the reading
         // that reaches the charger's normal level (0.95 x on the fast charger; with no charger known, the standard
         // charger's 1.9 A already), whether it rises in one reading or over 30 s.
@@ -764,6 +784,12 @@ public final class ChargeSlowdownTest {
         for (Sample s : steady(88, 52.9, 2.3, 36d, MIN)) back88.add(new Sample(s.t + 130_000, s.soc, s.volts, s.amps, s.temp));
         Watch std88 = new Watch(back88, UT5, null, 100d);
         check(std88.states.get(12).slowed && !std88.states.get(13).slowed, "No charger known: 1.04 to 2.3 A at 88% clears at once");
+        // ...also after a stretch between the show and clear lines (1.65 A for 40 s, still shown) (review of #642, F05).
+        List<Sample> hover = steady(88, 52.6, 1.04, 36d, 2 * MIN);
+        for (Sample s : steady(88, 52.7, 1.65, 36d, 40_000)) hover.add(new Sample(s.t + 130_000, s.soc, s.volts, s.amps, s.temp));
+        for (Sample s : steady(88, 52.9, 2.3, 36d, MIN)) hover.add(new Sample(s.t + 180_000, s.soc, s.volts, s.amps, s.temp));
+        Watch hov = new Watch(hover, UT5, null, 100d);
+        check(hov.states.get(17).slowed && !hov.states.get(18).slowed && hover.get(18).amps == 2.3, "No charger known: 40 s at 1.65 A, then 2.3 A, clears at once");
         // On the standard charger the jump is to its own level; a creep back (1.5 to 1.75 A) still takes 60 s.
         List<Sample> stock = steady(40, 48.9, 1.0, 36d, 100_000);
         for (Sample s : steady(40, 49.0, 2.2, 36d, MIN)) stock.add(new Sample(s.t + 110_000, s.soc, s.volts, s.amps, s.temp));
