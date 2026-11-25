@@ -192,6 +192,7 @@
     <string name="service_ride_switched_off_at" volt:src="140c15406c731deeb53385bfb51698a9dfa7b31b">Patinete desligado. Término: %1$s, seu último movimento.</string>
     <string name="service_ride_switched_off_label_at" volt:src="19caa3e5ef9b099bb2e1476b4f82d1f88f395416">%1$s · Patinete desligado. Término: %2$s, seu último movimento.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Conexão e gravação do patinete</string>
+    <string name="service_channel_rides_charging" volt:src="b95399121d62a78a53fcfdbf664bb41466b22410">Viagens e carregamento</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Medindo o carregamento para Carga pronta até</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Testando o carregamento programado</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Gravação de carregamento · reconectando</string>
