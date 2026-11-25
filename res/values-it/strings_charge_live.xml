@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Livello</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Nascosta</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">Nella barra di stato</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Orario di fine</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Finché la scheda è visibile, le altre app, inclusa quella ufficiale, non possono connettersi. Tocca «Disconnetti» sulla scheda per consentire la connessione.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->

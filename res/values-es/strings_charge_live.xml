@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Nivel</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Oculto</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">En la barra de estado</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Hora de fin</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Mientras se muestra la tarjeta, otras apps —incluida la oficial— no pueden conectarse al patinete. Toca «Desconectar» en la tarjeta para permitirlo.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->

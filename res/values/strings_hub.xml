@@ -276,9 +276,11 @@
     <string name="hub_recording_speed" volt:screen="Clean Home while recording" volt:purpose="graph label" volt:ladder="full" volt:overflow="short" volt:max="150dp@12.5sp">Speed, this ride</string>
     <string name="hub_recording_speed_short" volt:screen="Clean Home while recording" volt:purpose="graph label" volt:ladder="short" volt:max="70dp@12.5sp">Speed</string>
     <!-- The third reading's name: the estimated range left, the figure the parked battery card shows ("about 23 mi
-         left"). The short rung where a third of the row is too narrow. -->
+         left"). The short rung where a third of the row is too narrow. Its 68 dp budget (2.0.6) takes the range word the
+         languages already ship (Autonomía, Autonomie, Autonomia: about 66 dp); the narrowest row (280 dp, large text, dual
+         units) has about 64, so there it can lose about a letter to an ellipsis, a cut-off accepted at very large text. -->
     <string name="hub_recording_range" volt:screen="Clean Home while recording" volt:purpose="reading name" volt:ladder="full" volt:overflow="short" volt:max="100dp@13sp" volt:safety="ride">Range (est.)</string>
-    <string name="hub_recording_range_short" volt:screen="Clean Home while recording" volt:purpose="reading name" volt:ladder="short" volt:max="64dp@13sp" volt:safety="ride">Range</string>
+    <string name="hub_recording_range_short" volt:screen="Clean Home while recording" volt:purpose="reading name" volt:ladder="short" volt:max="68dp@13sp" volt:safety="ride">Range</string>
     <!-- At the top right of the speed graph: the speed now. %1$s is the speed with its unit ("16.8 mph"). -->
     <string name="hub_recording_speed_now" volt:screen="Clean Home while recording" volt:purpose="value" volt:max="150dp@12.5sp" volt:safety="ride">%1$s now</string>
     <!-- Spoken at the start of that screen-reader text in the recording's first minute (after it, riding mode's

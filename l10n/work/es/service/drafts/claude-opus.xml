@@ -173,6 +173,7 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Sal primero de la simulación</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Terminando el viaje anterior</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Viaje guardado automáticamente</string>
+    <string name="service_ride_not_saved_short" volt:src="e9b4e504ee292a273fea9d60455e2a6e7249f178">Viaje no guardado, demasiado corto</string>
     <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Copia del viaje no guardada</string>
     <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Volt no puede acceder a tu carpeta de guardado automático. Abre Volt y vuelve a elegir la carpeta. Tus viajes están a salvo en Volt.</string>
     <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Volt no pudo escribir en tu carpeta de guardado automático. Volverá a intentarlo después de tu próximo viaje. Tus viajes están a salvo en Volt.</string>
@@ -192,6 +193,7 @@
     <string name="service_ride_switched_off_at" volt:src="140c15406c731deeb53385bfb51698a9dfa7b31b">Patinete apagado. Hora de fin: %1$s (último movimiento).</string>
     <string name="service_ride_switched_off_label_at" volt:src="19caa3e5ef9b099bb2e1476b4f82d1f88f395416">%1$s · Patinete apagado. Hora de fin: %2$s (último movimiento).</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Conexión y grabación del patinete</string>
+    <string name="service_channel_rides_charging" volt:src="b95399121d62a78a53fcfdbf664bb41466b22410">Viajes y carga</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Midiendo la carga para «Fin de carga»</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Comprobando la carga programada</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Grabación de carga · reconectando</string>

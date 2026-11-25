@@ -316,6 +316,8 @@
     <string name="service_ride_finishing">Finalisation du trajet précédent…</string>
     <!-- src:42878a885535e9b4f60fdfcea021a21fff4b0386 -->
     <string name="service_ride_saved_auto">Trajet sauvegardé automatiquement</string>
+    <!-- src:e9b4e504ee292a273fea9d60455e2a6e7249f178 -->
+    <string name="service_ride_not_saved_short">Trajet non sauvegardé, trop court</string>
     <!-- src:fa4d152beb13f030271b45acaba1774c5f766841 -->
     <string name="service_auto_save_failed">Copie du trajet non sauvegardée</string>
     <!-- src:1ca68074495f70d2e3b5dc2a66f74d1528d5fd26 -->
@@ -354,6 +356,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Trottinette éteinte. Fin : %2$s (dernier mouvement).</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Connexion de la trottinette et enregistrement</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Trajets et recharge</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">Mesure de la recharge pour « Finir la recharge à »</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

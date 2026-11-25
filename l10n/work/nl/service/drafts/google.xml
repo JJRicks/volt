@@ -164,6 +164,7 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Verlaat eerst de simulatie</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Bezig met afronden van de vorige rit</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Rit automatisch opgeslagen</string>
+    <string name="service_ride_not_saved_short" volt:src="e9b4e504ee292a273fea9d60455e2a6e7249f178">Rit niet opgeslagen, te kort</string>
     <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Kopie van rit niet opgeslagen</string>
     <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Volt kan je map voor automatisch opslaan niet bereiken. Open Volt en kies de map opnieuw. Je ritten zijn veilig in Volt.</string>
     <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Volt kon niet naar je map voor automatisch opslaan schrijven. Volt probeert het na je volgende rit opnieuw. Je ritten zijn veilig in Volt.</string>
@@ -183,6 +184,7 @@
     <string name="service_ride_switched_off_at" volt:src="140c15406c731deeb53385bfb51698a9dfa7b31b">Step uitgezet. Geëindigd om %1$s, bij de laatste beweging.</string>
     <string name="service_ride_switched_off_label_at" volt:src="19caa3e5ef9b099bb2e1476b4f82d1f88f395416">%1$s · Step uitgezet. Geëindigd om %2$s, bij de laatste beweging.</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Stepverbinding en opname</string>
+    <string name="service_channel_rides_charging" volt:src="b95399121d62a78a53fcfdbf664bb41466b22410">Ritten en opladen</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Bezig met meten voor ‘Opgeladen vóór’</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Bezig met testen van gepland laden</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Laadopname · opnieuw verbinding maken</string>

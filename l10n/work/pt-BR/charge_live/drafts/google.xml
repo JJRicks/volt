@@ -22,6 +22,8 @@
     <string name="charge_live_lock_details" volt:src="e7b71191552a189d40e6bf5feb5cd434c2327456">Detalhes</string>
     <string name="charge_live_lock_level" volt:src="d09af4b261e36cf5e9197a95be2530aa4e2bb753">Nível</string>
     <string name="charge_live_lock_hidden" volt:src="dab03497d1be8687d1fbd8bd76742b79f156a9bb">Oculto</string>
+    <string name="charge_live_chip_title" volt:src="35d2aaca6f7776800f98f33baec162b1761c9f6a">Na barra de status</string>
+    <string name="charge_live_chip_finish" volt:src="184762aa648be877774e6cb7278167ea0b3c8ba5" volt:attempt="2">Término</string>
     <string name="charge_live_when" volt:src="2b2ade7cb931bfbb4a23d8345b2cc09b38295330">Enquanto for exibido, outros apps — incluindo o oficial — não conseguem conectar. Toque em “Desconectar” no card para permitir.</string>
     <string name="charge_live_perm" volt:src="95dbfa498b011dc3178b86c20d483a42c35f4298">As notificações estão desativadas para o Volt, portanto o card de carregamento em tempo real não pode ser exibido.</string>
     <string name="charge_live_update_row" volt:src="20f929ec172fce5fc47dfc6ff905c14d5864d292">Estado do Live Update</string>

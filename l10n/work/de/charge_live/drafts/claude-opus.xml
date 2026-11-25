@@ -22,6 +22,8 @@
     <string name="charge_live_lock_details" volt:src="e7b71191552a189d40e6bf5feb5cd434c2327456">Details</string>
     <string name="charge_live_lock_level" volt:src="d09af4b261e36cf5e9197a95be2530aa4e2bb753">Akkustand</string>
     <string name="charge_live_lock_hidden" volt:src="dab03497d1be8687d1fbd8bd76742b79f156a9bb">Verborgen</string>
+    <string name="charge_live_chip_title" volt:src="35d2aaca6f7776800f98f33baec162b1761c9f6a">In der Statusleiste</string>
+    <string name="charge_live_chip_finish" volt:src="184762aa648be877774e6cb7278167ea0b3c8ba5">Ladeende</string>
     <string name="charge_live_when" volt:src="2b2ade7cb931bfbb4a23d8345b2cc09b38295330">Solange die Anzeige zu sehen ist, können sich andere Apps – auch die offizielle – nicht verbinden. Tippe auf der Karte auf „Trennen“, damit sie es können.</string>
     <string name="charge_live_perm" volt:src="95dbfa498b011dc3178b86c20d483a42c35f4298">Benachrichtigungen für Volt sind aus, daher kann die Live-Ladeanzeige nicht erscheinen.</string>
     <string name="charge_live_update_row" volt:src="20f929ec172fce5fc47dfc6ff905c14d5864d292">Live-Update-Status</string>

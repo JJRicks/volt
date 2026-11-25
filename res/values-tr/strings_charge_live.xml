@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Seviye</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Gizli</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">Durum çubuğunda</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Bitiş saati</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Kart gösterilirken resmî uygulama dahil diğer uygulamalar bağlanamaz. Bağlanmalarına izin vermek için karttaki “Bağlantıyı kes” düğmesine dokunun.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->
