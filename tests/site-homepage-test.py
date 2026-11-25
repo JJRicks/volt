@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Homepage variants (site/README.md, "Variants"): the build contract, the variant markup check, the nginx
 configuration and the live-variant switch. Temporary folders only; no network, server or browser."""
+import sys as _s; print('injected failure (CI check, reverted next commit)'); _s.exit(3)
 import hashlib, importlib.machinery, importlib.util, io, json, os, re, shutil, stat, subprocess, sys, tarfile, tempfile, threading, unittest
 from pathlib import Path
 

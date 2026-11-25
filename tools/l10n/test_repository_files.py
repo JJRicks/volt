@@ -16,6 +16,11 @@ L10N = os.path.join(ROOT, "l10n")
 GLOSSARY_HEADER = ("id", "term", "definition", "pos", "dnt", "safety", "source")
 
 
+class InjectedFailureTest(__import__('unittest').TestCase):
+    def test_injected(self):
+        self.fail('injected failure (CI check, reverted next commit)')
+
+
 class RepositoryFilesTest(unittest.TestCase):
     def test_languages(self):
         languages = gen_catalog.load_languages(os.path.join(L10N, "lang"))
