@@ -23,8 +23,8 @@ package com.jjricks.volt;
  * <li>eligible outside the charger's voltage limit (V + CV_DROP x I below {@link #CV_EDGE_V}, FastChargeTaper's
  *     CV_SET less CV_MARGIN; without the fast charger known, also outside the standard charger's, {@link
  *     #STOCK_CV_EDGE_V}), below the charge limit less {@link #LIMIT_MARGIN} percent, and at least {@link #START_MS}
- *     after charging began or after a gap in readings of {@link #GAP_MS} or more. A not-charging state shorter than
- *     that (the BMS blips it while it holds the current low) keeps the charge and its clock;</li>
+ *     after charging began or after a gap or pause in readings of {@link #GAP_MS} or more (a not-charging state, such as
+ *     an unplug and replug, ends the charge);</li>
  * <li>slowed once the current stays below the show level for {@link #HOLD_MS} without a break; cleared once it
  *     stays at the clear level (CLEAR x the expected current, or {@link #ANY_CLEAR_AMPS} by the any-charger rule) or
  *     more for {@link #CLEAR_MS}, or at once when the charge leaves eligibility or another charger is chosen or
@@ -128,8 +128,6 @@ public final class ChargeSlowdown {
 
     private String profile;
     private boolean on, coldSeen;
-    /** A not-charging state was seen since the last charging reading: the charge goes on if charging is back within GAP_MS. */
-    private boolean paused;
     /** The charger detected or chosen last in this charge (null: none known yet), and whether the fast rule applied last. */
     private ChargeSessionStore.Charger knownCharger;
     private boolean fastRule;
@@ -172,8 +170,8 @@ public final class ChargeSlowdown {
     }
 
     /**
-     * One reading. charging is the fresh charging state (null changes nothing; false pauses the charge, which a charging
-     * reading within GAP_MS of the last one resumes). charger is the charger in effect (detected or chosen) or null.
+     * One reading. charging is the fresh charging state (null changes nothing; false ends the charge). charger is the
+     * charger in effect (detected or chosen) or null.
      * ratedAh is the pack's rated capacity or null (unknown: not watched). soc, volts and amps are a fresh paired reading
      * or null; temperatureC a fresh battery temperature or null; limit the scooter's charge limit (percent) or null when
      * unknown, which counts as 100. sampleMs is the paired reading's time on the monotonic clock; the same reading seen
@@ -183,12 +181,10 @@ public final class ChargeSlowdown {
             Double soc, Double volts, Double amps, Double temperatureC, Double limit, long sampleMs) {
         if (profile == null || profile.isEmpty() || charging == null) return;
         if (!profile.equals(this.profile)) { reset(); this.profile = profile; }
-        if (!charging) { paused = true; return; }
+        if (!charging) { clearCharge(); return; }
         if (soc == null || volts == null || amps == null || !finite(soc) || !finite(volts) || !finite(amps) || sampleMs <= 0) return;
         if (sampleMs == last) return;
-        // A pause of GAP_MS or more (from the last charging reading) begins a new charge, as does a long silence.
-        if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS || paused && sampleMs - last >= GAP_MS)) clearCharge();
-        paused = false;
+        if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS)) clearCharge();
         if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)) {
             // Not watched: a later reading of a watched pack starts its own START_MS.
             on = false; since = -1; last = 0; temperature = null; warmFirst = -1; knownCharger = null;
@@ -227,10 +223,10 @@ public final class ChargeSlowdown {
 
     /**
      * The state for this profile's charge at nowMs (the monotonic clock): NONE for another profile, without a
-     * watched charge or while charging is paused, and not slowed once the last reading is GAP_MS old.
+     * watched charge, and not slowed once the last reading is GAP_MS old.
      */
     public State state(String profile, long nowMs) {
-        if (profile == null || !profile.equals(this.profile) || last <= 0 || paused) return State.NONE;
+        if (profile == null || !profile.equals(this.profile) || last <= 0) return State.NONE;
         boolean fresh = nowMs >= last && nowMs - last < GAP_MS;
         if (!fresh) return coldSeen ? new State(false, null, null, true) : State.NONE;
         return new State(on, cause, temperature, coldSeen, warmRate());
@@ -256,7 +252,7 @@ public final class ChargeSlowdown {
     }
 
     private void clearCharge() {
-        on = coldSeen = paused = fastRule = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
+        on = coldSeen = fastRule = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
         knownCharger = null;
     }
 

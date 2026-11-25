@@ -1163,7 +1163,7 @@ public final class ScooterService extends Service {
     /**
      * Whether the active scooter's UT5 MAX charge is slowed now, why, and its battery temperature (ChargeSlowdown): the
      * state the charging status shows and the fast charger's time left uses. NONE while simulating, without a watched
-     * charge, while charging is paused, or once its readings are stale.
+     * charge, or once its readings are stale.
      */
     public ChargeSlowdown.State chargeSlowdown(){
         ChargeSlowdown.State forced=testChargeSlowdown;

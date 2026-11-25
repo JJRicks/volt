@@ -113,7 +113,7 @@ public final class ChargeSlowdownTest {
         ownWarming();
         afterRide();
         anyCharger();
-        shortPauses();
+        replugAndSlowReadings();
         if (args.length > 0) committedReplay(Paths.get(args[0]));
         System.out.println("ChargeSlowdown: " + checks + " checks passed");
     }
@@ -620,7 +620,7 @@ public final class ChargeSlowdownTest {
 
     // ----- Slowed sooner (2.0.6) -----
 
-    /** One reading of a hand-built timeline: charging false is a charging-state blip (no electrical values). */
+    /** One reading of a hand-built timeline: charging false is the charger unplugged (no electrical values). */
     static final class Reading {
         final long t; final boolean charging; final double soc, volts, amps; final Double temp;
         Reading(long t, boolean charging, double soc, double volts, double amps, Double temp) {
@@ -635,8 +635,9 @@ public final class ChargeSlowdownTest {
 
     /**
      * A charge shaped like the owner's of Nov 24 2026 (synthesized): plugged into the fast charger right after a ride with
-     * no charger chosen or detected, the BMS held about 1.04 A for 4 min 22 s at 36 C, the charging state blipped off for
-     * 5 s, 1.98 A for 2 min 12 s at 34 C, off for 8 s, 1.28 A for 18 s at 35 C, then the full 10.05 A at 35 C.
+     * no charger chosen or detected, the BMS held about 1.04 A for 4 min 22 s at 36 C; unplugged for 6 s and plugged in
+     * again, 1.98 A for 2 min 12 s at 34 C; unplugged for 8 s and plugged in again, 1.28 A for 18 s at 35 C, then the
+     * full 10.05 A at 35 C.
      */
     static List<Reading> afterRideTimeline() {
         List<Reading> r = new ArrayList<>();
@@ -649,7 +650,7 @@ public final class ChargeSlowdownTest {
         return r;
     }
 
-    /** The state after each reading, the observer fed as ScooterService feeds it (a blip has no paired values). */
+    /** The state after each reading, the observer fed as ScooterService feeds it (unplugged: no paired values). */
     static List<ChargeSlowdown.State> watch(List<Reading> readings, ChargeSessionStore.Charger charger) {
         ChargeSlowdown o = new ChargeSlowdown();
         List<ChargeSlowdown.State> states = new ArrayList<>();
@@ -668,9 +669,10 @@ public final class ChargeSlowdownTest {
 
     /**
      * 14. The owner's after-ride charge with no charger known: "Charging slowed · battery hot" from 40 s (20 s after
-     * charging began, then 20 s below the standard charger's level), not restarted by the 5 s blip, cleared 60 s into the
-     * 1.98 A stretch (with no charger known that is the standard charger's level); with the fast charger chosen it stays
-     * up to 60 s after the full current. Before 2.0.6 it never showed (no charger known; 38 C to name heat).
+     * charging began, then 20 s below 1.6 A, far under the standard charger's level), to the unplug. After the replug,
+     * 1.98 A with no charger known is the standard charger's level: not slowed. The second replug's 1.28 A lasts 18 s,
+     * under the 20 s start. With the fast charger chosen 1.98 A is slowed too, 40 s after its replug. Before 2.0.6 it
+     * never showed (no charger known; 38 C to name heat).
      */
     private static void afterRide() {
         List<Reading> r = afterRideTimeline();
@@ -680,18 +682,13 @@ public final class ChargeSlowdownTest {
         check(shown.slowed, "After the ride, no charger known: slowed at 40 s");
         check(shown.cause == ChargeSlowdown.Cause.HOT && shown.batteryTempC == 36, "Named hot at 36 C (97 F): " + shown.cause);
         for (int i = at(r, 40_000); i < at(r, 262_000); i++) check(unknown.get(i).slowed, "Shown throughout the 1.04 A stretch, reading " + i);
-        check(!unknown.get(at(r, 264_000)).slowed, "Not while the charging state blips off");
-        check(unknown.get(at(r, 268_000)).slowed && unknown.get(at(r, 268_000)).cause == ChargeSlowdown.Cause.HOT,
-                "Back from a 6 s blip at 1.98 A: still shown at once (the clock did not restart)");
-        check(unknown.get(at(r, 326_000)).slowed && !unknown.get(at(r, 328_000)).slowed, "1.98 A with no charger known clears after 60 s");
-        check(!unknown.get(at(r, 424_000)).slowed, "18 s at 1.28 A: under the 20 s hold");
-        for (int i = at(r, 426_000); i < r.size(); i++) check(!unknown.get(i).slowed, "Full current: not slowed, reading " + i);
-        // The fast charger chosen: today's fast-charger rule, 20 s and 20 s, through both blips, until 60 s at full current.
+        for (int i = at(r, 262_000); i < r.size(); i++) check(!unknown.get(i).slowed, "No charger known: not slowed after the first unplug, reading " + i);
+        // The fast charger chosen: each replug starts its 20 s again; 1.98 A is far under its 10.05 A.
         List<ChargeSlowdown.State> fast = watch(r, FAST);
         check(!fast.get(at(r, 38_000)).slowed && fast.get(at(r, 40_000)).slowed, "Fast charger chosen: slowed at 40 s");
-        for (int i = at(r, 40_000); i < at(r, 486_000); i++)
-            check(fast.get(i).slowed || !r.get(i).charging, "Fast charger chosen: shown to 60 s after the full current, reading " + i);
-        check(!fast.get(at(r, 488_000)).slowed, "Fast charger chosen: cleared 60 s after the full current");
+        check(!fast.get(at(r, 262_000)).slowed, "Unplugged: not slowed");
+        check(!fast.get(at(r, 306_000)).slowed && fast.get(at(r, 308_000)).slowed, "Fast charger chosen: 1.98 A slowed 40 s after the replug");
+        for (int i = at(r, 408_000); i < r.size(); i++) check(!fast.get(i).slowed, "After the second replug: 18 s at 1.28 A, then full current, reading " + i);
     }
 
     /**
@@ -701,10 +698,11 @@ public final class ChargeSlowdownTest {
     private static void anyCharger() {
         for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, STOCK, FAST}) {
             check(new Watch(steady(40, 48.9, 1.5, 25d, MIN), UT5, charger, 100d).ever(), "1.5 A shows within a minute on " + charger);
+            check(new Watch(steady(40, 48.9, 1.28, 25d, MIN), UT5, charger, 100d).ever(), "1.28 A (about 63 W) shows on " + charger);
             check(!new Watch(steady(40, 48.9, 1.5, 25d, MIN), 1234, charger, 100d).ever(), "Another model never shows, on " + charger);
             check(!new Watch(steady(40, 48.9, 1.5, 25d, MIN), UT5, 25, charger, 100d).ever(), "Another pack never shows, on " + charger);
         }
-        for (double amps : new double[]{1.6, 1.8, 2.0, 5.5, 8.5}) {
+        for (double amps : new double[]{1.6, 1.8, 1.98, 2.0, 5.5, 8.5}) {
             check(!new Watch(steady(40, 49.0, amps, 12d, 3 * MIN), UT5, null, 100d).ever(), amps + " A with no charger known never shows");
             check(!new Watch(steady(40, 49.0, amps, 12d, 3 * MIN), UT5, STOCK, 100d).ever(), amps + " A on the standard charger never shows");
             check(new Watch(steady(40, 49.0, amps, 12d, 3 * MIN), UT5, FAST, 100d).ever(), amps + " A on the fast charger shows");
@@ -727,34 +725,29 @@ public final class ChargeSlowdownTest {
         int cleared = 4;
         while (start.states.get(cleared).slowed) cleared++;
         check(soft.get(cleared).t - T0 == 80_000 + MIN, "It clears 60 s after the full current: " + (soft.get(cleared).t - T0));
+        // A charger chosen or detected changes the level at once, without a new start window: no charger known at 1.8 A
+        // (not slowed), then the fast charger detected shows 20 s later; it unknown again for a moment keeps it shown.
+        ChargeSlowdown o = new ChargeSlowdown();
+        long t = T0;
+        for (; t <= T0 + MIN; t += STEP) o.observe(P, UT5, (Double) RATED, null, true, 40d, 49.0, -1.8, 25d, 100d, t);
+        check(!o.state(P, t - STEP).slowed, "1.8 A with no charger known: not slowed");
+        for (long end = t + 20_000; t <= end; t += STEP) o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.0, -1.8, 25d, 100d, t);
+        check(o.state(P, t - STEP).slowed, "The fast charger detected: slowed 20 s later");
+        o.observe(P, UT5, (Double) RATED, null, true, 40d, 49.0, -1.8, 25d, 100d, t);
+        check(o.state(P, t).slowed, "Detection losing the charger for a reading keeps it shown");
     }
 
     /**
-     * 16. A charging-state blip shorter than GAP_MS keeps the clock and what is shown (the owner's BMS dropped charging for
-     * 5 to 8 s twice); 30 s or more off is a new charge, as before; and readings every 15 s (Home out of sight) still show it.
+     * 16. An unplug and replug starts the charge again (as before 2.0.6): the 20 s start and 20 s below follow the
+     * replug. Readings every 15 s (Home out of sight) still show it, at the first reading from 40 s with 20 s below.
      */
-    private static void shortPauses() {
+    private static void replugAndSlowReadings() {
         List<Reading> r = new ArrayList<>();
-        hold(r, 0, 12_000, true, 40, 48.9, 1.0, 25d);
-        hold(r, 12_000, 8_000, false, 40, 48.9, .05, 25d);
-        hold(r, 20_000, 60_000, true, 40, 48.9, 1.0, 25d);
+        hold(r, 0, 30_000, true, 40, 48.9, 1.0, 25d);
+        hold(r, 30_000, 8_000, false, 40, 48.9, .05, 25d);
+        hold(r, 38_000, 60_000, true, 40, 48.9, 1.0, 25d);
         List<ChargeSlowdown.State> s = watch(r, null);
-        check(!s.get(at(r, 38_000)).slowed && s.get(at(r, 40_000)).slowed, "A blip in the start window does not restart it");
-        List<Reading> cold = new ArrayList<>();
-        hold(cold, 0, 3 * MIN, true, 40, 49.0, 5.5, 12d);
-        hold(cold, 3 * MIN, 10_000, false, 40, 49.0, .05, 12d);
-        hold(cold, 3 * MIN + 10_000, MIN, true, 40, 49.0, 5.5, 12d);
-        List<ChargeSlowdown.State> c = watch(cold, FAST);
-        check(c.get(at(cold, 3 * MIN - 2000)).slowed && c.get(at(cold, 3 * MIN + 10_000)).slowed, "A cold slowdown survives a 10 s blip");
-        List<Reading> paused = new ArrayList<>();
-        hold(paused, 0, 3 * MIN, true, 40, 49.0, 5.5, 12d);
-        hold(paused, 3 * MIN, 40_000, false, 40, 49.0, .05, 12d);
-        hold(paused, 3 * MIN + 40_000, MIN, true, 40, 49.0, 5.5, 12d);
-        List<ChargeSlowdown.State> p = watch(paused, FAST);
-        int back = at(paused, 3 * MIN + 40_000);
-        check(!p.get(back).slowed && !p.get(back).coldTail, "A 40 s pause is a new charge");
-        check(!p.get(at(paused, 3 * MIN + 78_000)).slowed && p.get(at(paused, 3 * MIN + 80_000)).slowed, "It shows again 40 s into the new charge");
-        // Out of sight, status arrives every 15 s: it shows at the reading 40 s or more into the charge, with 20 s below.
+        check(!s.get(at(r, 76_000)).slowed && s.get(at(r, 78_000)).slowed, "A replug restarts the clock: slowed 40 s after it");
         ChargeSlowdown slow = new ChargeSlowdown();
         long t = T0;
         for (; t <= T0 + 30_000; t += 15_000) slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, t);
