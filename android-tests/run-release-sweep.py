@@ -255,6 +255,12 @@ STEPS += [
     # and Charge done by, Widgets and Clean, dark and light, on a phone and the unfolded Fold.
     inst('charge-estimating-first-412', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charge-estimating-first-fold', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # The held time's words hold still through a page change (owner, Nov 24 2026: "Estimating time" flashed as Settings
+    # opened): a refresh keeps the rung drawn, the page change's snapshot and frames; Widgets and Clean, dark and light. At
+    # 457 dp wide Clean's tile draws "Estimating" where the long words' first line, "Estimating time", fits: the owner's flash.
+    inst('charge-time-steady-412', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charge-time-steady-457', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', '457', size='457x915'),
+    inst('charge-time-steady-fold', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
     # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's
     # sizes and the Fold's folded and unfolded screens. With a network the "on" pictures show tiles.

@@ -40,6 +40,8 @@ import com.jjricks.volt.*;
  * set through ScooterService's test-only testChargeSlowdown (the simulator never slows), and the readings are the
  * fixture's. In order: Charging, Charging to an 85% limit, slowed hot (45 C), slowed cold (11.7 C), slowed for no named
  * reason (28 C), each slowed one without a limit, and back to the limit. The temperature unit is Fahrenheit (argument unit "c" for Celsius).
+ * Arguments hot_c (default 45) and amps (default 9.6) set the hot state's battery temperature and the readings' current,
+ * e.g. 36 and 1.04 for a charge held low right after a ride (2.0.6).
  *
  * <p>Each state checks: the hero's state; the line shown (Clean's line or its short line) holds one of the state's
  * rungs, the longest that fits on one line where it is the full line, one line with no ellipsis while slowed;
@@ -155,12 +157,12 @@ public final class ChargingPillValidation extends ValidationInstrumentation {
         // The limit only for its own states: a slowed pill replaces either, and without the limit's two-line words and
         // second reading the slot is the one where Clean's normal line makes way at large text (the kept line's case).
         Double limit = name.equals("limit") || name.equals("back") ? 85d : null;
-        Object[] slowdown = name.equals("hot") ? new Object[] {"HOT", 45.0} : name.equals("cold") ? new Object[] {"COLD", 11.7}
+        Object[] slowdown = name.equals("hot") ? new Object[] {"HOT", Double.parseDouble(args.getString("hot_c", "45"))} : name.equals("cold") ? new Object[] {"COLD", 11.7}
                 : name.equals("slowed") ? new Object[] {"PLAIN", 28.0} : null;
         setSlowdown(slowdown == null ? null : state((String) slowdown[0], (Double) slowdown[1]));
         String kindName = name.equals("charging") ? "CHARGING" : name.equals("limit") || name.equals("back") ? "LIMIT"
                 : name.equals("slowed") ? "SLOWED" : name.toUpperCase(Locale.ROOT);
-        Map<String, TelemetryHistory.Reading> readings = readings(62, 9.6, limit);
+        Map<String, TelemetryHistory.Reading> readings = readings(62, Double.parseDouble(args.getString("amps", "9.6")), limit);
         AtomicReference<String> motion = new AtomicReference<>();
         main(() -> {
             View h = hero();

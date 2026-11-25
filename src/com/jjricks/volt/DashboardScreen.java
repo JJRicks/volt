@@ -1931,6 +1931,21 @@ public final class DashboardScreen implements AppScreen {
             requestLayout();
         }
 
+        /**
+         * A refresh's text and its rungs (null: the text alone). The same rungs as now change nothing, so the rung the
+         * last fit picked stays drawn: setting the first rung again and waiting for the next measure to step it down showed
+         * the long words wherever that measure was late, e.g. "Estimating time" clipped in a page change's snapshot or
+         * while a transition held the page's layout (owner, Nov 24 2026). A real change of width (fold, rotation, text
+         * size) still measures again and picks the rung for it.
+         */
+        void show(String text, String[] texts) {
+            String[] next = texts == null || texts.length == 0 ? null : texts;
+            if (next != null && Arrays.equals(next, rungs)) return;
+            if (next != null) { setRungs(next); return; }
+            if (rungs != null) setRungs((String[]) null);
+            if (!text.contentEquals(getText())) setText(text);
+        }
+
         /** The value in full: its first rung where it has rungs (the drawn text may be the short one), else its text. */
         CharSequence fullText() { return rungs != null ? rungs[0] : getText(); }
 
@@ -2126,13 +2141,19 @@ public final class DashboardScreen implements AppScreen {
 
     /** The same slot for a chosen time (the charging view's limit, alert or 100% reading), with the estimate's state. */
     private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate, Double minutes) {
+        showChargeTime(value, tag, estimate, minutes, null);
+    }
+
+    /** As above; stateRungs is the state words' ladder where no time is shown (ChargingEstimate.stateRungs), or null. */
+    private void showChargeTime(TextView value, TextView tag, ChargingEstimate.Result estimate, Double minutes, String[] stateRungs) {
         boolean low = ChargingEstimate.LOW_CURRENT.equals(estimate.label);
         String state = estimate.label == null || estimate.label.isEmpty() ? "—" : estimate.label;
         // The state as shown: Low current in the current language, any other state its own display message.
         if (state == estimate.label) state = low ? T.dashboardLowCurrent() : estimate.labelMsg.render();
-        value.setText(minutes != null ? duration(minutes) : low && tag != null ? "—" : state);
+        String text = minutes != null ? duration(minutes) : low && tag != null ? "—" : state;
         // A time takes its short rung where the full one is too wide at the size of the value beside it (Charging power).
-        if (value instanceof FittedValue) ((FittedValue) value).setRungs(minutes != null ? durationRungs(minutes) : null);
+        if (value instanceof FittedValue) ((FittedValue) value).show(text, minutes != null ? durationRungs(minutes) : stateRungs);
+        else value.setText(text);
         value.setTextColor(minutes == null ? ui.muted : ui.text);
         if (tag != null)
             styleTag(tag, minutes == null && low ? state : null,
@@ -2505,10 +2526,9 @@ public final class DashboardScreen implements AppScreen {
 
         private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {
             captions[reading].setLabels(names[0], names[1], names[2]);
-            showChargeTime(values[reading], tags[reading], estimate, minutes);
             // The tile's state words step down too: Estimating time left, then Estimating, before smaller or wrapped text
             // (review of #619); what it speaks below keeps the full words. The widgets' two-line rows keep theirs.
-            if (minutes == null && values[reading] instanceof FittedValue) ((FittedValue) values[reading]).setRungs(ChargingEstimate.stateRungs(estimate));
+            showChargeTime(values[reading], tags[reading], estimate, minutes, minutes == null ? ChargingEstimate.stateRungs(estimate) : null);
             spoken[reading] = spokenChargeTime(names[0], fullText(values[reading]), tags[reading], status);
             values[reading].setContentDescription(spoken[reading]);
         }
