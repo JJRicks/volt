@@ -33,6 +33,18 @@ package com.jjricks.volt;
 final class RideChargeRule {
     /** How long after the last charging reading Record rides automatically still waits (an unplug and replug). */
     static final long SETTLE_MS = 30_000;
+    /**
+     * app_settings: the wait's start, kept across a service restart (#643 round 4, F05) as "boot;elapsed;profile": the
+     * boot count (Settings.Global.BOOT_COUNT), the last charging reading's elapsedRealtime and the scooter. Restored only in
+     * the same boot. Belongs to this phone; BackupRegistry leaves it out.
+     */
+    static final String WAIT_KEY = "ride_charge_wait";
+    /**
+     * While charging, the wait is saved at most this often (every charging reading moves it, one every 2 s), so after a
+     * process death mid-charge the restored wait starts at most this much early; the reading that isn't charging saves
+     * the exact last one (saveDue).
+     */
+    static final long SAVE_EVERY_MS = 5_000;
 
     /** A ride's standing against the charge: kept in its journal as these names. */
     enum Exempt {
@@ -108,6 +120,37 @@ final class RideChargeRule {
      * notice comes back here at once. Whatever the outcome, this rule doesn't end the ride again (see the class comment).
      */
     void stopTried(String rideId) { stopTried = rideId; }
+
+    /** The last charging reading's time (monotonic ms), -1 for none: the wait's start. */
+    long chargingSeenMs() { return chargingSeenMs; }
+
+    /** The wait as WAIT_KEY saves it, or null with none. */
+    String savedWait(int bootCount) { return chargingSeenMs < 0 ? null : bootCount + ";" + chargingSeenMs + ";" + chargingProfile; }
+
+    /**
+     * Whether to save the wait now: a newer start than the one saved (savedMs, -1 for none), at most every SAVE_EVERY_MS
+     * while the scooter charges (live), and at once when a reading isn't charging, so the last charging reading is kept exactly.
+     */
+    static boolean saveDue(long seenMs, long savedMs, Boolean live) {
+        if (seenMs < 0 || seenMs == savedMs) return false;
+        return !Boolean.TRUE.equals(live) || savedMs < 0 || seenMs - savedMs >= SAVE_EVERY_MS;
+    }
+
+    /**
+     * A new service picks up the wait a previous one saved (WAIT_KEY), when it is from this boot (bootCount, -1 when unknown:
+     * nothing is restored) and no charging reading was seen here yet. Returns whether it took it.
+     */
+    boolean restoreWait(String saved, int bootCount, long nowMs) {
+        if (saved == null || bootCount < 0 || chargingSeenMs >= 0) return false;
+        String[] f = saved.split(";", 3);
+        if (f.length != 3) return false;
+        try {
+            long seen = Long.parseLong(f[1]);
+            if (Integer.parseInt(f[0]) != bootCount || seen < 0 || seen > nowMs) return false;
+            chargingProfile = f[2]; chargingSeenMs = seen;
+            return true;
+        } catch (NumberFormatException malformed) { return false; }
+    }
 
     /** Whether Record rides automatically waits now for this scooter: charging, or within SETTLE_MS, unless ridden off fast. */
     boolean blocksAutoRecord(String profile, long nowMs, boolean movingFast) {

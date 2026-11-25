@@ -74,6 +74,7 @@ final class BackupRegistry {
         exclude(app, ChargeAutoRecordPolicy.HOLD_KEY, String.class, DEVICE);
         // A discarded short ride's phone files still to remove (RideStore.kept): this phone's own housekeeping.
         exclude(app, RideStore.DISCARD_PENDING_KEY, String.class, DEVICE);
+        exclude(app, RideChargeRule.WAIT_KEY, String.class, DEVICE);
         // Battery & charging's charge recordings invite (ChargeInvite): closed, or recordings sent; travels so a restore doesn't ask again.
         add(app, ChargeInvite.KEY, String.class, PREFERENCES);
         // Home's estimate tips (ChargeEstimateTip): each one the owner hid with "Hide this tip" stays hidden after a restore.

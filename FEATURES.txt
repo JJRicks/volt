@@ -1212,8 +1212,10 @@ ended by charging) so Record charges automatically and the live charging card
 can take over, with the link held meanwhile; a ride started by hand while
 already charging is exempt until unplugged or ridden off. A ride
 recording under 20 s or 0.01 mi is not kept, however it ended, but only on
-positive evidence: 16 m on the phone's GPS keeps it, and a ride whose
-connection dropped is judged by its whole recording time (2.0.6; earlier rides
+positive evidence: a ride the scooter's speed or odometer readings covered to
+its end goes when it shows under 20 s, or when both its distance and the
+phone's GPS route are under 16 m; any other ride is kept with 16 m of GPS and
+otherwise judged by its whole recording time (2.0.6; earlier rides
 untouched). Emulator-tested.
 
 Wide layouts need a window at least 650 dp wide after dividing by the text size

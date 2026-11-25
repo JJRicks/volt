@@ -67,11 +67,11 @@ public final class RideStore {
     /** A ride shorter than this is not kept either (see {@link #kept} for which duration). */
     public static final long MIN_KEEP_MS = 20_000;
     /**
-     * A ride is covered (kept's evidence) when its scooter readings run from its start to its stop with no gap longer than
-     * this. While a ride records, the status poll is the fast one (StatusCadence.POLL_FAST_MS, 2 s, in sight or not) and a
-     * reading counts for MAX_SENSOR_AGE_MS (3 s), so a healthy link gives a fresh reading every second or two; ten seconds
-     * allows four or five missed replies, and stays under StatusCadence.SILENCE_FAST_MS (12 s), past which the link is
-     * dropped anyway. A longer gap means the link was lost, and the scooter can't say what happened in it.
+     * A ride is covered (kept's evidence) when its speed or odometer readings run from its start to its real end with no gap
+     * longer than this (see covered). While a ride records, the status poll is the fast one (StatusCadence.POLL_FAST_MS,
+     * 2 s, in sight or not) and a reading counts for MAX_SENSOR_AGE_MS (3 s), so a healthy link gives a fresh one every
+     * second or two; ten seconds allows four or five missed replies, and stays under StatusCadence.SILENCE_FAST_MS (12 s),
+     * past which the link is dropped anyway. A longer gap means the scooter didn't say how far it went in it.
      */
     static final long COVERED_GAP_MS = 10_000;
     /**
@@ -328,31 +328,33 @@ public final class RideStore {
     }
 
     /**
-     * The keep rule (owner, Nov 24 2026; #643 round 3): a finished ride is discarded only on positive evidence that it is
-     * under 20 s or 0.01 mi, otherwise kept.
+     * The keep rule (owner, Nov 24 2026; #643 rounds 3 and 4): a finished ride is discarded only on positive evidence that
+     * it is under 20 s or 0.01 mi, otherwise kept.
      * <ul>
-     *   <li>Phone first: a phone GPS track of {@link #MIN_KEEP_KM} or more, as its saved journal reads
-     *       (PhoneRideStore.load: moving steps, speeds no less sure than 1.5 m/s), keeps it. Asked only when the scooter's
-     *       evidence below would discard it, so the journal is read only for those.</li>
-     *   <li>Covered ({@link #COVERED_GAP_MS}): the scooter saw all of it, so it is discarded when its shown duration is
-     *       under {@link #MIN_KEEP_MS} or its measured distance (the larger of the odometer's, from two or more readings,
-     *       and the speed-integrated one) is under MIN_KEEP_KM. No distance reading at all is no evidence.</li>
-     *   <li>Not covered: the scooter missed part of it, so only the whole recording, start to stop, under MIN_KEEP_MS
-     *       discards it.</li>
+     *   <li>Covered ({@link #covered}): discarded when its shown duration is under {@link #MIN_KEEP_MS}, whatever the phone
+     *       says; otherwise when both its measured distance (the larger of the odometer's, from two or more readings, and
+     *       the speed-integrated one) and the phone's track are under {@link #MIN_KEEP_KM}. No distance reading at all is
+     *       no evidence; no phone track is none.</li>
+     *   <li>Not covered: kept when the phone's track is MIN_KEEP_KM or more; otherwise discarded only when the whole
+     *       recording, start to stop, is under MIN_KEEP_MS.</li>
      * </ul>
+     * The phone's track is its saved journal read at the stop (PhoneRideStore.load: moving steps, speeds no less sure than
+     * 1.5 m/s), asked only when it decides.
      *
      * @param odometerReadings fresh odometer readings in the ride
      * @param phoneKm the phone track's distance in km, or null for none; may be null itself
      */
     public static boolean kept(Summary s, boolean covered, int odometerReadings, java.util.function.Supplier<Double> phoneKm) {
-        boolean scooterKeeps;
         if (covered) {
+            if (s.shownElapsedMs < MIN_KEEP_MS) return false;
             Double km = measuredKm(s, odometerReadings);
-            scooterKeeps = s.shownElapsedMs >= MIN_KEEP_MS && (km == null || km + 1e-9 >= MIN_KEEP_KM);
-        } else scooterKeeps = s.elapsedMs >= MIN_KEEP_MS;
-        if (scooterKeeps) return true;
-        Double phone = phoneKm == null ? null : phoneKm.get();
-        return phone != null && phone + 1e-9 >= MIN_KEEP_KM;
+            return km == null || km + 1e-9 >= MIN_KEEP_KM || phoneAtLeastMinimum(phoneKm);
+        }
+        return s.elapsedMs >= MIN_KEEP_MS || phoneAtLeastMinimum(phoneKm);
+    }
+    private static boolean phoneAtLeastMinimum(java.util.function.Supplier<Double> phoneKm) {
+        Double km = phoneKm == null ? null : phoneKm.get();
+        return km != null && km + 1e-9 >= MIN_KEEP_KM;
     }
     /**
      * A covered ride's distance: the larger of the odometer's (the one Rides shows; two or more readings) and the
@@ -365,14 +367,24 @@ public final class RideStore {
         return Math.max(odometer == null ? 0 : odometer, speed == null ? 0 : speed);
     }
     /**
-     * Whether scooter readings ran from the ride's start to its stop with no gap over {@link #COVERED_GAP_MS}, by ride
-     * time (Summary.elapsedMs's clock).
-     *
-     * @param longestGapMs the longest wait for a reading so far (from the start to the first, then between two)
-     * @param lastReadingElapsed ride time at the last reading, -1 for none
+     * Whether Volt knows how the ride ended, so it has a real end: the rider's stop, the no-motion end, the parked or
+     * switched-off verdict, or a charge. A went-quiet end (the link lost) doesn't: what came after the last reading is unknown.
      */
-    static boolean covered(long longestGapMs, long lastReadingElapsed, long stopElapsed) {
-        return lastReadingElapsed >= 0 && longestGapMs <= COVERED_GAP_MS && stopElapsed - lastReadingElapsed <= COVERED_GAP_MS;
+    static boolean endKnown(Summary s) { return !STOP_AUTO_QUIET.equals(s.stopReason) || s.stopSwitchedOff; }
+    /**
+     * Whether speed or odometer readings (never a battery, voltage, current, temperature or charging value) ran from the
+     * ride's start to its real end with no gap over {@link #COVERED_GAP_MS}, by ride time (Summary.elapsedMs's clock). The
+     * real end is the shown end of a ride whose end Volt knows ({@link #endKnown}), so a verdict's own wait after the last
+     * reading is not a gap; a went-quiet ride is never covered.
+     *
+     * @param firstTravel ride time at the first such reading, -1 for none; lastTravel at the last
+     * @param firstLongGapStart ride time at which the first wait over COVERED_GAP_MS began (0 for one from the start), -1 for none
+     */
+    static boolean covered(boolean endKnown, long shownEnd, long firstTravel, long lastTravel, long firstLongGapStart) {
+        if (!endKnown || firstTravel < 0 || firstTravel > shownEnd) return false;
+        // A wait counts as far as it reaches before the end; the earliest long one is the first to reach that far.
+        if (firstLongGapStart >= 0 && firstLongGapStart < shownEnd - COVERED_GAP_MS) return false;
+        return lastTravel > shownEnd || shownEnd - lastTravel <= COVERED_GAP_MS;
     }
 
     private final File directory;
@@ -679,7 +691,7 @@ public final class RideStore {
         append(file(active.id), row("STOP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", details));
         active.stop(wallMillis, monotonicMillis); active.stopReason = details;
         Summary result = new Summary(active);
-        boolean covered = covered(active.longestReadingGap, active.readingElapsed, active.elapsed);
+        boolean covered = covered(endKnown(result), result.shownElapsedMs, active.firstTravel, active.lastTravel, active.firstLongTravelGap);
         int odometerReadings = active.odoReadings;
         active = null;
         boolean tooShort = discardShort && !kept(result, covered, odometerReadings, phoneKm);
@@ -1052,9 +1064,9 @@ public final class RideStore {
         boolean stopped, recovered, odometerReset;
         /** The last CHARGE row's standing (markChargeExemption), or null. Active rides only: never saved in a summary. */
         String chargeExemption;
-        /** For the keep rule (kept): fresh odometer readings, and the longest wait for a scooter reading in ride time (from
-         *  the start to the first, then between two; covered). */
-        int odoReadings; long longestReadingGap;
+        /** For the keep rule (kept, covered): fresh odometer readings; the ride time at the first and last speed or odometer
+         *  reading, and at which the first wait for one over COVERED_GAP_MS began (-1 for none). */
+        int odoReadings; long firstTravel = -1, lastTravel = -1, firstLongTravelGap = -1;
         String stopReason = "";
         /** The last committed sample with any fresh scooter reading; elapsed -1 until one arrives. */
         long readingWall, readingMono, readingElapsed = -1, readingGaps;
@@ -1130,6 +1142,12 @@ public final class RideStore {
                 minVoltage = min(minVoltage, voltage); maxVoltage = max(maxVoltage, voltage); }
             if (temperature != null) { minTemperature = min(minTemperature, temperature); maxTemperature = max(maxTemperature, temperature); }
             if (odo != null) odoReadings++;
+            if (speed != null || odo != null) {
+                long since = lastTravel >= 0 ? lastTravel : 0;
+                if (firstLongTravelGap < 0 && elapsed - since > COVERED_GAP_MS) firstLongTravelGap = since;
+                if (firstTravel < 0) firstTravel = elapsed;
+                lastTravel = elapsed;
+            }
             if (odo != null) { if (startOdo == null) startOdo = odo;
                 if (endOdo != null && odo + 0.000001 < endOdo) odometerReset = true; endOdo = odo; }
             if (speed != null) maxSpeed = max(maxSpeed, speed);
@@ -1173,7 +1191,6 @@ public final class RideStore {
             // Any fresh, valid scooter value this ride records moves the shown end, not only the energy inputs.
             if (voltage != null || current != null || speed != null || soc != null || odo != null
                     || temperature != null || chargingState != null) {
-                longestReadingGap = Math.max(longestReadingGap, elapsed - Math.max(0, readingElapsed));
                 readingWall = wall; readingMono = mono; readingElapsed = elapsed; readingGaps = gaps;
             }
             if (moved) { motionWall = wall; motionElapsed = elapsed; motionGaps = gaps; }

@@ -345,7 +345,10 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   reading decides it isn't exempt. A charge-ended stop that fails (storage
   full) is tried once per ride: its toast asks the rider to free space and
   Retry save, and the rider's Stop is that retry. The 30-second wait belongs to the scooter that
-  charged. Record rides automatically starts nothing while
+  charged, and is saved (ride_charge_wait, this phone only; the boot count
+  and the last charging reading's elapsed time, at most 5 s behind while
+  charging and exact once a reading isn't), so a service restarted inside it
+  still waits. Record rides automatically starts nothing while
   charging or within 30 seconds of the last charging reading (so an unplug
   and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
   rule is unchanged: a ride started by hand ends an automatic charge recording. They can't loop: that
@@ -354,18 +357,25 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
 - **Short rides aren't kept** (RideStore.kept). When a ride ends, by any end,
   it is deleted with its phone GPS and motion files only on positive evidence
   that it is under 20 s or 0.01 mi (16.09 m); otherwise it is kept.
-  - Phone first: a phone GPS track of 16 m or more keeps it, read from its
-    saved journal at the stop with the track's own rule (PhoneRideStore.load:
-    moving steps, speeds no less sure than 1.5 m/s), so a ride recovered after
-    a restart counts its whole track.
-  - Covered: scooter readings ran from the start to the stop with no gap over
-    10 s (COVERED_GAP_MS; the recording poll is 2 s, and the link drops after
-    12 s of silence). Then it is deleted when its shown duration is under
-    20 s or its measured distance is under 16 m: the larger of the odometer's
-    (two or more readings; tenths of a km, whole km on older models) and the
-    speed-integrated one. No distance reading at all is no evidence.
-  - Not covered (any longer gap, at the start, in the middle or before the
-    stop): only a whole recording, start to stop, under 20 s deletes it.
+  - Covered: speed or odometer readings (never battery, voltage, current,
+    temperature or charging values) ran from the start to the ride's real end
+    with no gap over 10 s (COVERED_GAP_MS; the recording poll is 2 s, and the
+    link drops after 12 s of silence). The real end is the shown end when Volt
+    knows the scooter stopped: the rider's stop, the no-motion end, the parked
+    or switched-off verdict, or a charge; the verdict's own wait after the last
+    reading is no gap. A went-quiet end (the link lost) is never covered.
+  - A covered ride is deleted when its shown duration is under 20 s, whatever
+    the phone's track says, or when both its measured distance and the phone's
+    track are under 16 m. Measured is the larger of the odometer's (two or
+    more readings; tenths of a km, whole km on older models) and the
+    speed-integrated one; no distance reading at all is no evidence.
+  - A ride that isn't covered is kept when the phone's track is 16 m or more,
+    and otherwise deleted only when the whole recording, start to stop, is
+    under 20 s.
+  - The phone's track is its saved journal, read at the stop after the
+    recorder flushes its last second, with the track's own rule
+    (PhoneRideStore.load: moving steps, speeds no less sure than 1.5 m/s), so a
+    ride recovered after a restart counts its whole track.
   - Phone files still to delete are noted (ride_discard_pending, this phone
     only) before the journal is deleted, and finished at the next service
     start after a process death; only a ride whose journal is gone loses them.
