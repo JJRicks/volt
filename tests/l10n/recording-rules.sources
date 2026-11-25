@@ -1,0 +1,10 @@
+# Recording rules (owner, Nov 24 2026): a charge ends the ride and no ride starts while charging (RideChargeRule), and a
+# ride under 0.01 mi or 20 s is not kept (RideStore.kept). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root; most of these are also compiled by other lists.
+src/com/jjricks/volt/RideChargeRule.java
+src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/ChargeAutoRecordPolicy.java
+src/com/jjricks/volt/AutoStartPolicy.java
+src/com/jjricks/volt/ChargeSessionStore.java
+src/com/jjricks/volt/GuidedTest.java
+tests/l10n/RecordingRulesTest.java

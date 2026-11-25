@@ -534,6 +534,19 @@ for name in ${l10n_tests[@]+"${l10n_tests[@]}"}; do java -cp "$out" "com.jjricks
         self.assertRegex(report, r"\| G6 existing suites \(tests/run.sh\) \| PASS \|")
         self.assertEqual(self.PROOF_SUITES.search(report).group(1), "PASS", everything)
 
+    def test_launcher_options_still_record_every_suite(self):
+        """Council F13 on #646: an option that takes a separate value, or an @argfile, doesn't hide the main class."""
+        for edit in (('java -cp "$out"', 'java --add-opens java.base/java.lang=ALL-UNNAMED --add-modules ALL-DEFAULT '
+                                         '-Dvolt.x=1 -cp "$out"'),
+                     ('java -cp "$out"', 'printf -- "-cp\\n%s\\n" "$out" > "$out/args"; java @"$out/args"')):
+            with self.subTest(edit=edit[1]):
+                # The runner at the merge base already passes the option, as a real one might.
+                self.SUITE_RUNNER = type(self).SUITE_RUNNER.replace(edit[0], edit[1], 1)
+                code, _, report, everything = self.feature_text_with_suites(None)
+                self.assertEqual(code, 0, everything)
+                self.assertEqual(self.PROOF_SUITES.search(report).group(1), "PASS", everything)
+                self.repo.git("reset", "-q", "--hard", self.base)
+
     def test_a_runner_edit_that_stops_the_proof_suites_fails(self):
         """Council F02 on #646: each edit keeps run.sh's l10n lines in order, and run.sh still exits 0."""
         for edit in (("for name in ${l10n_tests", "l10n_tests=()\nfor name in ${l10n_tests"),  # an emptied list
@@ -1190,6 +1203,27 @@ class FeatureTextTest(unittest.TestCase):
         self.assertEqual(code, 1, output)
         self.assertIn("%s:5: added code calls exit" % FEATURE_TEST, output)
         self.assertIn("FAILED G4 frozen test statements", output)
+
+    def test_a_type_named_runtime_is_not_an_exit(self):
+        """Council F09 on #646: the strict check matches calls, so the app's CapabilityResolver.Runtime is allowed;
+        System.exit and Runtime.getRuntime().halt are still refused."""
+        self.add_text()
+        self.repo.write(FEATURE_TEST, java_class("AutoStartPolicyTest", '    static boolean gate() { return true; }\n'
+                                                 '    static CapabilityResolver.Runtime runtime() { return new '
+                                                 'CapabilityResolver.Runtime(); }\n    static void exit(int code) { }'))
+        code, output = self.run_ci()
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("added code calls", output)
+        for call, name in (("System.exit(0);", "exit"), ("Runtime.getRuntime().halt(0);", "halt"),
+                           ("java.lang.System.exit(1);", "exit")):
+            with self.subTest(call=call):
+                self.repo.git("reset", "-q", "--hard", "HEAD~1")
+                self.add_text()
+                self.repo.write(FEATURE_TEST, java_class("AutoStartPolicyTest", '    static boolean gate() { return true; }\n'
+                                                         '    static void quit() { %s }' % call))
+                code, output = self.run_ci()
+                self.assertEqual(code, 1, output)
+                self.assertIn("added code calls %s" % name, output)
 
     def test_print_mode_and_forced_mode(self):
         self.add_text()

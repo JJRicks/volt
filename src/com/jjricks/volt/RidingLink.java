@@ -49,6 +49,8 @@ final class RidingLink {
         private final int down;
         private Now(long process, long losses, long pauses, int down) { this.process = process; this.losses = losses; this.pauses = pauses; this.down = down; }
         boolean connected() { return down == UP; }
+        /** Down because Volt paused the link itself (the background pause), not lost: AutoStartPolicy's own-pause time. */
+        boolean paused() { return down == PAUSED; }
     }
 
     /** What the link looked like when Volt went off screen, and when. */

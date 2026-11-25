@@ -30,6 +30,10 @@ import java.util.function.Supplier;
  * off. A validation that checks motion calls {@link #runEndlessMotion()} in its onCreate and sees them run as on a
  * phone. Against an app without the hold (an older build) it logs that and carries on.
  *
+ * <p><b>Short rides.</b> The constructor also sets RideStore's short-ride hold (by reflection, the same way), so the
+ * service keeps rides under 20 s or 0.01 mi: most validations record a ride of a few seconds and read it back. A
+ * validation that checks the keep rule calls {@link #discardShortRides()}.
+ *
  * <p><b>The bounded wait.</b> {@link #waitForIdleSync()} still waits for idle, and returns at once when idle comes,
  * exactly as Android's does. If the main thread is still busy after {@link #IDLE_LIMIT_MS} but is running its messages
  * (everything queued before the call has run), the step goes on: the checks that follow have their own waits and
@@ -53,6 +57,25 @@ public abstract class ValidationInstrumentation extends Instrumentation {
 
     protected ValidationInstrumentation() {
         holdEndlessMotion(true);
+        keepShortRides(true);
+    }
+
+    /**
+     * For validations that check the short-ride rule (RideStore.kept): the service discards rides under 20 s or 0.01 mi
+     * as on a phone. Every other validation keeps its seconds-long synthetic rides, which its checks read back.
+     */
+    protected final void discardShortRides() {
+        keepShortRides(false);
+    }
+
+    private static void keepShortRides(boolean keep) {
+        try {
+            Field field = Class.forName("com.jjricks.volt.RideStore").getDeclaredField("keepsShortForValidation");
+            field.setAccessible(true);
+            field.setBoolean(null, keep);
+        } catch (ReflectiveOperationException | LinkageError missing) {
+            if (keep) Log.w(TAG, "This app build has no short-ride hold: its rides follow the app's keep rule (" + missing + ")");
+        }
     }
 
     /** For validations that check motion or transitions: the app's endless animations run as on a phone. */
