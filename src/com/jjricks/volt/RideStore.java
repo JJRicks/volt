@@ -717,10 +717,11 @@ public final class RideStore {
      * A ride's standing against a charge (RideChargeRule.Exempt), kept in its journal as a CHARGE row with the name in
      * details, so a recovered ride keeps it. Older builds skip the row. Only an active ride takes one.
      */
+    private static final String CHARGE_ROW = "CHARGE";
     public synchronized void markChargeExemption(String standing) throws IOException {
         if (active == null) return;
         String clean = trim(standing == null ? "" : standing, 40);
-        append(file(active.id), row("CHARGE", active.lastWall, active.lastMono, "", "", "", "", "", "", "", "", "", clean));
+        append(file(active.id), row(CHARGE_ROW, active.lastWall, active.lastMono, "", "", "", "", "", "", "", "", "", clean));
         active.chargeExemption = clean;
     }
     /** The active ride's last CHARGE row (see markChargeExemption), or null for none or no active ride. */
@@ -1356,7 +1357,7 @@ public final class RideStore {
                         else if ("RECOVER".equals(event)) { a.recover(); pending = null; }
                         else if ("STOP".equals(event)) { a.stop(wall, mono); a.stopReason = trim(r.get(14), MAX_STOP_DETAILS); pending = null; }
                         else if ("NOTE".equals(event)) a.notes = r.get(14);
-                        else if ("CHARGE".equals(event)) a.chargeExemption = trim(r.get(14), 40);
+                        else if (CHARGE_ROW.equals(event)) a.chargeExemption = trim(r.get(14), 40);
                         else if ("DIRECTION".equals(event)) { CurrentDirection changed = direction(r.get(13)); if (changed != a.direction && a.samples > 0) a.directionChanges++; a.direction = changed; a.breakAnchor(); }
                     }
                 } catch (NumberFormatException ignored) { pending = null; }
