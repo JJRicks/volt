@@ -173,6 +173,7 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Sai primeiro da simulação</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">A terminar a viagem anterior</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Viagem guardada automaticamente</string>
+    <string name="service_ride_not_saved_short" volt:src="e9b4e504ee292a273fea9d60455e2a6e7249f178">Viagem não guardada, demasiado curta</string>
     <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Cópia da viagem não guardada</string>
     <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">A Volt não consegue aceder à tua pasta de cópia automática. Abre a Volt e escolhe a pasta novamente. As tuas viagens estão seguras na Volt.</string>
     <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">A Volt não conseguiu escrever na tua pasta de cópia automática. Vai tentar novamente após a tua próxima viagem. As tuas viagens estão seguras na Volt.</string>

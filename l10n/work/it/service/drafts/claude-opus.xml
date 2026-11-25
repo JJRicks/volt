@@ -173,6 +173,7 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Prima esci dalla simulazione</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Conclusione della corsa precedente in corso</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Corsa salvata automaticamente</string>
+    <string name="service_ride_not_saved_short" volt:src="e9b4e504ee292a273fea9d60455e2a6e7249f178">Corsa non salvata, troppo breve</string>
     <string name="service_auto_save_failed" volt:src="fa4d152beb13f030271b45acaba1774c5f766841">Copia della corsa non salvata</string>
     <string name="service_auto_save_folder" volt:src="1ca68074495f70d2e3b5dc2a66f74d1528d5fd26">Volt non riesce ad accedere alla cartella di salvataggio automatico. Apri Volt e scegli di nuovo la cartella. Le tue corse sono al sicuro in Volt.</string>
     <string name="service_auto_save_write" volt:src="6970cf65ca57c2a358df0696b923b47d6172247e">Volt non è riuscita a scrivere nella cartella di salvataggio automatico. Riproverà dopo la tua prossima corsa. Le tue corse sono al sicuro in Volt.</string>
