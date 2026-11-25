@@ -254,8 +254,6 @@ final class BackupRegistry {
         {"no_backup/app-data-transfer", null, PENDING}, {"no_backup/ride-transfer", null, PENDING},
         // Saved ride summaries (RideSummaryStore): a rebuildable cache of this installation's journals, never exported or restored.
         {"no_backup/rides-index", null, DEVICE},
-        // Rides the short-ride rule discarded, held a day for Undo (RideHold): never exported or restored.
-        {"no_backup/rides-held", null, DEVICE},
         {"cache/", null, "Disposable cache"}, {"shared_prefs/", null, "Preferences are classified key by key"},
     };
     /** Category of a storage root, null for an excluded root, or IllegalArgumentException if unclassified. */

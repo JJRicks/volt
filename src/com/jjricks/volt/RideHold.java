@@ -8,8 +8,9 @@ import java.util.List;
 
 /**
  * Rides the short-ride rule discarded (RideStore.kept), held for {@link #KEEP_MS} so Undo can bring one back (owner, Nov 24
- * 2026). Each is a folder named by its ride id under the holding folder, which lives in no-backup storage: outside the ride
- * list, every backup, the app data export and Android's own backup. Its files are moved in and back exactly as they were,
+ * 2026). Each is a folder named by its ride id under the holding folder, which lives in the app's cache storage: outside
+ * the ride list, every backup, the app data export and Android's own backup (Android may clear it when the phone runs out
+ * of space, which only ends a hold early). Its files are moved in and back exactly as they were,
  * never copied, so a ride is in one place at a time. The folder's modified time is when the ride was held; files added to
  * it later (the phone track, once its recorder finishes) keep that time. Everything is on disk, so a process death in
  * between loses nothing.
@@ -21,13 +22,18 @@ final class RideHold {
 
     RideHold(File root) { this.root = root; }
 
+    /** Ride ids are UUIDs (RideStore): only one in its own canonical form names an entry. */
+    static boolean validId(String id) {
+        try { return id != null && java.util.UUID.fromString(id).toString().equalsIgnoreCase(id); }
+        catch (IllegalArgumentException invalid) { return false; }
+    }
     private File entry(String id) {
-        if (id == null || !id.matches("[A-Za-z0-9-]{1,80}")) throw new IllegalArgumentException("Invalid ride ID");
+        if (!validId(id)) throw new IllegalArgumentException();
         return new File(root, id);
     }
 
     /** Whether the ride is held now. */
-    synchronized boolean holds(String id) { return id != null && id.matches("[A-Za-z0-9-]{1,80}") && entry(id).isDirectory(); }
+    synchronized boolean holds(String id) { return validId(id) && entry(id).isDirectory(); }
 
     /**
      * Moves the ride's files (those that exist) into a new holding entry stamped with wallMs. False when nothing could be held:

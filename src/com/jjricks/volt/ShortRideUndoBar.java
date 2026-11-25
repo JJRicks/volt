@@ -22,7 +22,7 @@ import android.widget.TextView;
 final class ShortRideUndoBar {
     /** How long the bar shows. */
     static final long SHOW_MS = 8_000;
-    static final String TAG = "short-ride-undo", BUTTON_TAG = "short-ride-undo-button";
+    static final String TAG = "short_ride_undo", BUTTON_TAG = "short_ride_undo_button";
     private final Activity activity;
     private final Ui ui;
     private View bar;

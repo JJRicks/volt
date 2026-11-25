@@ -766,7 +766,7 @@ public final class RecordingRulesTest {
     private static void heldForUndo() throws IOException {
         File dir = Files.createTempDirectory("volt-held").toFile();
         try {
-            File ridesDir = new File(dir, "rides"), heldDir = new File(dir, "no-backup-held");
+            File ridesDir = new File(dir, "rides"), heldDir = new File(dir, "rides_held");
             RideStore rides = new RideStore(ridesDir);
             RideHold hold = new RideHold(heldDir);
             rides.holdDiscards(hold);
@@ -1028,10 +1028,10 @@ public final class RecordingRulesTest {
         check(src.contains("static final long UNDO_NOTICE_MS=10*60_000L;") && RideHold.KEEP_MS == 24L * 3_600_000, "the notice goes after 10 minutes, the ride after a day");
         int d = src.indexOf("private void discardPhoneRide(String id){");
         String phoneGo = src.substring(d, src.indexOf("\n    }", d));
-        check(phoneGo.contains("!pendingPhoneDiscards().contains(id))return;") && phoneGo.indexOf("rideHold.add(id,") < phoneGo.indexOf("phoneRides.delete(id)"),
+        check(phoneGo.contains("undoneRides.remove(id))return;") && phoneGo.indexOf("rideHold.add(id,") < phoneGo.indexOf("phoneRides.delete(id)"),
                 "a discarded ride's phone files join it in holding, and an Undo that came first leaves them in place");
-        check(src.contains("rideHold=new RideHold(new File(getNoBackupFilesDir(),\"rides-held\"));rides.holdDiscards(rideHold);"),
-                "held rides live in no-backup storage, outside every backup and export");
+        check(src.contains("rideHold=new RideHold(new File(getCacheDir(),\"rides_held\"));rides.holdDiscards(rideHold);"),
+                "held rides live in the app's cache, outside every backup and export");
         check(phoneKm.contains("phoneRecorder.active()&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS)&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))return RideStore.PHONE_TRACK_UNKNOWN;"),
                 "both flush waits timed out: the track is unknown and keeps the ride (round 7 F05)");
         int g = src.indexOf("rides.markGap(wall, mono, ble.scooterOff() ? \"Scooter switched off\" : \"Bluetooth disconnected\");");

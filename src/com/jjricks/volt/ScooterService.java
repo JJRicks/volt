@@ -256,8 +256,8 @@ public final class ScooterService extends Service {
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
             rides = new RideStore(new File(getFilesDir(), "rides"), true, new File(getNoBackupFilesDir(), "rides-index"));
             autoEnds.reconcile(rides.automaticStopsAtLoad());
-            // A ride the short-ride rule discards is held a day for Undo (RideHold), in no-backup storage, outside every backup and export.
-            rideHold=new RideHold(new File(getNoBackupFilesDir(),"rides-held"));rides.holdDiscards(rideHold);
+            // A ride the short-ride rule discards is held a day for Undo (RideHold), in the app's cache, outside every backup and export.
+            rideHold=new RideHold(new File(getCacheDir(),"rides_held"));rides.holdDiscards(rideHold);
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"),ChargeAutoRecordPolicy.RULES);refreshChargeCurves(); }
@@ -3054,21 +3054,18 @@ public final class ScooterService extends Service {
         phoneLocationForeground=false;}
     /**
      * Moves a discarded ride's phone GPS and motion files to its held entry (RideHold), or removes them when the ride isn't held
-     * (none for null). Only while still noted: Undo forgets the note first, so files it left in place stay. A failure leaves
-     * them, as unlinked files, noted for the next start.
+     * (none for null). Not for a ride Undo brought back first (its files stay in place). A failure leaves them, as unlinked
+     * files, noted for the next start.
      */
     private void discardPhoneRide(String id){
-        if(id==null||phoneRides==null||!pendingPhoneDiscards().contains(id))return;
+        if(id==null||phoneRides==null||undoneRides.remove(id))return;
         try{
             if(rideHold!=null&&rideHold.holds(id)&&!rideHold.add(id,phoneRides.rawCsv(id),phoneRides.motionCsv(id)))return;
             phoneRides.delete(id);pendingPhoneDiscard(id,false);
         }catch(IOException|RuntimeException ignored){/* left pending for the next start */}
     }
-    private java.util.Set<String> pendingPhoneDiscards(){
-        java.util.LinkedHashSet<String> ids=new java.util.LinkedHashSet<>();
-        if(settings!=null)for(String one:settings.getString(RideStore.DISCARD_PENDING_KEY,"").trim().split(" +"))if(one.matches("[A-Za-z0-9-]{1,64}"))ids.add(one);
-        return ids;
-    }
+    /** Rides Undo brought back in this process while their phone recorder may still be finishing (discardPhoneRide skips them). */
+    private final java.util.Set<String> undoneRides=new java.util.HashSet<>();
     /** Where discarded rides wait for Undo (RideHold); null without ride storage. */
     private RideHold rideHold;
     /** Held rides past RideHold.KEEP_MS go: at service start and after each stop. */
@@ -3106,13 +3103,14 @@ public final class ScooterService extends Service {
      * and takes its message away. A ride no longer held (past the day, or already back) changes nothing. Main thread.
      */
     public boolean undoShortRide(String id){
-        if(id==null||!id.matches("[A-Za-z0-9-]{1,64}"))return false;
+        if(!RideHold.validId(id))return false;
         if(id.equals(undoOffer)){undoOffer=null;undoOfferedAt=-1;cancelNotice(UNDO_NOTICE);}
         if(destroyed||rides==null||rideHold==null||!rideHold.holds(id))return false;
-        // Forgotten first: phone files a still-finishing recorder writes then stay where they are (discardPhoneRide).
-        pendingPhoneDiscard(id,false);
         boolean back=rides.restoreHeld(id,phoneRides==null?new File[0]:new File[]{phoneRides.rawCsv(id),phoneRides.motionCsv(id)});
         if(!back)return false;
+        // Its phone files a still-finishing recorder writes stay where they are (discardPhoneRide), and the note goes.
+        if(phoneSaving())undoneRides.add(id);
+        pendingPhoneDiscard(id,false);
         // As a kept ride: its automatic copy, once its phone journal is complete.
         RideAutoExportFolder.queue(settings,id);
         if(!phoneSaving())rideFullySaved();
