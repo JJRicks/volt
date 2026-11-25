@@ -1,5 +1,50 @@
 # Changelog
 
+## 2.0.6 — 2026-11-25
+
+Volt 2.0.6 ends a ride when you plug the scooter in, so the charge recording and the live charging card can take over, stops keeping accidental short rides (with an Undo), shows **Charging slowed** sooner, makes a recording ride a Live Update on Android 16, and adds a Ride clock to Clean Home while a ride records. Plus fixes to the recording rules.
+
+- **A charge ends the ride.** Plugging in the scooter while a ride is recording now ends the ride at once and saves it as usual. **Record charges automatically** and the live charging card then start as they would after any ride. Before, a ride left recording blocked both for the whole charge, with nothing on screen saying why.
+- **Short rides aren't kept.** A recording shorter than 20 seconds or 0.01 mi (16 m), however it ended, isn't added to Rides. Volt says **Ride not saved, too short** with **Undo**: in a bar at the foot of the screen while Volt is open, otherwise in a silent notification. The ride waits 24 hours, and **Undo** brings it back, GPS route and all.
+- **Charging slowed, sooner (UT5 MAX).** When the battery holds the charge back, for example right after a ride, the pill says **Charging slowed** about 70 seconds after you plug in when the battery is hot, and after 90 seconds otherwise (it was 2 minutes), on either charger. It goes as soon as full power arrives.
+- **No Estimating flash.** Opening Settings or Search during a charge no longer flashes a cut-off **Estimating time** on the time tile while the page slides in.
+- **Live Updates for rides (Android 16).** A recording ride's notification is now a Live Update too, like the live charging card: the ride's time counts in the status bar, and the card sits at the top of your notifications and on the lock screen. The charging card's status-bar chip can show the **Finish time** instead of the level.
+- **The Ride clock on Clean Home.** While a ride records, Clean Home shows the recording's time in large figures, this ride's speed so far, Trip, Battery and Range, and **Open riding mode**.
+- **A hand stop stays stopped.** After you stop a ride by hand, **Record rides automatically** no longer starts a new one just because Volt reconnected by itself, for example when it went to the background for a moment.
+- **Languages:** all new and changed text in this release is translated in all ten beta languages, with no English fallback. The What's new notes themselves stay in English.
+
+### Riding and recording
+
+- **A charge ends the ride.** The ride ends on the scooter's first fresh charging reading taken after the ride started, whether you started it by hand or it started by itself, and it sets no hold. A charging reading while the scooter reports more than about 3 mph (5 km/h) never ends a ride. With Volt out of sight, Volt keeps the connection for up to a minute after such an end, even with **Stay connected in background** off, so the charge recording can start. If the phone's storage is full at that moment, the ride can't be saved: Volt says so once and the ride keeps recording until you free space and stop it.
+- **No automatic rides while charging.** **Record rides automatically** doesn't start a ride while the scooter charges, or within 30 seconds of its last charging reading, unless you ride off faster than about 3 mph. Unplugging and replugging, or a jostle on the charger, no longer starts a stray ride. A ride you start by hand while the scooter is already charging is your choice: it keeps recording until you unplug or ride off, and the next plug-in then ends it.
+- **Short rides.** Volt deletes a ride only when it knows it was that short: when the scooter sent its speed from the start to the end, the ride goes if its time is under 20 seconds, or if both the scooter's distance and the phone's GPS route are under 16 m. Otherwise, such as when the connection dropped, it is kept with 16 m of GPS route, and goes only if the whole recording was under 20 seconds. A short ride isn't auto-saved and gets no **Ride saved automatically** notice. Rides you already have are untouched.
+- **Undo.** The bar shows for about 8 seconds, above the dock (at the top in riding mode, clear of the controls). The notification is silent and goes away after 10 minutes; opening Volt while it's there shows the bar instead. A newer short ride's message replaces the older one, but every held ride can still be restored. Held rides are kept in Volt's own storage, not in Rides, backups or exports, and are deleted after 24 hours.
+- **The hand-stop hold.** A stop by hand holds **Record rides automatically**, and backing out of riding mode holds **Open automatically**, until the riding session really ends: the scooter is switched off, the connection is lost for 2 minutes while Volt is trying, Volt's own background pause lasts 30 minutes, or you tap **Disconnect** or switch scooters. Volt's own quick reconnects no longer end it. After such a pause, riding off above about 6 mph (10 km/h) for 3 seconds does, so the next real ride still records.
+
+### Notifications and Live Updates
+
+- **A recording ride's Live Update (Android 16 and later).** Where Android allows it, the ride's notification (**Ride recording is active**, with **Stop recording**) is promoted: its chip in the status bar is the ride's running time, counting by itself. Android's **Live updates** setting for Volt turns it off. If you swipe it away, Volt doesn't put it back for the rest of that ride; opening Volt brings it back, and a recording problem always shows.
+- **A swiped charging card stays gone** for the rest of that charge. Volt stays connected and keeps reading the battery; the card comes back with the next charge, or once you have opened Volt and left it again. A battery alert, the alarm and the notice after you unplug always show.
+- **In the status bar.** The **Live charging** sheet has a new choice under **On the lock screen** (Android 16 and later): **Level** (the default) or **Finish time**, the time the card shows. While the card has no time, such as during **Estimating time left**, the chip shows the level. It's kept in backups.
+- **Rides and charging.** The live charging card and a recording ride's notification now go on a new **Rides and charging** notification channel: Android's normal importance, so they show on the lock screen and above silent notifications, but with no sound, no vibration and no pop-up. Everything else stays on **Scooter connection & recording**. Volt creates the new channel once, turned on; after that it's yours in Android's settings, and turning it off puts the cards back on **Scooter connection & recording**, so **Stop recording** and **Disconnect** never vanish.
+
+### Charging
+
+- **Charging slowed on any charger (UT5 MAX).** Below 1.6 A the battery is holding the charge back whichever charger is plugged in (the stock charger itself gives about 2 A), so the pill now shows even when Volt doesn't know the charger yet. The stock charger's own finish never counts. The current must stay low for 20 seconds without rising, so the high-speed charger's soft start shows nothing. The battery is now called hot from 95 °F (35 °C), not 100 °F (38 °C).
+- **Full power clears it at once.** The pill goes on the reading that reaches the charger's normal level; a slow drift back still takes a minute, so it doesn't flicker.
+- **No Estimating flash.** The time tile keeps the words it shows while a page opens or slides; a real change of width, such as a fold or a rotation, still picks the words that fit.
+
+### Clean Home
+
+- **The Ride clock.** While a ride records, Clean's top area shows a red dot and **Recording** with **Started** and the time, the recording's time in large figures (the same time as riding mode's REC pill), **Speed, this ride** drawn from the ride's own readings with the speed now at its end, then **Trip**, **Battery** and **Range (est.)**, and an **Open riding mode** button. A tap elsewhere opens the Ride page. When the connection is lost, the scooter is off or the ride is paused because storage is full (**Paused: storage full**), the top row says so. On a small screen or with large text, the parts give way in order and the words shorten instead of being cut.
+- **Show the ride while recording** in **Settings › Home style** turns it off; it's on by default, like Clean's other two moments, and kept in backups.
+- **The Ride row's time** on Clean Home now matches riding mode's REC pill to the second.
+
+### Upgrading and going back
+
+- Nothing needs doing to update, and scooters you've already set up keep working as before. Ride and charge exports and charge recordings keep 2.0.5's format. A ride ended by a charge carries a new end code, which older versions read as a stop by hand.
+- A backup made by 2.0.6 restores only in 2.0.6 or later: Volt 2.0.5 refuses it and says the backup needs a newer app version.
+
 ## 2.0.5 — 2026-11-24
 
 Volt 2.0.5 knows when your scooter is switched off but still answering, waits for a real figure before showing Range at this pace or the time to full, adds a Dark map switch and a Distance line to the ride graph, and keeps your place when you fold or unfold the phone. Plus a good number of fixes.

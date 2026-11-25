@@ -1,3 +1,109 @@
+VOLT 2.0.6 — A CHARGE ENDS THE RIDE, SHORT RIDES AREN'T KEPT, CHARGING SLOWED SOONER, LIVE UPDATES FOR RIDES, THE RIDE CLOCK ON CLEAN HOME (versionCode 66)
+Draft, November 25, 2026. The release checks below are still to run.
+
+- Cut from main. Every pull request merged into main since v2.0.5
+  (9934885b) is in it:
+  - recording rules: a charge ends the ride, no automatic ride while
+    charging, short rides not kept, and the hand-stop hold surviving
+    Volt's own reconnects (#643); the short ride's message with Undo, the
+    24-hour hold, and #643's coverage fixes (#651);
+  - charging: Charging slowed sooner and on any charger, hot from 35 C,
+    and no Estimating flash during a page change (#642);
+  - Live Updates: a recording ride's notice promoted, a swiped card or
+    ride notice held back, the status-bar chip choice (#644), with the
+    quiet Rides and charging channel and the chip's sheet row (#645);
+  - Clean Home: the recording moment's rules and the Ride row's time
+    following riding mode's REC pill (#637); the Ride clock view, its
+    switch and validation (#650, which carries #638 and #639 with their
+    review fixes).
+  #646, #647 and #649 change CI and localization tooling only, and #635
+  (2.0.5's record in this file) and #636 (contributor docs) change docs
+  only; none changes the app. The language top-up for this release's 18
+  new texts (#652) and this release's own version, changelog and docs
+  come after them.
+  [PHASE 2: the last PR merged before the release commit; for each PR,
+  CI on its merged head and the independent review on the head that
+  merged.]
+- run-release-sweep.py lists 367 steps on main at #651's merge, 23 more
+  than 2.0.5's 344, none removed: auto-start-own-pause,
+  charge-auto-record-ride-rules, -away and -full (#643);
+  charge-time-steady-412, -457 and -fold (#642); live-updates (#644,
+  #645); recording-moment-280-large, -344, -344-large, -390, -412,
+  -412-light, -725, -range-280-dual-large, -range-344-dual and -range-412,
+  and recording-moment-problem-344-it-large and -412-it-large (#650);
+  short-ride-undo, -412-large and -fold-large (#651). Every validation
+  registered in android-tests/AndroidManifest.xml is covered (the
+  script's own guard).
+  [PHASE 2: confirm the step list and counts on the release commit.]
+- Languages: [PHASE 2: ship_check --release --aapt required result and the
+  per-language counts, from the release commit. Before the top-up, 18
+  keys per language fell back to English: charge_live_chip_title,
+  charge_live_chip_finish and service_channel_rides_charging (#645);
+  hub_moment_recording, hub_recording_started, hub_recording_speed,
+  hub_recording_speed_short, hub_recording_speed_now,
+  hub_recording_range, hub_recording_range_short,
+  hub_recording_spoken_under_minute, hub_recording_spoken_next,
+  hub_recording_description, hub_recording_paused_storage,
+  hub_recording_paused_storage_short, hub_recording_save_failed and
+  hub_recording_save_failed_short (#650); service_ride_not_saved_short
+  (#651). The top-up also widens hub_recording_range_short's English
+  budget so the shipped range word fits in es, fr, it, pt-BR and pt-PT.]
+- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
+  certificate equal to 2.0.5's, release gates, tests/run.sh suites, the
+  owner-capture guard, capture-owner and hardware-sweep tests.]
+- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
+  listed, first-pass gating and report-only numbers as printed (from the
+  merged result of a split sweep, with its pseudo-locale note), each rerun
+  and why, numbers after reruns, rides-timing, ride auto-save.] The sweep
+  runs on the shared test machines and this Mac, under the owner's
+  standing approval for release candidates on the shared test machines
+  (RELEASING.md step 4, from November 20, 2026).
+- Hardware: [PHASE 2: the parked hardware sweep's report.md outcomes, or
+  the owner's decision to ship without one.] Not yet tried on real
+  hardware: a real plug-in ending a recording ride and the charge
+  recording and live card that follow, the 30-second wait after a real
+  charge, a real short ride's discard and Undo, the hand-stop hold through
+  a real background pause and reconnect, Charging slowed on a real hot or
+  cold charge and the high-speed charger's real soft start, the ride's
+  Live Update, the status-bar chip and the Rides and charging channel on a
+  real Android 16 phone's lock screen, the Ride clock on a phone during a
+  real ride, and everything 2.0.5's list below still owes.
+- The recording rules (#643, #651) were checked by RecordingRulesTest
+  (synthesized timelines modelled on the report: the charge end and its
+  exemptions, the 30-second wait and its restart, the keep grid, coverage,
+  the saved phone track, the Undo hold's lifecycle and purge),
+  AutoStartPolicyTest (own pauses, the 2-minute loss, the 30-minute pause,
+  the ride-off release per hold, a recreated service) and
+  RidingValuesTest, and on an emulator (charge-auto-record-ride-rules,
+  -away and -full, auto-start-own-pause, short-ride-undo-*, and the
+  auto-start, charge-auto-record, riding-* and ride-auto-stop steps). The
+  switched-off end of the hold and the 30-minute pause are unit-tested
+  only.
+- Charging (#642) was checked by ChargeSlowdownTest (a synthesized charge
+  shaped like the report, the any-charger levels, soft starts at several
+  temperatures and reading rates, the stock charger's finish, full power
+  clearing, background pauses, the committed recordings replayed with and
+  without the charger known) and ChargeTimeStateRungsTest, and on an
+  emulator (charge-time-steady-*, charging-pill-*,
+  charge-estimating-first-*). The simulator never slows, so the pill's
+  steps set the slowdown state directly.
+- Live Updates (#644, #645) were checked by LiveUpdatesTest and
+  LiveChannelGateTest, and on an Android 16 emulator (live-updates: the
+  ride's promotion and chip, a real swipe, the charging chip both ways,
+  the channel at each stage, the quiet channel's settings, channels
+  turned off, nothing sounding or vibrating). Android 15 and older were
+  not run.
+- Clean Home (#637, #650) was checked by RecordingFitTest,
+  RecordingMomentTest, RecordingClockTest, HomeMomentTest and
+  BackupPlanTest, and on an emulator (recording-moment-*, including
+  Italian at 1.3x text for the warnings).
+- ModelRegistry.REPORTED is unchanged from 2.0.5 (22131, 23452, 24162,
+  24182, 25462, 25852). [PHASE 2: confirm no compatibility report with a
+  new Model ID reached the report inbox since 2.0.5; adding one is the
+  owner's step.]
+
+--- Previous verification ---
+
 VOLT 2.0.5 — SCOOTER OFF, RANGE AND CHARGE TIMES WAIT FOR A REAL FIGURE, DARK MAP, DISTANCE ON THE RIDE GRAPH, FOLD KEEPS YOUR PLACE (versionCode 65)
 Built, swept and tagged at commit 9934885b, #633's merge into main,
 November 24, 2026. That merge is the release commit (RELEASING.md step
