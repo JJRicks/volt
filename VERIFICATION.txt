@@ -7,9 +7,10 @@ build ran, main was still at the release commit, so the checked, built
 and tagged commit is one SHA (step 7). One pull request merged into main
 after the final build and before the publish: #654, which changes
 android-tests/RegenDisplayValidation.java only (see regen-display under
-the sweep below). The draft and publish scripts checked that nothing
-outside android-tests/ changed after the release commit, so main is
-ahead of the tag by test code only. The release APK is identical to the
+the sweep below). The draft and publish scripts checked that only test
+and docs files changed after the release commit, here
+android-tests/RegenDisplayValidation.java alone, so main is ahead of the
+tag by test code only. The release APK is identical to the
 swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.5
@@ -110,38 +111,44 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   and cross-checked with report-merge: the main run (364 steps, every
   step but the two compat steps and rides-timing), the compat run (2
   steps, on the Mac), and a finale alone on the Mac (rides-timing, the
-  ride auto-save check and an idle rerun of regen-display). A fourth
-  source, regen-display's rerun with a corrected runner (below), was
-  merged last. Every step has a verdict. Closing numbers of the merged
-  result, as printed:
-  - Gating steps: 275 passed, 0 failed.
+  ride auto-save check and an idle rerun of regen-display). Every step
+  has a verdict. Closing numbers of the release runner, as merge-tally
+  printed them over the three runs:
+  - Gating steps: 274 passed, 1 failed: regen-display.
   - Report-only steps (never counted as passes): 83 ran, 0 did not
     finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
     pseudo-locale steps: no pseudo-locale APK was supplied.
   - The ride auto-save check passed (585 checks).
-  397 tries in the 3 runs, and one more for regen-display after them:
+  397 tries in the 3 runs:
   - 28 steps sent to the pool Mac hadn't started within 4 minutes of
     submission and were handed to the Mac's rerun lanes. 27 of them
     passed or reported there; the 28th was regen-display (below).
   - fold-keeps-place-clean failed on a pool machine after 20 assertions:
     "A synthetic charge sample was refused". It passed when rerun on the
     Mac (265 assertions).
-  - regen-display's verdict changed between runs: failed (main), failed
-    (finale), passed (the corrected rerun). It failed first on one of the
-    Mac's rerun lanes while the Mac was busy, then on an idle emulator in
-    the finale, both times with "Bar's regen fill, confirmed=true: green
-    pixels 0" (106 assertions). The test was wrong, not the app: it
-    counted ok-green pixels in the first frame below -0.02 W, while its
-    riding script's regen was only -7 W and -2 W, a fill thinner than the
-    zero line drawn over it. Riding mode itself showed the confirmed regen
-    in green: the step's screenshot shows "-2 W" and "regen · peak 2 W".
-    #654 (test only, android-tests/RegenDisplayValidation.java) makes the
-    step wait for -25 W. The validation runner was rebuilt from #654's
-    commit 678235da with the release key, its certificate equal to the
-    candidate's, and the step was rerun by hand against the same
-    candidate APK on an idle emulator on the Mac, 1:51 to 1:58 AM MST: it
-    passed, 107 assertions, 966 green pixels at -24 W. #654 merged into
-    main after the final build (see the top of this section).
+  - regen-display failed first on one of the Mac's rerun lanes while the
+    Mac was busy, then on an idle emulator in the finale, both times with
+    "Bar's regen fill, confirmed=true: green pixels 0" (106 assertions).
+- The regen-display failure was in the validation runner, not the app.
+  The test counted ok-green pixels in the first frame below -0.02 W,
+  while its riding script's regen was only -7 W and -2 W, a fill thinner
+  than the zero line drawn over it. Riding mode itself showed the
+  confirmed regen in green: the step's screenshot shows "-2 W" and
+  "regen · peak 2 W". It was fixed in android-tests/ only (#654, which
+  changes android-tests/RegenDisplayValidation.java to wait for -25 W)
+  and rerun with --only on the same candidate APK, with a runner rebuilt
+  from #654's commit 678235da with the same key (its certificate equal
+  to the candidate's), alone on an idle emulator on the Mac, 1:51 to
+  1:58 AM MST. It passed: 107 assertions, and 966 green pixels once the
+  bar's fill passed -25 W (the readout noted just before it showed
+  -24 W). #654 merged into main after the final build (see the top of
+  this section).
+  - With that rerun replacing regen-display's failed tries (merge-tally
+    over the three runs and the rerun, so the total combines the release
+    runner and the rebuilt one): gating 275 passed, 0 failed
+    (regen-display passed only with the rebuilt runner). Report-only: 83
+    ran, 0 did not finish, 9 skipped. merge-tally printed the verdict
+    change as: failed (main), failed (finale), passed (the rerun).
   - Every translated gps-accuracy-riding step finished, at both sizes.
     They report only and are not counted as passes.
   - rides-timing passed, alone on the Mac. Best of two cold starts per
@@ -150,7 +157,7 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
     39 ms, and the longest main-thread message on Rides was at most 36 ms
     cold and 39 ms warm (budget 1 s). The longest main-thread message at
     launch was 105 ms in any single run.
-- No parked hardware sweep. The owner's scooter wasn't reachable for one,
+- No parked hardware sweep was run for this release, on the owner's go,
   so this release is checked on emulators and by tests only, and nothing
   in it was tried on a real scooter. Not yet tried on real
   hardware: a real plug-in ending a recording ride and the charge
@@ -199,9 +206,9 @@ swept one outside META-INF. Its hash is recorded below, after publishing.
   the owner's go, without a hardware sweep: tag v2.0.6 points at
   007ae64e591452a03b2f634a64dfeae652367eb4, #653's merge, the release
   commit. Main was then at #654's merge (5c2c7ae2), ahead of the release
-  commit by android-tests/RegenDisplayValidation.java only; make-draft.sh
-  and publish.sh ran with ALLOW_TESTDOCS_AFTER=1, which checks that only
-  android-tests/ changed after the release commit. Its tests (247
+  commit by android-tests/RegenDisplayValidation.java only; the draft and
+  publish scripts checked that only test and docs files changed after the
+  release commit, here android-tests/RegenDisplayValidation.java alone. Its tests (247
   suites), ship_check and VOLT_RELEASE=1 build ran again from 1:58 to
   2:03 AM, before the draft. The release APK (SHA-256
   d2d254e24ffe876faae225b8eab4fae17c0263390ee459b381e0cb8d26b25f7d) is
