@@ -680,7 +680,47 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         log("Undo on screen: the ride is back (" + Math.round(restored.shownElapsedMs / 1000.0) + " s), files byte for byte, the bar gone");
         release();
 
-        // 2. Out of sight: two short rides ended by plug-ins; one notice, the newer replacing the older.
+        // 1b. Its motion (owner, #651): it rises and fades in, and sinks and fades out; with animations removed it simply
+        // appears and goes. The scale this run found is put back.
+        String foundScale = shellOut("settings get global animator_duration_scale").trim();
+        try {
+            shell("settings put global animator_duration_scale 10");
+            await(() -> onMain(Motion::enabled), 5 * S, "Animations did not come on at 10x");
+            String slow = discardOnScreen();
+            await(() -> undoBar() != null, 5 * S, "No Undo bar at 10x");
+            SystemClock.sleep(900);
+            View entering = undoBar();
+            float[] mid = new float[2]; main(() -> { mid[0] = entering.getAlpha(); mid[1] = entering.getTranslationY(); });
+            require(mid[0] > 0 && mid[0] < 1 && mid[1] > 0, "At 10x the bar is not rising and fading in: alpha " + mid[0] + ", " + mid[1] + " px below");
+            screenshot("undo-bar-entering-" + label);
+            SystemClock.sleep(2500);
+            main(() -> require(entering.getAlpha() == 1 && entering.getTranslationY() == 0, "The bar did not settle in its place"));
+            main(() -> entering.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick());
+            SystemClock.sleep(400);
+            main(() -> require(entering.isAttachedToWindow() && entering.getAlpha() < 1 && entering.getTranslationY() > 0, "At 10x the bar did not sink and fade out"));
+            await(() -> onMain(() -> !entering.isAttachedToWindow()), 5 * S, "The leaving bar was never removed");
+            await(() -> rideSummary(slow) != null, 5 * S, "Undo at 10x did not bring the ride back");
+            log("motion: at 10x the bar rose and faded in (alpha " + mid[0] + ", " + Math.round(mid[1]) + " px to go), then sank and faded out");
+            release();
+            shell("settings put global animator_duration_scale 0");
+            await(() -> onMain(() -> !Motion.enabled()), 5 * S, "Animations did not go off");
+            String still = discardOnScreen();
+            await(() -> undoBar() != null, 5 * S, "No Undo bar with animations removed");
+            View instant = undoBar();
+            main(() -> {
+                require(instant.getAlpha() == 1 && instant.getTranslationY() == 0, "With animations removed the bar moved: alpha " + instant.getAlpha() + ", " + instant.getTranslationY());
+                instant.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick();
+                require(instant.getParent() == null, "With animations removed the bar did not go at once");
+            });
+            await(() -> rideSummary(still) != null, 5 * S, "Undo with animations removed did not bring the ride back");
+            log("motion: with animations removed the bar appeared in place and went at once");
+            release();
+        } finally {
+            shell("settings put global animator_duration_scale " + (foundScale.isEmpty() || foundScale.equals("null") ? "1" : foundScale));
+        }
+
+        // 2. Out of sight: a short ride ended by a plug-in posts the notice; Volt coming on screen while it is live shows the bar
+        // for it and retires the notice, one Undo at a time (#651 F04, F05). Then a second one replaces the offer.
         String first = autoRide(6);
         leaveVolt();
         main(() -> link.motion(0)); plugIn();
@@ -688,8 +728,10 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         await(() -> noticeOf(81) != null, 10 * S, "Out of sight, no notice with Undo");
         require(rideSummary(first) == null && new File(new File(heldRoot, first), first + ".csv").isFile(), "Out of sight, the short ride was not held");
         unplugAndSettle();
-        ensureFront(); SystemClock.sleep(2 * S);
-        require(undoBar() == null, "Back on screen, a bar showed for a discard made out of sight");
+        ensureFront();
+        await(() -> undoBar() != null && noticeOf(81) == null, 5 * S, "Back on screen with the notice live: no bar, or the notice stayed");
+        require(onMainText(() -> service.undoOffer()).equals(first), "The bar is not for the ride discarded out of sight");
+        log("back on screen with the notice live: the bar shows for that ride, the notice went");
         // Record rides automatically waits 30 s after an unplug: the second ride is started by hand.
         main(() -> service.startRide(""));
         await(() -> onMain(() -> service.isRecording()), 5 * S, "The second ride did not start");
@@ -717,8 +759,43 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         require(onMain(() -> service.undoShortRide(first)) && rideSummary(first) != null, "The older ride, its notice replaced, could not be restored");
         log("the notice's Undo restored the newer ride and went; the older one restored too");
         unplugAndSettle();
+
+        // 3. The notice's body (#651 F04): tapping it opens Volt on the bar for its ride; that Undo restores it.
         ensureFront();
+        main(() -> service.startRide(""));
+        await(() -> onMain(() -> service.isRecording()), 5 * S, "The third ride did not start");
+        String third = onMainText(() -> service.rides.activeId());
+        for (int i = 0; i < 6; i++) { main(() -> { link.motion(12); link.status(); }); SystemClock.sleep(S); }
+        leaveVolt();
+        main(() -> link.motion(0)); plugIn();
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()) && noticeOf(81) != null, 10 * S, "Out of sight, no notice for the third ride");
+        android.app.ActivityOptions tap = android.app.ActivityOptions.makeBasic();
+        if (Build.VERSION.SDK_INT >= 34) tap.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        noticeOf(81).getNotification().contentIntent.send(getTargetContext(), 0, null, null, null, null, tap.toBundle());
+        await(() -> onMain(() -> service.isVisible()) && undoBar() != null && noticeOf(81) == null, 10 * S, "Tapping the notice did not open Volt on the bar for its ride");
+        require(onMainText(() -> service.undoOffer()).equals(third), "The bar is not for the tapped notice's ride");
+        View tappedBar = undoBar();
+        main(() -> tappedBar.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick());
+        await(() -> rideSummary(third) != null, 5 * S, "The bar's Undo after the notice tap did not bring the ride back");
+        require(!onMain(() -> service.undoShortRide(third)), "A second Undo restored it again");
+        log("the notice's body opened Volt on the bar for its ride; its Undo restored it, once");
+        unplugAndSettle();
         main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
+    }
+    /** A 6 s automatic ride stopped by hand on screen, discarded and saved out; returns its id. */
+    private String discardOnScreen() {
+        String id = autoRide(6);
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "The short ride never finished saving");
+        require(rideSummary(id) == null, "The short ride was kept");
+        return id;
+    }
+    private String shellOut(String command) throws IOException {
+        try (ParcelFileDescriptor out = getUiAutomation().executeShellCommand(command); InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(out)) {
+            ByteArrayOutputStream text = new ByteArrayOutputStream(); byte[] buffer = new byte[1024]; int n;
+            while ((n = in.read(buffer)) >= 0) text.write(buffer, 0, n);
+            return text.toString("UTF-8");
+        }
     }
     /** The short-ride bar while it shows, or null. */
     private View undoBar() { return onMainView(() -> activity.getWindow().getDecorView().findViewWithTag(ShortRideUndoBar.TAG)); }

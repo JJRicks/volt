@@ -1020,12 +1020,30 @@ public final class RecordingRulesTest {
                 "a discarded ride is offered back once from the one stop path; held rides past the day go after each stop and at start");
         int u = src.indexOf("private void offerUndo(String id){");
         String offer = src.substring(u, src.indexOf("\n    }", u));
-        check(offer.contains("undoOfferedAt=visible?SystemClock.elapsedRealtime():-1;") && offer.contains("if(visible)return;")
+        check(offer.contains("undoOfferedAt=SystemClock.elapsedRealtime();undoOfferOnScreen=visible;") && offer.contains("if(visible)return;")
+                && offer.contains("openVolt().putExtra(UNDO_RIDE_ID,id)")
                 && offer.contains("LiveNotices.channel(true,false,channelAllowed(LiveNotices.QUIET_CHANNEL))") && offer.contains(".setTimeoutAfter(UNDO_NOTICE_MS)")
                 && offer.contains("post(UNDO_NOTICE,") && offer.contains("cancelNotice(UNDO_NOTICE);")
                 && !offer.contains("Vibrat") && !offer.contains("setSound") && !offer.contains("Toast"),
                 "on screen the bar, out of sight one silent notice on the quiet channel (Low where it is off) that times out; a newer one replaces it");
         check(src.contains("static final long UNDO_NOTICE_MS=10*60_000L;") && RideHold.KEEP_MS == 24L * 3_600_000, "the notice goes after 10 minutes, the ride after a day");
+        // #651 F04-F06: the notice's body hands its ride to the bar, an offer made out of sight is live while its notice is,
+        // the bar retires the notice, and the notice's Undo always takes the notice away.
+        int o = src.indexOf("public String undoOffer(){");
+        check(src.substring(o, src.indexOf("\n    }", o)).contains("undoOfferOnScreen||SystemClock.elapsedRealtime()-undoOfferedAt<=UNDO_NOTICE_MS?undoOffer:null;"),
+                "an offer made out of sight stays live for the notice's 10 minutes, so Volt coming on screen shows it");
+        int b = src.indexOf("public boolean undoOfferOnScreen(String id){");
+        String toBar = src.substring(b, src.indexOf("\n    }", b));
+        check(toBar.contains("!rideHold.holds(id))return false;") && toBar.contains("cancelNotice(UNDO_NOTICE);return true;"), "the bar takes over from the notice: one Undo at a time");
+        check(src.contains("else if(UNDO_SHORT_RIDE.equals(action)){cancelNotice(UNDO_NOTICE);undoShortRide(intent.getStringExtra(UNDO_RIDE_ID));}"),
+                "the notice's Undo takes the notice away whatever this service's offer says (F06)");
+        String activity = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8);
+        int m = activity.indexOf("private void maybeShowUndoBar(){");
+        String show = activity.substring(m, activity.indexOf("\n    }", m));
+        check(show.contains("opened.getStringExtra(ScooterService.UNDO_RIDE_ID)") && show.contains("scooterService.undoOfferOnScreen(tapped)")
+                && show.contains("riding!=null") && activity.contains("try{resume();}finally{checkHeld--;}\n        // A short ride's Undo still live")
+                && activity.contains("scooterService.visible(resumed);maybeShowUndoBar();"),
+                "Volt coming on screen shows a live offer or the tapped notice's ride; at the top in riding mode (F09)");
         int d = src.indexOf("private void discardPhoneRide(String id){");
         String phoneGo = src.substring(d, src.indexOf("\n    }", d));
         check(phoneGo.contains("undoneRides.remove(id))return;") && phoneGo.indexOf("rideHold.add(id,") < phoneGo.indexOf("phoneRides.delete(id)"),

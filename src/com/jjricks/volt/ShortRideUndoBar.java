@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import android.animation.Animator;
 import android.app.Activity;
 import android.os.Build;
 import android.os.SystemClock;
@@ -15,23 +16,32 @@ import android.widget.TextView;
 
 /**
  * The on-screen short-ride message with Undo (owner, Nov 24 2026): "Ride not saved, too short" and an Undo button for
- * about {@link #SHOW_MS} (longer where Android's accessibility timeout asks), at the window's foot over the page and the
- * dock. It sits in the window's decor, so a page rebuild underneath doesn't remove it. The words wrap at spaces only, never
- * inside a word, and the button never shrinks or wraps: the words give way first (narrow label ladder).
+ * about {@link #SHOW_MS} (longer where Android's accessibility timeout asks). It sits in the window's decor, so a page
+ * rebuild underneath doesn't remove it: at the window's foot over the page and the dock, or at its top in riding mode,
+ * where the stopped Lock and Record buttons are at the foot (#651 F09). It spans the window less its side margins, up to
+ * {@link #MAX_WIDTH_DP}, so a fold or a rotation while it shows never pushes Undo off screen (#651 F08). The words wrap
+ * at spaces only, never inside a word, and the button never shrinks or wraps: the words give way first (narrow label
+ * ladder). It rises a little and fades in, and sinks and fades out on its timeout, Undo or a dismissal (owner, #651);
+ * with Android's animations off it simply appears and goes (Motion).
  */
 final class ShortRideUndoBar {
     /** How long the bar shows. */
     static final long SHOW_MS = 8_000;
+    static final int MAX_WIDTH_DP = 560;
+    /** How far the bar travels as it comes and goes. */
+    static final int TRAVEL_DP = 16;
     static final String TAG = "short_ride_undo", BUTTON_TAG = "short_ride_undo_button";
     private final Activity activity;
     private final Ui ui;
     private View bar;
     private String rideId;
+    private boolean top;
+    private Animator motion;
     private final Runnable hide = this::dismiss;
 
     ShortRideUndoBar(Activity activity, Ui ui) { this.activity = activity; this.ui = ui; }
 
-    /** The ride the bar shows now, or null. */
+    /** The ride the bar shows now, or null (also while it is leaving). */
     String showing() { return bar == null ? null : rideId; }
 
     /** How long a bar offered at offeredAt (SystemClock.elapsedRealtime) still shows: SHOW_MS, or Android's longer accessibility timeout. */
@@ -45,12 +55,22 @@ final class ShortRideUndoBar {
         return length - (SystemClock.elapsedRealtime() - offeredAt);
     }
 
-    /** Shows the bar for rideId for showMs, replacing any bar already up; bottomPx keeps it clear of the dock (its height, the navigation bar's included). */
-    void show(String rideId, String words, String undoLabel, long showMs, int bottomPx, Runnable undo) {
+    /**
+     * Shows the bar for rideId for showMs, replacing any bar already up. bottomPx keeps it clear of the dock (its height, the
+     * navigation bar's included); atTop puts it under the status bar instead (riding mode).
+     */
+    void show(String rideId, String words, String undoLabel, long showMs, int bottomPx, boolean atTop, Runnable undo) {
         dismiss();
         if (showMs <= 0 || activity.isFinishing()) return;
-        this.rideId = rideId;
-        LinearLayout row = new LinearLayout(activity);
+        this.rideId = rideId; this.top = atTop;
+        final int maxWidth = ui.dp(MAX_WIDTH_DP);
+        LinearLayout row = new LinearLayout(activity) {
+            @Override protected void onMeasure(int widthSpec, int heightSpec) {
+                int width = View.MeasureSpec.getSize(widthSpec);
+                if (width > maxWidth) widthSpec = View.MeasureSpec.makeMeasureSpec(maxWidth, View.MeasureSpec.EXACTLY);
+                super.onMeasure(widthSpec, heightSpec);
+            }
+        };
         row.setTag(TAG);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -71,28 +91,39 @@ final class ShortRideUndoBar {
         button.setPadding(ui.dp(16), ui.dp(10), ui.dp(16), ui.dp(10));
         row.addView(button, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         int side = ui.dp(12);
-        View decor = activity.getWindow().getDecorView();
-        int window = decor.getWidth() > 0 ? decor.getWidth() : activity.getResources().getDisplayMetrics().widthPixels;
-        int width = Math.min(window - 2 * side, ui.dp(560));
-        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(width, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        params.bottomMargin = Math.max(bottomPx, navigationInset()) + ui.dp(12);
-        ((ViewGroup) decor).addView(row, params);
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT,
+                (atTop ? Gravity.TOP : Gravity.BOTTOM) | Gravity.CENTER_HORIZONTAL);
+        params.leftMargin = params.rightMargin = side;
+        if (atTop) params.topMargin = inset(true) + ui.dp(12);
+        else params.bottomMargin = Math.max(bottomPx, inset(false)) + ui.dp(12);
+        ((ViewGroup) activity.getWindow().getDecorView()).addView(row, params);
         bar = row;
+        motion = Motion.floatIn(row, travel());
         row.postDelayed(hide, showMs);
     }
 
+    /** Takes the bar away: it sinks and fades out (at once with animations off). */
     void dismiss() {
         View shown = bar;
         bar = null; rideId = null;
         if (shown == null) return;
         shown.removeCallbacks(hide);
-        if (shown.getParent() instanceof ViewGroup) ((ViewGroup) shown.getParent()).removeView(shown);
+        // Leaving, it is no longer the bar: no tag, no taps.
+        shown.setTag(null); shown.setClickable(false);
+        motion = Motion.floatOut(shown, travel(), motion, () -> { if (shown.getParent() instanceof ViewGroup) ((ViewGroup) shown.getParent()).removeView(shown); });
     }
 
-    private int navigationInset() {
+    /** The way in and out: up from below at the foot, down from above at the top. */
+    private float travel() { return (top ? -1 : 1) * ui.dp(TRAVEL_DP); }
+
+    private int inset(boolean atTop) {
         WindowInsets insets = activity.getWindow().getDecorView().getRootWindowInsets();
         if (insets == null) return 0;
-        if (Build.VERSION.SDK_INT >= 30) return insets.getInsets(WindowInsets.Type.navigationBars() | WindowInsets.Type.ime()).bottom;
-        return insets.getSystemWindowInsetBottom();
+        if (Build.VERSION.SDK_INT >= 30) {
+            android.graphics.Insets bars = insets.getInsets(atTop ? WindowInsets.Type.statusBars() | WindowInsets.Type.displayCutout()
+                    : WindowInsets.Type.navigationBars() | WindowInsets.Type.ime());
+            return atTop ? bars.top : bars.bottom;
+        }
+        return atTop ? insets.getSystemWindowInsetTop() : insets.getSystemWindowInsetBottom();
     }
 }
