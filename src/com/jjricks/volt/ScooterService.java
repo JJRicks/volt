@@ -113,6 +113,8 @@ public final class ScooterService extends Service {
     private long wakeLockRenewedMs;
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
     private String trendProfile = "", recordingError;
+    /** Which pause recordingError is, for Home's own words (RecordingFit.Pause); meaningful only while it is set. */
+    private RecordingFit.Pause recordingPause = RecordingFit.Pause.NONE;
     /**
      * Auto-record's and auto ride mode's holds, one for the whole process: a hand stop or a back-out made before Volt's own
      * background pause still stands when a new service starts and reconnects (AutoStartPolicy.observeLink).
@@ -2539,6 +2541,8 @@ public final class ScooterService extends Service {
 
     public boolean isRecording(){return rides!=null&&rides.activeId()!=null;}
     public String recordingError(){return recordingError;}
+    /** The state behind recordingError: NONE while it is null, else storage full while recording or a failed save. */
+    public RecordingFit.Pause recordingPause(){return recordingError==null?RecordingFit.Pause.NONE:recordingPause;}
     public boolean phoneSaving(){return phoneSavingCount>0;}
     public String phoneStatus(){
         return phoneSaving()
@@ -2760,6 +2764,7 @@ public final class ScooterService extends Service {
         String stopping=rides.activeId();RideStore.Summary stopped;
         // Too short to keep (RideStore.kept: under 0.01 mi or 20 s), whatever ended it: removed at once, no summary row.
         try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),()->phoneSavedKm(stopping),id->pendingPhoneDiscard(id,true));invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+            recordingPause = RecordingFit.Pause.SAVE_FAILED;
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
@@ -3159,6 +3164,7 @@ public final class ScooterService extends Service {
                                 }
                             }
                         } catch (IOException e) {
+                            recordingPause = RecordingFit.Pause.STORAGE_FULL;
                             recordingError =
                                     "Paused: storage full";
                             android.widget.Toast.makeText(

@@ -358,6 +358,140 @@ public final class HubText {
         return minutes < 1 ? M.hubJustBackSpokenNow(distance) : M.hubJustBackSpokenMinutes(minutes, minutes, distance);
     }
 
+    // ===== Clean Home's top area: the ride being recorded (RecordingView, the Ride clock) =====
+
+    /** The switch for Clean's recording moment (Settings › Home style), beside the other two moments'. */
+    public static Msg momentRecording() { return M.hubMomentRecording(); }
+    /** The head row's word beside the red dot: the Record quick action's own while it records. */
+    public static Msg recordingLabel() { return M.homeQaRecording(); }
+    /** "Started 9:24 AM"; clock is DisplayTime.clock's, in the owner's 12- or 24-hour format. */
+    public static Msg recordingStarted(CharSequence clock) { return M.hubRecordingStarted(clock); }
+    /** The speed graph's label, full then short (the narrow-label ladder). */
+    public static Msg recordingSpeed(boolean full) { return full ? M.hubRecordingSpeed() : M.hubRecordingSpeedShort(); }
+    /** The speed now at the graph's top right: "16.8 mph now"; speed with its unit. */
+    public static Msg recordingSpeedNow(CharSequence speed) { return M.hubRecordingSpeedNow(speed); }
+    /** The three readings' names: riding mode's Trip, Just back's Battery, and the estimated range (full, then short). */
+    public static Msg recordingTrip() { return M.ridingLabelTrip(); }
+    public static Msg recordingBattery() { return M.hubJustBackBattery(); }
+    public static Msg recordingRange(boolean full) { return full ? M.hubRecordingRange() : M.hubRecordingRangeShort(); }
+    /** The button into riding mode: the Ride page's own words. */
+    public static Msg recordingOpenRiding() { return M.hubRideOpenRiding(); }
+
+    /**
+     * What the head row says at its right in place of the start time while the recording's link has a problem, in
+     * riding mode's REC pill's words (RecordingPill: RECORDING_PROBLEM): the scooter switched off (ScooterOffWords),
+     * Reconnecting…, or Not connected. Null while the link is fine.
+     */
+    public static Msg recordingProblem(RidingFocus.Link link, boolean off) {
+        if (off) return M.bleStatusScooterOff();
+        if (link == RidingFocus.Link.RECONNECTING) return M.ridingStatusReconnecting();
+        return link == RidingFocus.Link.NOT_CONNECTED ? M.ridingStatusNotConnectedSeenCompact() : null;
+    }
+
+    /**
+     * The head row's words while saving is paused (RecordingFit.Pause), full or short (the narrow-label ladder,
+     * RecordingFit.headLadder), in place of the start time or a link problem; null while it saves.
+     */
+    public static Msg recordingPaused(RecordingFit.Pause pause, boolean full) {
+        if (pause == RecordingFit.Pause.STORAGE_FULL) return full ? M.hubRecordingPausedStorage() : M.hubRecordingPausedStorageShort();
+        if (pause == RecordingFit.Pause.SAVE_FAILED) return full ? M.hubRecordingSaveFailed() : M.hubRecordingSaveFailedShort();
+        return null;
+    }
+
+    /**
+     * The recording view's spoken text while saving is paused: as recordingSpoken, with the paused words (full) after the
+     * time in place of any link problem, which matters less while nothing is being saved.
+     */
+    public static Msg recordingSpokenPaused(long elapsedMs, RidingFocus.Link link, boolean off, RecordingFit.Pause pause, CharSequence... readings) {
+        return recordingSpokenSeen(elapsedMs, link, off, pause, new CharSequence[0], readings);
+    }
+
+    /**
+     * As recordingSpokenPaused, with each reading's last-seen time where it isn't live (seen[k] for the k-th name and
+     * value pair; null or missing while live), said as Home's cards say one: "Battery, 73%, last seen 9:41 PM", so a
+     * screen reader never hears a dimmed reading as current.
+     */
+    public static Msg recordingSpokenSeen(long elapsedMs, RidingFocus.Link link, boolean off, RecordingFit.Pause pause,
+                                          CharSequence[] seen, CharSequence... readings) {
+        Msg paused = recordingPaused(pause, true);
+        String text = paused == null ? recordingTimeSpoken(elapsedMs, link, off)
+                : T.ridingReadingSpoken(recordingTimeSpoken(elapsedMs, RidingFocus.Link.CONNECTED, false), paused.render());
+        for (int i = 0; i + 1 < readings.length; i += 2) {
+            if (readings[i + 1] == null || readings[i + 1].length() == 0) continue;
+            CharSequence when = seen != null && i / 2 < seen.length ? seen[i / 2] : null;
+            text = T.hubRecordingSpokenNext(text, when == null || when.length() == 0 ? T.ridingReadingSpoken(readings[i], readings[i + 1])
+                    : T.dashboardReadingSeen(readings[i], readings[i + 1], when));
+        }
+        return M.hubRecordingDescription(text);
+    }
+
+    /**
+     * The link problem's short rung for the head row's ladder (RecordingFit.headLadder): the scooter switched off says
+     * Off, as riding mode's REC pill shortens it (RecordingPill.offRungs); Reconnecting… and Not connected are already
+     * their shortest. Null while the link is fine.
+     */
+    public static Msg recordingProblemShort(RidingFocus.Link link, boolean off) {
+        return off ? M.commonOff() : recordingProblem(link, off);
+    }
+
+    /**
+     * The head row's word for the moment Home holds a ride that just stopped until Just back shows it (HomeMoment
+     * holdRecording): riding mode's own "Ride saved", in place of "Recording".
+     */
+    public static Msg recordingSaved() { return M.ridingStatusRideSaved(); }
+
+    /** The moment's description while it holds a ride that just stopped: "Ride saved. Opens the Ride page." */
+    public static Msg recordingSavedSpoken() { return M.hubRecordingDescription(T.ridingStatusRideSaved()); }
+
+    /**
+     * The range reading as the recording's Range cell shows it: the parked card's own figure (RangeFigure, which its
+     * "about 23 mi left" takes too: the same rounding, units and text-only readings), marked as an estimate as riding
+     * mode's range chips mark one: "≈ 23 mi", "≈ 23 mi / 37 km" with both units. Null for no reading.
+     */
+    public static Formatted recordingRangeValue(Double km, String text, String units) {
+        Formatted figure = RangeFigure.of(km, text, units);
+        return figure == null ? null : Fmt.compose(T.RIDING_APPROX, figure);
+    }
+
+    /** The same for a reading with a number only (km null or not finite: none). */
+    public static Formatted recordingRangeValue(Double km, String units) { return recordingRangeValue(km, null, units); }
+
+    /** The Range cell's short rung with both units: the first unit alone ("≈ 23 mi"). */
+    public static Formatted recordingRangeShort(double km, String units) {
+        return Fmt.compose(T.RIDING_APPROX, RangeFigure.primary(km, units));
+    }
+
+    /** The range spoken: "about 23 mi", the parked card's own words for the same figure (DashboardScreen.aboutRange). */
+    public static Msg recordingRangeSpoken(Double km, String text, String units) {
+        Formatted figure = RangeFigure.of(km, text, units);
+        return figure == null ? null : M.dashboardAbout(figure);
+    }
+
+    /**
+     * The recording's time spoken, minute by minute so the description does not change every second: "Recording for
+     * less than a minute", then riding mode's REC pill's "Recording for 14 minutes" (whole minutes, past an hour too),
+     * with the link's problem after it in the pill's words.
+     */
+    public static String recordingTimeSpoken(long elapsedMs, RidingFocus.Link link, boolean off) {
+        long minutes = Math.max(0, elapsedMs) / 60_000;
+        String time = minutes < 1 ? T.hubRecordingSpokenUnderMinute() : T.ridingStatusRecordingSpokenMinutes(minutes, minutes);
+        Msg problem = recordingProblem(link, off);
+        return problem == null ? time : T.ridingReadingSpoken(time, problem.render());
+    }
+
+    /**
+     * The recording view's spoken text, one description read once (never a live region): the time and any problem
+     * (recordingTimeSpoken), then each reading by its name ("Trip, 2.5 mi"), then what a tap does. Readings with no value
+     * are left out; readings alternate name and value.
+     */
+    public static Msg recordingSpoken(long elapsedMs, RidingFocus.Link link, boolean off, CharSequence... readings) {
+        String text = recordingTimeSpoken(elapsedMs, link, off);
+        for (int i = 0; i + 1 < readings.length; i += 2)
+            if (readings[i + 1] != null && readings[i + 1].length() > 0)
+                text = T.hubRecordingSpokenNext(text, T.ridingReadingSpoken(readings[i], readings[i + 1]));
+        return M.hubRecordingDescription(text);
+    }
+
     // ===== Settings › Home style: the overview card's two readings (HomeReadings, HomeReadingsEditor.Row) =====
 
     /** The Home style row's title and its sheet's title. */
@@ -629,6 +763,9 @@ public final class HubText {
      */
     public static Msg[] pageRowTitles(String page) {
         if (page == null) return new Msg[0];
+        // Settings › Home style: its three moment switches, the recording moment's last. Answered here so the switch's
+        // case below keeps its line as it was (an added switch is an added line).
+        if (HubPages.SETTINGS_HOME.equals(page)) return new Msg[] {M.homeMomentCharging(), M.homeMomentRide(), M.hubMomentRecording()};
         switch (page) {
             case HubPages.RIDE_RIDES: return new Msg[] {M.ridesCompareTwo()};
             // Then, as on every page below, the rows shown only in some states, whose English is in the page's own words
