@@ -145,6 +145,8 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
     /** A recording in the service's own RideStore, a minute old, its odometer moved; the service then works as for any ride. */
     private long startRide(String label) {
         final long[] wall = {0};
+        // The ride is a minute old on the monotonic clock: a freshly booted emulator waits until it has been up that long.
+        while (SystemClock.elapsedRealtime() < 65 * S) SystemClock.sleep(500);
         main(() -> {
             require(!service.isRecording(), "No recording before the ride");
             long now = SystemClock.elapsedRealtime(), nowWall = System.currentTimeMillis(), start = now - 60 * S;
@@ -169,7 +171,8 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
     private void dismissRide() throws Exception {
         UiAutomation ui = getUiAutomation();
         android.accessibilityservice.AccessibilityServiceInfo info = ui.getServiceInfo();
-        info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS;
+        info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+                | android.accessibilityservice.AccessibilityServiceInfo.FLAG_INCLUDE_NOT_IMPORTANT_VIEWS;
         ui.setServiceInfo(info);
         shell("cmd statusbar expand-notifications");
         android.graphics.Rect bounds = null;
@@ -189,12 +192,24 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             }
             if (bounds == null) SystemClock.sleep(250);
         }
+        if (bounds == null) {
+            StringBuilder seen = new StringBuilder();
+            for (android.view.accessibility.AccessibilityWindowInfo window : ui.getWindows()) seen.append(window.getTitle()).append(window.getRoot() == null ? "(no root) " : " ");
+            AccessibilityNodeInfo active = ui.getRootInActiveWindow();
+            log("ride: the shade's card not in the accessibility tree; windows: " + seen + "; active: " + (active == null ? null : active.getPackageName()));
+        }
         android.util.DisplayMetrics screen = getTargetContext().getResources().getDisplayMetrics();
         int width = screen.widthPixels;
-        // Where the shade puts its first card when the accessibility tree doesn't say (the card's centre on a 1080x2400 phone).
-        int y = bounds != null ? bounds.centerY() : Math.round(screen.heightPixels * 0.31f);
-        log("ride: swiping the card away at y=" + y + (bounds != null ? " (its title's bounds)" : " (the shade's first card)"));
-        shell("input swipe " + width / 5 + " " + y + " " + (width - 10) + " " + y + " 300");
+        // Where the shade puts its first card when the accessibility tree doesn't say: about 31% down a 1080x2400 phone and 44%
+        // down an unfolded Fold. Swiped from the card's middle third to the right edge, lower each time until it goes.
+        float[] tries = bounds != null ? new float[]{(float) bounds.centerY() / screen.heightPixels} : new float[]{0.31f, 0.37f, 0.44f, 0.50f};
+        for (float at : tries) {
+            int y = Math.round(screen.heightPixels * at);
+            log("ride: swiping the card away at y=" + y + (bounds != null ? " (its title's bounds)" : " (where the shade's first card sits)"));
+            shell("input swipe " + width * 2 / 5 + " " + y + " " + (width - 10) + " " + y + " 200");
+            SystemClock.sleep(1500);
+            if (connection() == null) break;
+        }
         await(() -> connection() == null, 10 * S, "The ride's notice is still posted after the dismiss: " + describe());
         await(() -> onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), 10 * S, "The delete intent never reached the service");
         log("ride: dismissed in the shade");
