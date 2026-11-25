@@ -224,6 +224,15 @@ What is left to the reviewer, who sees each item listed in CI's output:
 - Whether the new lines show the right words in the right place.
 - Control flow changed around an unchanged line that shows existing text, such as an existing toast moved inside a new `if`. That changes when the text shows, not what it says. `G1` lists it as a change away from any text.
 
+**What the gates are for.** The English proof and the gates catch mistakes: honest changes that would alter existing English by accident. They aren't meant to stop code written to defeat them, such as:
+
+- shadowing a JDK or app type;
+- launcher options that load other code;
+- forged run records;
+- a nested `T`.
+
+An ordinary PR could already do any of that. Reviewers check for it.
+
 "Batch" means a batch of moved text: moving old hard-coded text into the catalog, rewording or moving existing keys, translations and the ledger. The messages are worded for that work.
 
 | | `ordinary` | `feature-text` | `batch` |
@@ -239,7 +248,7 @@ What is left to the reviewer, who sees each item listed in CI's output:
 | `build.sh`, `.github/workflows/`, `tools/l10n/` | May change | Must not change | Must not change |
 | Existing files directly under `tests/l10n/` (not `characterization/`, `golden/` or top-level `*.sources`) | May change | Only the [feature tests](#proof-tests-and-feature-tests) `tools/l10n/test-kinds.tsv` lists may change; CI lists the edits. Proof tests, the scripts and helpers, and any test the list doesn't name must not change | Must not change, not even by an added statement |
 | A new `tests/l10n/<Name>.java`, a `.sources` file | Allowed | Allowed, but every proof test and characterization test a `.sources` list ran stays listed | Allowed |
-| A new test file declaring a `src/`, `java.lang` or existing test type name; added code calling `exit`, `halt`, `Runtime` or an uncaught-exception handler | Allowed | Refused (`G4`) | Refused (`G4`) |
+| A new test file declaring a `src/`, `java.lang` or existing test type name; added code calling `System.exit`, `Runtime.getRuntime().halt` (or `exit`), a shutdown hook or an uncaught-exception handler | Allowed | Refused (`G4`) | Refused (`G4`) |
 | Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May change; `G4` lists the edits | May only gain whole statements |
 | Tests under `tests/l10n/characterization/` | May change | As in a `batch` (`G4` strict, `G5`), and none may be deleted | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`). If that commit only adds rows to an existing `.tsv` listing (for example, a new shortcut's row), the proof skips running the tests there and checks that no existing row changed; the new rows are left to the tests at head |
 | `T.` or `M.` calls, catalog strings | Not possible; adding them makes it `feature-text` or a `batch` | New keys, and added lines calling new or existing keys; an `R.string` or `R.plurals` reference makes it a `batch` | Yes |
