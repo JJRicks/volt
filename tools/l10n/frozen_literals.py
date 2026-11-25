@@ -55,7 +55,8 @@ lower-case key, path or id such as "app_settings" or "com.jjricks.volt". Java fi
 feature-text) lists the problems in PATH and fails on every other one; --relax-all lists the problems in any
 path. Either way, some problems fail in every path (ALWAYS_STRICT): a new test file declaring a src/, java.lang
 or existing test type name, which would replace that type for the frozen tests compiled with it (a quiet
-AssertionError), and added code that calls exit, halt or another way to end or quiet the JVM (STRICT_ESCAPES).
+AssertionError), and added code that calls exit, halt or another way to end or quiet the JVM (STRICT_ESCAPES,
+matched as calls).
 """
 
 import argparse
@@ -120,9 +121,12 @@ ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "set
            "newInstance", "MethodHandles", "MethodHandle", "MethodType", "VarHandle", "LambdaMetafactory", "Proxy",
            "ClassLoader", "loadClass", "defineClass", "ServiceLoader", "Unsafe", "ProcessBuilder", "ProcessHandle",
            "exec", "ScriptEngineManager", "ScriptEngine", "JShell", "ToolProvider", "Thread", "Instrumentation", "Signal"}
-# Calls that can end the JVM with any status, or catch what a failing test throws: added code that calls one fails
-# even where test edits are only listed (--relax), since it could make a failing suite exit 0.
-STRICT_ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "setUncaughtExceptionHandler",
+# Calls that can end the JVM with any status, or catch what a failing test throws: added code that calls one
+# (System.exit(...), Runtime.getRuntime().halt(...), java.lang.System.exit(...), a statically imported exit(...))
+# fails even where test edits are only listed (--relax), since it could make a failing suite exit 0. They match as
+# calls, a name followed by "(" that is not a method declaration, so a type or field that only shares a name (the
+# app's CapabilityResolver.Runtime) is not one.
+STRICT_ESCAPES = {"exit", "halt", "setDefaultUncaughtExceptionHandler", "setUncaughtExceptionHandler",
                   "setSecurityManager", "addShutdownHook"}
 TYPE_WORDS = {"class", "interface", "enum", "record"}
 # Every top-level type in java.base's java.lang (JDK 25): a type of that name in the tests' package
@@ -435,8 +439,12 @@ def escape_calls(path, before, after):
     found = []
     for tag, i1, i2, j1, j2 in _token_opcodes(before, after, base, head, a, b):
         if tag in ("replace", "insert"):
-            for t in head[j1:j2]:
-                if t.kind == "ident" and t.value in STRICT_ESCAPES:
+            for k in range(j1, j2):
+                t = head[k]
+                prev = head[k - 1] if k else None
+                declared = prev is not None and prev.kind == "ident" and prev.value not in ("return", "new", "throw")
+                if t.kind == "ident" and t.value in STRICT_ESCAPES and k + 1 < len(head) and \
+                        _is_op(head[k + 1], "(") and not declared:
                     found.append("%s:%d: added code calls %s, which can end a test run with any status; a test may "
                                  "not add it in any kind" % (path, t.line, t.value))
                     break

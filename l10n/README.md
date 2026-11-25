@@ -692,6 +692,7 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
     - edits to `tests/run.sh` and `android-tests/build.sh`;
     - whether the new lines show the right words in the right place;
     - control flow changed around an unchanged line that shows existing text. That changes when the text shows, not what it says, and G1 lists it as a change away from any text.
+  - **Scope.** The proof and the gates catch mistakes. They aren't meant to stop code written to defeat them, such as shadowing a JDK or app type, launcher options that load other code, forged run records or a nested `T`. An ordinary pull request could already do that, and reviewers check for it (see [Threat model](#threat-model)).
   - **On CI's first line.** The kind and its reason are there: `feature-text change ...; 1 new English key (...)`, or `batch change ...; not feature-text: <reason>`.
   - **The test list.** A test that asserts shown English, catalog text or how code calls the catalog is `proof`; when unsure, it's proof. Add a new test's row in an ordinary pull request.
 - **An ordinary feature or fix** may change English, tests and report formats. If it adds UI text

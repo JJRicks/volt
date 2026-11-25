@@ -269,6 +269,34 @@ public final class ScooterService extends Service {
         rideAutoExport=new RideAutoExportRunner(this,settings,handler,this::rideAutoExportFinished);
         // Rides an earlier pass could not copy (folder gone, storage full, process ended) are retried at start.
         startRideAutoExport();
+        watchChannels();
+    }
+    /**
+     * Android's word that one of Volt's channels, or all its notifications, were turned off or on (#645 F02): the
+     * connection notice is rebuilt at once, so a card whose channel was just turned off moves to the fallback channel
+     * (LiveNotices.channel) without waiting for its next change, and the live card's gates follow (changed()).
+     */
+    private android.content.BroadcastReceiver channelsWatch;
+    private void watchChannels(){
+        if(Build.VERSION.SDK_INT<28)return;
+        android.content.IntentFilter filter=new android.content.IntentFilter(NotificationManager.ACTION_NOTIFICATION_CHANNEL_BLOCK_STATE_CHANGED);
+        filter.addAction(NotificationManager.ACTION_APP_BLOCK_STATE_CHANGED);
+        channelsWatch=new android.content.BroadcastReceiver(){
+            @Override public void onReceive(android.content.Context context,Intent intent){handler.post(ScooterService.this::channelsChanged);}
+        };
+        try{
+            if(Build.VERSION.SDK_INT>=33)registerReceiver(channelsWatch,filter,android.content.Context.RECEIVER_NOT_EXPORTED);
+            else registerReceiver(channelsWatch,filter);
+        }catch(RuntimeException unavailable){channelsWatch=null;}
+    }
+    private void unwatchChannels(){
+        if(channelsWatch==null)return;
+        try{unregisterReceiver(channelsWatch);}catch(RuntimeException alreadyGone){}
+        channelsWatch=null;
+    }
+    void channelsChanged(){
+        if(destroyed)return;
+        updateNotification();changed();
     }
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration){
         super.onConfigurationChanged(configuration);applyLocale();
@@ -1461,12 +1489,16 @@ public final class ScooterService extends Service {
      */
     private boolean liveNoticeAllowed(){
         NotificationManager manager=getSystemService(NotificationManager.class);
+        // Makes Rides and charging first (#645), so the answer is about the channel the notice will really use.
+        try{quietChannel(manager);}catch(RuntimeException unavailable){}
         NotificationChannel quiet=manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
         NotificationChannel scooter=manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
         return LiveNotices.cardCanShow(manager.areNotificationsEnabled(),
                 quiet!=null&&quiet.getImportance()!=NotificationManager.IMPORTANCE_NONE,
                 scooter==null||scooter.getImportance()!=NotificationManager.IMPORTANCE_NONE);
     }
+    /** The notification settings page that would let the live card show now: the quiet channel's, as the sheet's Allow opens it. */
+    public String liveNoticeChannel(){return LiveNotices.QUIET_CHANNEL;}
     private boolean channelAllowed(String id){
         NotificationManager manager=getSystemService(NotificationManager.class);NotificationChannel channel=manager.getNotificationChannel(id);
         return manager.areNotificationsEnabled()&&(channel==null||channel.getImportance()!=NotificationManager.IMPORTANCE_NONE);
@@ -3389,24 +3421,26 @@ public final class ScooterService extends Service {
 
     /** Local choice: never writes the scooter's firmware range mode. */
     public boolean usesLearnedRange() {
-        return !activeProfileId().isEmpty() && "learned".equals(settings.getString("range_source_" + activeProfileId(), "scooter"));
+        return RangeSource.learned(activeProfileId(), settings.getString(RangeSource.key(activeProfileId()), RangeSource.SCOOTER));
     }
     public void useLearnedRange(boolean enabled) {
         if (destroyed || activeProfileId().isEmpty()) return;
-        settings.edit().putString("range_source_" + activeProfileId(), enabled ? "learned" : "scooter").apply();
+        settings.edit().putString(RangeSource.key(activeProfileId()), enabled ? RangeSource.LEARNED : RangeSource.SCOOTER).apply();
         changed();
     }
     /** Current forecast for glanceable UI. Recorded charts and explicit scooter readings stay raw. */
     public Map<String, TelemetryHistory.Reading> dashboardReadings() {
         Map<String, TelemetryHistory.Reading> raw = withShownOdometer(displayReadings());
-        if (!usesLearnedRange() || simulating()) return raw;
+        boolean learned = usesLearnedRange(), simulating = simulating();
         String profile = activeProfileId();
-        LearnedRangeEstimate.Result estimate = currentRangeCache(profile);
-        if (estimate == null && !rangePending.containsKey(profile)) {
+        LearnedRangeEstimate.Result estimate = learned && !simulating ? currentRangeCache(profile) : null;
+        if (learned && !simulating && estimate == null && !rangePending.containsKey(profile)) {
             requestLearnedRangeEstimate(result -> { if (!destroyed && profile.equals(activeProfileId())) changed(); });
         }
         TelemetryHistory.Reading soc = raw.get("battery_percent");
-        Double km = estimate == null || soc == null || soc.value == null ? null : estimate.remainingKm(soc.number);
+        // The choice itself is RangeSource's (tested there): the learned figure at this battery reading, else the scooter's.
+        Double km = RangeSource.learnedKm(learned, simulating, soc == null || soc.value == null ? null : soc.number,
+                estimate == null || soc == null || soc.value == null ? null : estimate.remainingKm(soc.number));
         if (km == null) return raw;
         Map<String, TelemetryHistory.Reading> result = new LinkedHashMap<>(raw);
         result.put("remaining_range_km", new TelemetryHistory.Reading("remaining_range_km", "Learned remaining range",
@@ -3819,6 +3853,7 @@ public final class ScooterService extends Service {
             manager.createNotificationChannel(channel);
             scooterChannelLabel = label;
         }
+        quietChannel(manager);
         if (noticeOpen == null)
             noticeOpen = PendingIntent.getActivity(this, 0, openVolt(), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent content = noticeOpen;
@@ -3895,6 +3930,8 @@ public final class ScooterService extends Service {
         // The live card takes the ride's place when both could show: its swipe is the card's.
         if (live != null) builder.setDeleteIntent(chargeNoticeDismissed(false));
         else if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
+        // A recording ride and the live card go on the quiet Rides and charging channel (LiveNotices.channel); the rest stays on the connection channel.
+        builder.setChannelId(LiveNotices.channel(rideNotice, live != null, channelAllowed(LiveNotices.QUIET_CHANNEL)));
         // Android 16 and later: the ride's notice asks to be a Live Update, its chip the ride clock (LiveNotices.promoteRide).
         // A recording error or a phone sensor warning is not one: it is the plain notice, and it always posts.
         boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0 && !sensorWarning;
@@ -3935,6 +3972,36 @@ public final class ScooterService extends Service {
         Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
+    }
+    /** The quiet channel's name as last set, so it is renamed only when the language changes. */
+    private String quietChannelLabel;
+    /**
+     * Creates or renames Volt's quiet Rides and charging channel (LiveNotices.QUIET_CHANNEL): Default importance, so a
+     * ride's and the live card's notices show on the lock screen and above Silent, with no sound, no vibration and no
+     * lights, so nothing ever alerts (nor pops up: that takes High). Created once, always at Default (owner, Nov 24: the
+     * connection channel's off state isn't copied; #645 F04); from then on the channel is theirs in Android's settings,
+     * and Volt only renames it. A lock screen choice can't be copied: Android 16 ignores an app's lock screen visibility
+     * on a new channel (#645 F05, checked on the emulator), so the new channel starts with Android's default.
+     */
+    private void quietChannel(NotificationManager manager) {
+        String label = T.serviceChannelRidesCharging();
+        if (label.equals(quietChannelLabel)) return;
+        NotificationChannel existing = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+        if (existing != null) {
+            existing.setName(label);
+            manager.createNotificationChannel(existing);
+            quietChannelLabel = label;
+            return;
+        }
+        // Always Default (owner, Nov 24): the connection channel's off state isn't copied, so the cards show even where
+        // "Scooter connection & recording" is off.
+        NotificationChannel channel = new NotificationChannel(LiveNotices.QUIET_CHANNEL, label, NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setSound(null, null);
+        channel.enableVibration(false);
+        channel.enableLights(false);
+        channel.setShowBadge(false);
+        manager.createNotificationChannel(channel);
+        quietChannelLabel = label;
     }
     /** Recorded distance in the rider's units, or null before the odometer has moved. */
     private String rideDistanceText(RideStore.Summary ride) {
@@ -4184,6 +4251,7 @@ public final class ScooterService extends Service {
         closeEvidence();
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
+        unwatchChannels();
         if(rideAutoExport!=null)rideAutoExport.shutdown();
         if(maintenance!=null&&!maintenanceFed.isEmpty()&&!dataMaintenance)maintenance.flush(maintenanceFed);
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureClosed());}destroyed=true;stopChargeAlarm();finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{

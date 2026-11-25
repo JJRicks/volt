@@ -10,6 +10,7 @@ public final class HomeMomentTest {
         window();
         dismissed();
         switches();
+        recording();
         looking();
         keys();
         System.out.println("HomeMoment: " + checks + " checks passed");
@@ -51,6 +52,39 @@ public final class HomeMomentTest {
         require(!HomeMoment.on(Boolean.FALSE), "Only a stored false is off");
     }
 
+    /**
+     * The recording moment (the Ride clock; Ollie's mock-up, Nov 24 2026): while a ride records and its switch is on, after charging
+     * and before Just back; with its switch off (or through the call without it) a recording shows the battery card.
+     */
+    private static void recording() {
+        require(HomeMoment.choose(true, false, true, true, true, null, 0, null, END) == HomeMoment.RECORDING, "Recording: the recording moment");
+        require(HomeMoment.choose(true, false, true, true, true, "r1", END, null, END + MIN) == HomeMoment.RECORDING,
+                "Recording right after a ride: the recording, not Just back");
+        require(HomeMoment.choose(true, true, true, true, true, "r1", END, null, END + MIN) == HomeMoment.CHARGING, "Charging still wins while recording");
+        require(HomeMoment.choose(false, true, true, true, true, null, 0, null, END) == HomeMoment.RECORDING, "Charging switched off: the recording shows");
+        require(HomeMoment.choose(true, false, false, true, true, "r1", END, null, END + MIN) == HomeMoment.PARKED, "Recording switched off: parked, as before");
+        require(HomeMoment.choose(true, false, true, false, true, null, 0, null, END) == HomeMoment.RECORDING, "The ride switch does not hide the recording");
+        require(HomeMoment.choose(true, false, true, true, false, "r1", END, null, END + MIN) == HomeMoment.JUST_BACK,
+                "The recording stopped: Just back for the ride just saved");
+        require(HomeMoment.choose(true, false, true, true, false, null, 0, null, END) == HomeMoment.PARKED, "Not recording, no ride: parked");
+        require(HomeMoment.choose(true, false, true, true, "r1", END, null, END + MIN)
+                == HomeMoment.choose(true, false, false, true, true, "r1", END, null, END + MIN), "The call without the switch is the switch off");
+        require(HomeMoment.RECORDING_KEY.equals("home_moment_recording"), "The switch's key");
+        // The change to Just back when the ride stops: no battery card in between while the ride just saved is read.
+        require(HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.PARKED, "r2", "r1", 300), "Stopped, the saved ride not read yet: the recording stays");
+        require(HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.JUST_BACK, "r2", "r1", 300), "Not an older ride's Just back either");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.JUST_BACK, "r2", "r2", 300), "Found: Just back for it at once");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.PARKED, "r2", null, HomeMoment.HANDOFF_MS), "Never past the hand-off's limit");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.PARKED, "r2", null, 30 * MIN),
+                "A stop older than the hand-off (Home back from the background): nothing held");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.PARKED, "r2", null, -1), "No stop known: nothing held");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.CHARGING, "r2", null, 300), "Charging still takes over");
+        require(!HomeMoment.holdRecording(HomeMoment.PARKED, HomeMoment.PARKED, "r2", null, 300), "Only the recording moment is held");
+        require(!HomeMoment.holdRecording(HomeMoment.RECORDING, HomeMoment.PARKED, null, null, 300), "No ride ended: nothing to hold");
+        require(HomeMoment.RECORDING != HomeMoment.PARKED && HomeMoment.RECORDING != HomeMoment.CHARGING && HomeMoment.RECORDING != HomeMoment.JUST_BACK,
+                "A moment of its own");
+    }
+
     /** When Clean looks at the saved rides again (PR 9). */
     private static void looking() {
         long t = 5_000_000L;
@@ -65,6 +99,11 @@ public final class HomeMomentTest {
     private static void keys() {
         require(BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings", HomeMoment.CHARGING_KEY))
                 && BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings", HomeMoment.RIDE_KEY)), "Both switches travel as App preferences");
+        BackupRegistry.Rule recording = BackupRegistry.rule("app_settings", HomeMoment.RECORDING_KEY);
+        require(recording != null && BackupRegistry.PREFERENCES.equals(recording.category) && recording.type == Boolean.class && !recording.perProfile,
+                "The recording moment's switch travels as App preferences too, a switch for the whole app");
+        require(DiagnosticsSettings.KEYS.indexOf(HomeMoment.RECORDING_KEY) == DiagnosticsSettings.KEYS.indexOf(HomeMoment.RIDE_KEY) + 1,
+                "The diagnostics settings list it next to the ride moment's switch");
         BackupRegistry.Rule dismissed = BackupRegistry.rule("app_settings", HomeMoment.DISMISSED_KEY);
         require(dismissed != null && dismissed.excluded(), "A closed card names a ride on this phone and stays here");
     }

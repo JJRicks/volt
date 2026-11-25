@@ -350,6 +350,9 @@
 
     <!-- Name of the notification channel in Android's settings for Volt. -->
     <string name="service_channel_scooter" volt:screen="Android notification settings" volt:purpose="channel name">Scooter connection &amp; recording</string>
+    <!-- Name of Volt's second notification channel in Android's settings: a recording ride's notification and the live
+         charging card post on it (normal importance, but no sound and no vibration), so they show on the lock screen. -->
+    <string name="service_channel_rides_charging" volt:screen="Android notification settings" volt:purpose="channel name">Rides and charging</string>
     <string name="service_notice_measuring" volt:screen="Connection notice" volt:purpose="title" volt:safety="charge">Measuring charge for Charge done by</string>
     <string name="service_notice_testing" volt:screen="Connection notice" volt:purpose="title" volt:safety="charge">Testing scheduled charging</string>
     <string name="service_notice_charge_reconnecting" volt:screen="Connection notice" volt:purpose="title">Charge recording · reconnecting</string>

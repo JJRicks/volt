@@ -1131,7 +1131,7 @@ final class RidingScreen implements AppScreen {
     }
 
     /** Not ready, and on the way back: the pill's Reconnecting, and the Record disc's "Connecting". */
-    private static boolean reconnecting(BleController ble, boolean ready) {
+    static boolean reconnecting(BleController ble, boolean ready) {
         BleController.State state = ble == null ? null : ble.state();
         return ble != null && !ready && (ble.connected() || ble.recoverableConnectionLoss()
                 || state == BleController.State.CONNECTING || state == BleController.State.AUTHENTICATING

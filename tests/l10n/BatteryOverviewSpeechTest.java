@@ -86,7 +86,7 @@ public final class BatteryOverviewSpeechTest {
         String home = read("src/com/jjricks/volt/DashboardScreen.java").replaceAll("\\s+", " ");
         check(home.contains("static String aboutRange(CharSequence range) { return T.dashboardAbout(range); }"),
                 "DashboardScreen.aboutRange is the dashboard_about form");
-        check(home.contains("return aboutRange(format(r));") && home.contains("return aboutRange((units.equals(\"km\")"),
+        check(home.contains("return aboutRange(RangeFigure.of(r.number, r.value, units()));"),
                 "Home's card's rangeText goes through the same aboutRange");
     }
 

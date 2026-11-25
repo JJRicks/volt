@@ -147,6 +147,7 @@ final class BackupRegistry {
         // ride on this phone.
         add(app, HomeMoment.CHARGING_KEY, Boolean.class, PREFERENCES);
         add(app, HomeMoment.RIDE_KEY, Boolean.class, PREFERENCES);
+        add(app, HomeMoment.RECORDING_KEY, Boolean.class, PREFERENCES);
         exclude(app, HomeMoment.DISMISSED_KEY, String.class, DEVICE);
         // Clean Home's four quick actions (HomeQuickActions) travel with the scooter, like its Scooter tab menu.
         prefix(app, HomeQuickActions.KEY_PREFIX, String.class, SCOOTER_PREFERENCES, true);

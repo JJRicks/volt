@@ -244,11 +244,24 @@ recording_jdk() { # $1 = record file; prints the JAVA_HOME of a JDK whose java r
     for tool in "$real"/*; do [[ "$(basename -- "$tool")" == java ]] || ln -s "$tool" "$shim/bin/"; done
     cat >"$shim/bin/java" <<SHIM
 #!/usr/bin/env bash
-main=""; skip=0
+# Finds the main class the way the java launcher does: an @argfile's words take its place, the options that take a
+# separate value skip it (-cp, --add-opens and the rest), an option joined to its value (-Dx=y, -javaagent:a.jar,
+# --add-opens=x) is one word, and the first other word is the class. -jar and -m run no class by name.
+args=()
 for arg in "\$@"; do
+    if [[ "\$arg" == @* && "\$arg" != @@* && -f "\${arg#@}" ]]; then
+        set -f; words=(\$(cat -- "\${arg#@}")); set +f
+        args+=(\${words[@]+"\${words[@]}"})
+    else
+        args+=("\$arg")
+    fi
+done
+main=""; skip=0
+for arg in \${args[@]+"\${args[@]}"}; do
     if (( skip )); then skip=0; continue; fi
     case "\$arg" in
-        -cp|-classpath|--class-path|-p|--module-path) skip=1 ;;
+        -cp|-classpath|--class-path|-p|--module-path|--upgrade-module-path|--add-modules|--add-exports|--add-opens|\
+        --add-reads|--patch-module|--limit-modules|--enable-native-access|--source|--illegal-native-access) skip=1 ;;
         -jar|-m|--module) break ;;
         -*) ;;
         *) main="\$arg"; break ;;
