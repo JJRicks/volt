@@ -114,17 +114,25 @@ fi
 if [[ "$KIND" != ordinary && "$KIND" != english-change && "$KIND" != feature-text ]]; then  # a batch, or a kind ci_gates could not tell
     gate "G4 frozen test statements" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE"
 else
-    # As in CI: G4 binds batches only. An English change lists its test changes, a feature-text change's feature
-    # tests change with its feature (its proof tests stay frozen as tooling, below), and an ordinary change
-    # (a feature, a fix, a tooling change) may edit tests, so each is listed but never fails here.
+    # As in CI: G4 binds batches whole. An English change lists its test changes, and a feature-text change lists
+    # its feature tests' and other tests' edits (its characterization tests stay strict, and its proof tests frozen
+    # as tooling, below); in both, a type-shadowing test file or an added exit fails (frozen_literals ALWAYS_STRICT).
+    # The arguments are the ones ci_gates.py passes. An ordinary change (a feature, a fix, a tooling change) may edit
+    # tests, so its edits are listed but never fail here.
     log="$WORK/g4.log"
-    python3 tools/l10n/frozen_literals.py --base "$BASE" --report >"$log" 2>&1
+    g4_args=()
+    if [[ "$KIND" == ordinary ]]; then
+        g4_args=(--report)
+    else
+        while IFS= read -r arg; do g4_args+=("$arg"); done < <(python3 tools/l10n/ci_gates.py --base "$BASE" --print-g4-args)
+    fi
+    python3 tools/l10n/frozen_literals.py --base "$BASE" ${g4_args[@]+"${g4_args[@]}"} >"$log" 2>&1
     status=$?
     detail="$(grep -E '^frozen_literals: (PASS|REPORT|FAILED): ' "$log" | tail -1 | sed -E 's/^frozen_literals: [A-Z]+: //')"
     if [[ "$status" != 0 ]]; then
         record "G4 frozen test statements" FAIL "${detail:-frozen_literals.py failed}"; show_failure G4 "$log"
     elif grep -q '^frozen_literals: REPORT: ' "$log"; then
-        record "G4 frozen test statements" REPORT "$detail; listed, not enforced: G4 binds batches only (this is a $KIND change)"
+        record "G4 frozen test statements" REPORT "$detail; listed, not enforced: G4 binds batches whole (this is a $KIND change)"
         show_failure "G4 (report)" "$log"
     else
         record "G4 frozen test statements" PASS "$detail"
@@ -214,14 +222,73 @@ else
         record "G3 aapt round-trip (build.sh)" FAIL "build.sh failed"; show_failure build "$log"
     fi
 fi
+# A feature-text change may edit tests/run.sh, so a pass of it alone does not show that the proof suites ran. G6 then
+# runs it with JAVA_HOME pointing at a copy of the JDK's bin/ whose java records each main class it runs and its exit
+# status (run.sh's navee_find_java puts $JAVA_HOME/bin first on PATH), and every proof suite ci_gates names
+# (--print-proof-suites: the tests/l10n/*.sources entries that are not feature tests, characterization included)
+# must have run and exited 0, compared by name. A run.sh that skips the recording java records nothing and fails.
+real_java_bin() { # the directory of the JDK tests/run.sh would use
+    local home="${JAVA_HOME:-}"
+    if [[ -z "$home" && -f build.sh ]]; then
+        home="$(source ./build.sh >/dev/null 2>&1 && navee_find_java >/dev/null 2>&1 && printf '%s' "${JAVA_HOME:-}")"
+    fi
+    if [[ -z "$home" && -x /usr/libexec/java_home ]]; then home="$(/usr/libexec/java_home 2>/dev/null || true)"; fi
+    if [[ -n "$home" && -x "$home/bin/java" ]]; then (cd "$home/bin" && pwd -P); return; fi
+    local java; java="$(command -v java)" || return 1
+    python3 -c 'import os, sys; print(os.path.dirname(os.path.realpath(sys.argv[1])))' "$java"
+}
+recording_jdk() { # $1 = record file; prints the JAVA_HOME of a JDK whose java records main classes there
+    local real tool shim="$WORK/recording-jdk"
+    real="$(real_java_bin)" && [[ -x "$real/java" && -x "$real/javac" ]] || return 1
+    mkdir -p "$shim/bin"
+    for tool in "$real"/*; do [[ "$(basename -- "$tool")" == java ]] || ln -s "$tool" "$shim/bin/"; done
+    cat >"$shim/bin/java" <<SHIM
+#!/usr/bin/env bash
+main=""; skip=0
+for arg in "\$@"; do
+    if (( skip )); then skip=0; continue; fi
+    case "\$arg" in
+        -cp|-classpath|--class-path|-p|--module-path) skip=1 ;;
+        -jar|-m|--module) break ;;
+        -*) ;;
+        *) main="\$arg"; break ;;
+    esac
+done
+"$real/java" "\$@"; status=\$?
+[[ -z "\$main" ]] || printf '%s\t%s\n' "\$main" "\$status" >>"$1"
+exit "\$status"
+SHIM
+    chmod 700 "$shim/bin/java"
+    printf '%s\n' "$shim"
+}
 if [[ "$SKIP_TESTS" == 1 ]]; then
     record "G6 existing suites (tests/run.sh)" "not run" "--skip-tests"
+    [[ "$KIND" == feature-text ]] && record "G6 proof suites ran, by name" "not run" "--skip-tests"
 else
     log="$WORK/g6.log"
-    if bash tests/run.sh >"$log" 2>&1; then
+    suites="$WORK/suites.tsv"; : >"$suites"
+    g6_env=()
+    if [[ "$KIND" == feature-text ]]; then
+        if jdk="$(recording_jdk "$suites")"; then g6_env=(JAVA_HOME="$jdk"); else jdk=""; fi
+    fi
+    if env ${g6_env[@]+"${g6_env[@]}"} bash tests/run.sh >"$log" 2>&1; then
         record "G6 existing suites (tests/run.sh)" PASS "$(grep -c ' passed' "$log" | tr -d ' ') suites reported passing"
     else
         record "G6 existing suites (tests/run.sh)" FAIL "tests/run.sh failed"; show_failure G6 "$log"
+    fi
+    if [[ "$KIND" == feature-text && -z "$jdk" ]]; then
+        record "G6 proof suites ran, by name" FAIL "no JDK found to record which suites tests/run.sh ran"
+    elif [[ "$KIND" == feature-text ]]; then
+        expected=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-proof-suites))
+        missing=()
+        for name in ${expected[@]+"${expected[@]}"}; do
+            grep -qxF "com.jjricks.volt.$name"$'\t'0 "$suites" && ! grep -q "^com\.jjricks\.volt\.$name"$'\t'"[^0]" "$suites" || missing+=("$name")
+        done
+        if (( ${#missing[@]} )); then
+            record "G6 proof suites ran, by name" FAIL "${#missing[@]} of ${#expected[@]} proof suite(s) did not run and pass at head: ${missing[*]}"
+        else
+            record "G6 proof suites ran, by name" PASS "all ${#expected[@]} proof suite(s) the tests/l10n/*.sources lists name ran and exited 0"
+        fi
     fi
 fi
 record "G7 screen text census" "not run" "emulator: run-release-sweep.py --census, then census_diff.py"
