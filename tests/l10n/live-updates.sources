@@ -1,0 +1,7 @@
+# Live Updates for 2.0.6 (owner's picks, Nov 24 2026): the ride recording's notice as a Live Update, the live charging
+# chip's choice (level or finish time) and the quiet Rides and charging channel. tests/run.sh compiles every path listed
+# in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root. ChargeLiveState and
+# ChargeLiveUpdate come from charge-live.sources and charge-live-update.sources; the backup classes, BackupTestStore and
+# DiagnosticsSettings are compiled by tests/run.sh.
+src/com/jjricks/volt/LiveNotices.java
+tests/l10n/LiveUpdatesTest.java

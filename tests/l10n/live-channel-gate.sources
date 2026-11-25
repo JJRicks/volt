@@ -1,0 +1,4 @@
+# #645 F03 (built here for #645): the live card's gate asks about the channel its notice will post on (LiveNotices.cardCanShow).
+# tests/run.sh compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java.
+src/com/jjricks/volt/LiveNotices.java
+tests/l10n/LiveChannelGateTest.java

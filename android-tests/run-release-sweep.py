@@ -212,6 +212,9 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # 2.0.6: the ride recording's notice as a Live Update (chip, no reposts, a swipe away keeps it away) and the live
+    # card's chip choice, through the real service; Android 16 (API 36) emulators only.
+    inst('live-updates', PKG + '.LiveUpdatesValidation', hidden_api=True),
     # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
     inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     # A charge recording (by hand or automatic) shows the live card as a charge without one does, Live Update or not (owner, Nov 20 2026).
