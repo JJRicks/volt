@@ -306,7 +306,7 @@ need, as B10 lists `BackupException`) and never edits `tests/run.sh`.
 pieces match exactly one expression in that file at the new merge base, and lists the rest for a
 hand fix. Baselines carry no line numbers and need nothing.
 
-**Keep the proof tooling out of batches.** A batch pull request must not change `tools/l10n/`,
+**Keep the proof tooling out of batches.** A batch pull request (and a `feature-text` one, with the exceptions in [Pull requests that are not batches](#pull-requests-that-are-not-batches)) must not change `tools/l10n/`,
 `.github/workflows/`, anything under `tests/l10n/` except `characterization/`, `golden/` and the
 batch's own `tests/l10n/<batch>.sources`, `tests/run.sh`, `build.sh` or `android-tests/build.sh`
 (`ci_gates.is_tooling`); CI fails it. The one exception is a new `tests/l10n/<Name>.java`, which
@@ -669,13 +669,31 @@ changes since the merge base:
 
 | Kind | When | Gates |
 |---|---|---|
-| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference (bare or spelled `com.jjricks.volt.T.`, and so on) | every gate, strict; proof tooling unchanged |
+| `feature-text` | it would be a `batch`, but it only adds English (owner-approved Nov 24 2026): `l10n/ledger/`, `l10n/lang/`, `l10n/english-changes.tsv`, `res/values/strings.xml` (and any catalog file but `strings_*.xml`) and every `res/values-*/` file unchanged; in the changed `res/values/strings_*.xml` files every existing key exactly as it was (its English, attributes and file) and every new key with `volt:screen` and `volt:purpose`; `src/` gains only `T.` and `M.` references, and no `src/` line holding a catalog reference is removed or changed (whitespace aside); no `src/` literal gone (removed or changed, as G1 sees it) | a batch's gates (G1, G5, G8 shrink-only, the golden diff), except: the feature tests `tools/l10n/test-kinds.tsv` lists at the merge base, `tests/*.java`, `android-tests/`, `tests/run.sh` and `android-tests/build.sh` may change, CI lists those edits, and G4 lists those test files' problems instead of failing them. G4 stays strict for characterization tests, and a type-shadowing new test file or an added `exit`/`halt` fails in every kind but ordinary. No characterization test may be deleted; every proof test an active `.sources` entry ran at the merge base stays one; every line of `tests/run.sh` that names `l10n` stays, in order; and `prove-english.sh` (the `english-proof` job) checks by name that every proof suite ran and passed |
+| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference (bare or spelled `com.jjricks.volt.T.`, and so on), and it is not `feature-text` | every gate, strict; proof tooling unchanged |
 | `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only, G5; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog; proof tooling unchanged, except that edits to existing `tests/l10n/<Name>Test.java` files that are not gate tests are reported |
 | `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
 
 Every kind also refuses a static import of a `T`, `M` or `R` member in `src/`: a bare call through one
 looks like any other method, so CI could not tell a conversion from ordinary code. Call `T.x()`.
 
+- **A feature that adds new text** (`feature-text`) keeps existing English provably unchanged while its own tests change with it.
+  - **What the gates prove.**
+    - No existing English changed in the catalog: every existing key's entry is compared with the merge base, and translations, the ledger, the language table and `strings.xml` stay as they were.
+    - No existing code shows other text: a `src/` line that calls the catalog may not be removed or changed, and G1 holds `src/` literals and the code next to them to a batch's rule.
+    - The proof still runs:
+      - The proof tests stay frozen as tooling: every top-level `tests/l10n` file but the `feature` rows of `tools/l10n/test-kinds.tsv`. That includes a test the list doesn't name, and gate tests always. The list is read at the merge base, so a pull request can't reclassify a test for itself.
+      - Characterization tests are held to G4 and G5 as in a batch, and can't be deleted.
+      - Both stay in their `.sources` lists, and the `english-proof` job checks by name that every proof suite ran and passed at head.
+      - No new test file may shadow a type the proof tests use, and no test may add an `exit` or `halt`.
+      - Goldens stay frozen, and baselines may only shrink.
+  - **What is left to review**, all of it listed in CI's output:
+    - edits to the feature tests, `tests/*.java` and `android-tests/` (G4 REPORT lines);
+    - edits to `tests/run.sh` and `android-tests/build.sh`;
+    - whether the new lines show the right words in the right place;
+    - control flow changed around an unchanged line that shows existing text. That changes when the text shows, not what it says, and G1 lists it as a change away from any text.
+  - **On CI's first line.** The kind and its reason are there: `feature-text change ...; 1 new English key (...)`, or `batch change ...; not feature-text: <reason>`.
+  - **The test list.** A test that asserts shown English, catalog text or how code calls the catalog is `proof`; when unsure, it's proof. Add a new test's row in an ordinary pull request.
 - **An ordinary feature or fix** may change English, tests and report formats. If it adds UI text
   to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
   `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
@@ -776,15 +794,15 @@ Known limits:
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches, feature-text and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
-| G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`; a first commit that only adds rows to existing `.tsv` listings reads `not run` at the first commit, see G5 below) |
+| G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English and feature-text changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch, feature-text and English change pull requests), prove-english (the same kinds; an ordinary change reads `not applied`; a first commit that only adds rows to existing `.tsv` listings reads `not run` at the first commit, see G5 below) |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
-| G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english (other kinds: a golden change is REPORT, never FAIL) |
+| G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches, feature-text and English changes; ordinary: `--check`), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches and feature-text), prove-english (ordinary and English changes: a golden change is REPORT, never FAIL) |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
