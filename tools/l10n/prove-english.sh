@@ -19,7 +19,10 @@
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
 # --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
 #
-# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 and G5 read "not applied".
+# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 and G5 read "not applied". A feature-text
+# change (new English alongside a feature) is held to a batch's gates, except that G4 lists its test edits and its
+# feature tests and runners are listed for review; two more rows check that it only adds English and that every proof
+# test still runs.
 set -uo pipefail
 umask 077
 
@@ -27,7 +30,7 @@ TOOLS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$TOOLS_DIR" rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 
-usage() { sed -n '2,22p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,25p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
 [[ $# -ge 1 ]] || usage
 BASE_ARG="$1"; shift
 SAME_APK=0; PSEUDO=0; SKIP_BUILD=0; SKIP_TESTS=0
@@ -108,11 +111,12 @@ if [[ -f tests/l10n/LedgerTest.java ]]; then
 else
     record "G2 template equivalence" "n/a" "tests/l10n/LedgerTest arrives with the catalog (B0b)"
 fi
-if [[ "$KIND" != ordinary && "$KIND" != english-change ]]; then  # a batch, or a kind ci_gates could not tell
+if [[ "$KIND" != ordinary && "$KIND" != english-change && "$KIND" != feature-text ]]; then  # a batch, or a kind ci_gates could not tell
     gate "G4 frozen test statements" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE"
 else
-    # As in CI: G4 binds batches only. An English change lists its test changes, and an ordinary change
-    # (a feature, a fix, a tooling change) may edit tests, so it is listed too but never fails here.
+    # As in CI: G4 binds batches only. An English change lists its test changes, a feature-text change's feature
+    # tests change with its feature (its proof tests stay frozen as tooling, below), and an ordinary change
+    # (a feature, a fix, a tooling change) may edit tests, so each is listed but never fails here.
     log="$WORK/g4.log"
     python3 tools/l10n/frozen_literals.py --base "$BASE" --report >"$log" 2>&1
     status=$?
@@ -120,7 +124,7 @@ else
     if [[ "$status" != 0 ]]; then
         record "G4 frozen test statements" FAIL "${detail:-frozen_literals.py failed}"; show_failure G4 "$log"
     elif grep -q '^frozen_literals: REPORT: ' "$log"; then
-        record "G4 frozen test statements" REPORT "$detail; listed, not enforced: G4 binds batches only (this is an ordinary or English change: $KIND)"
+        record "G4 frozen test statements" REPORT "$detail; listed, not enforced: G4 binds batches only (this is a $KIND change)"
         show_failure "G4 (report)" "$log"
     else
         record "G4 frozen test statements" PASS "$detail"
@@ -249,16 +253,29 @@ else
 fi
 # The same list CI uses (ci_gates.is_tooling): tools/l10n, workflows, tests/l10n outside
 # characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh. An English
-# change's edits to existing non-gate tests/l10n/*Test.java files are left out and listed for review, as in CI.
+# change's edits to existing non-gate tests/l10n/*Test.java files, and a feature-text change's edits to the feature
+# tests tools/l10n/test-kinds.tsv lists, tests/run.sh and android-tests/build.sh, are left out and listed for review,
+# as in CI.
 tooling_files=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-tooling))
 tooling="${#tooling_files[@]} file(s)"
 (( ${#tooling_files[@]} )) && tooling+=", e.g. ${tooling_files[0]}"
-if (( ${#tooling_files[@]} == 0 )); then
+if (( ${#tooling_files[@]} == 0 )) && [[ "$KIND" == feature-text ]]; then
+    record "Proof tooling unchanged" PASS "tools/l10n, workflows, the proof tests and other tests/l10n tooling, and build.sh as at the merge base; feature tests and runners are listed below"
+elif (( ${#tooling_files[@]} == 0 )); then
     record "Proof tooling unchanged" PASS "tools/l10n, workflows, tests/l10n tooling, tests/run.sh and build scripts as at the merge base"
 elif [[ "$KIND" == ordinary ]]; then
     record "Proof tooling unchanged" "n/a" "a tooling change, not a batch: $tooling"
 else
     record "Proof tooling unchanged" FAIL "changed in a $KIND pull request: $tooling"
+fi
+if [[ "$KIND" == feature-text ]]; then
+    # As in CI (ci_gates.py): only new English keys, no existing key, translation, ledger or src literal changed;
+    # every proof test a tests/l10n/*.sources list ran at the merge base still listed; tests/run.sh's l10n lines kept.
+    gate "Feature text: only new English" "$WORK/feature-text.log" python3 tools/l10n/ci_gates.py --base "$BASE" --check-feature-text
+    feature_edits=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-feature-edits))
+    if (( ${#feature_edits[@]} )); then
+        record "Feature tests and runners edited" REPORT "${#feature_edits[@]} file(s): ${feature_edits[*]}; check that each edit follows the feature (proof tests: tools/l10n/test-kinds.tsv)"
+    fi
 fi
 if [[ "$KIND" == english-change ]]; then
     ledger_files=($(git diff --name-only "$MERGE" HEAD -- l10n/ledger))

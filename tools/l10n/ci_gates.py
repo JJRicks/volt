@@ -24,6 +24,19 @@ and add UI text. The kind comes from the paths changed since the merge base:
                   checks, so a batch may add one; editing or deleting one is a tooling change.
                   The run.sh hook and moving test helpers (TextFit) go in a pull request of
                   their own before the batch (l10n/README.md, "Order of the first pull requests").
+  feature-text    a batch by the rule above that only adds new English alongside a feature (owner-approved
+                  Nov 24 2026): l10n/ledger/ and every res/values-*/ file unchanged; in the changed
+                  res/values/strings_*.xml files every existing key is exactly as it was (English,
+                  attributes and file) and every new key has volt:screen and volt:purpose; and no src/
+                  literal left or changed (expressions.FileDiff's "gone", as G1 sees it). Its new T. and M.
+                  calls may name new or existing keys. The batch's gates hold, with three differences: the
+                  feature tests that tools/l10n/test-kinds.tsv lists at the merge base, tests/run.sh and
+                  android-tests/build.sh may change (listed in a REPORT line for the reviewer), and G4 only
+                  reports. Every other tests/l10n file stays frozen as proof tooling, a test the list does
+                  not name included. Two more checks keep the proof running: every proof test an active
+                  tests/l10n/*.sources entry ran at the merge base still is one at head, and every line of
+                  tests/run.sh that names l10n is still there, unchanged and in order. G5 holds as in a
+                  batch: characterization tests are proof tests.
   ordinary        anything else. The lint baselines must list every finding (they may grow; run
                   hardcoded_lint.py --write-baselines), and every ledger must still agree with the
                   catalog.
@@ -31,23 +44,30 @@ and add UI text. The kind comes from the paths changed since the merge base:
 Every kind also runs, in the workflow: the tools' unit tests, gen_catalog.py --check and
 tests/l10n/golden.sh (goldens equal head's output).
 
-  ci_gates.py --base origin/main [--head HEAD] [--pr-head <sha>] [--mode auto|batch|english-change|ordinary]
+  ci_gates.py --base origin/main [--head HEAD] [--pr-head <sha>] [--mode auto|batch|feature-text|english-change|ordinary]
   ci_gates.py --base origin/main --print-mode
   ci_gates.py --base origin/main --print-tooling   the changed proof tooling files the tooling gate counts
-                                                   for the change's kind (an English change's reported
-                                                   test edits are left out)
+                                                   for the change's kind (an English change's and a feature-text
+                                                   change's reported edits are left out)
   ci_gates.py --base origin/main --print-english-tests   an English change's reported test edits
+  ci_gates.py --base origin/main --print-feature-edits   a feature-text change's reported test and runner edits
+  ci_gates.py --base origin/main --check-feature-text    the feature-text checks alone (for prove-english.sh)
 """
 
 import argparse
 import collections
 import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import l10nlib  # noqa: E402
+import char_first  # noqa: E402
+import expressions  # noqa: E402
+import gen_catalog  # noqa: E402
 
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 CHANGES_PATH = "l10n/english-changes.tsv"
@@ -61,6 +81,17 @@ LEDGER_DIR = "l10n/ledger/"
 # catalog checks. They stay strict in every kind, an English change included.
 GATE_TESTS = frozenset(["LedgerTest.java", "FmtLegacyTest.java", "ReportsStayEnglishTest.java",
                         "GlyphCoverageTest.java", "CatalogCheckTest.java", "CatalogUsageTest.java"])
+FEATURE_TEXT = "feature-text"
+# The reviewed list of which top-level tests/l10n/<Name>.java files are proof tests and which are feature tests that
+# live there. It is read at the merge base, so a pull request's own edit to it (a tooling change) never applies to it.
+TEST_KINDS_PATH = "tools/l10n/test-kinds.tsv"
+# Runners a feature-text change may edit as an ordinary change may (owner-approved Nov 24 2026). build.sh is not one:
+# it holds G3's round-trip and the release guard.
+FEATURE_TEXT_RUNNERS = ("tests/run.sh", "android-tests/build.sh")
+RUN_SH = "tests/run.sh"
+ENGLISH_CATALOG = re.compile(r"^res/values/strings_[^/]+\.xml$")
+TRANSLATIONS = re.compile(r"^res/values-[^/]+/")
+NEW_KEY_ATTRIBUTES = ("screen", "purpose")
 
 
 def is_tooling(path):
@@ -78,6 +109,142 @@ def kind_of(changed, gains_catalog_references=False):
     if gains_catalog_references or any(p.startswith(LEDGER_DIR) or CATALOG_FILE.match(p) for p in changed):
         return "batch"
     return "ordinary"
+
+
+def parse_test_kinds(text):
+    """{path: "proof" or "feature"} from tools/l10n/test-kinds.tsv (# comments, a header, then path, kind, reason)."""
+    kinds = {}
+    for line in (text or "").splitlines():
+        fields = line.split("\t")
+        if not line.strip() or line.startswith("#") or fields[0] == "test" or len(fields) < 2:
+            continue
+        kinds[fields[0]] = fields[1].strip()
+    return kinds
+
+
+def feature_tests(merge, cwd=None):
+    """The tests/l10n tests a feature-text change may edit: the list's feature rows at the merge base. A gate test is
+    never one, and anything the list does not name is a proof test."""
+    kinds = parse_test_kinds(l10nlib.read_files(merge, [TEST_KINDS_PATH], cwd)[TEST_KINDS_PATH])
+    return set(p for p, kind in kinds.items() if kind == "feature" and new_test_file(p) and
+               p[len("tests/l10n/"):] not in GATE_TESTS)
+
+
+def _catalog_entries(texts):
+    """({key: entry}, problems) for {path: text or None} of res/values/strings_*.xml files."""
+    entries, problems = {}, []
+    work = tempfile.mkdtemp(prefix="l10n-ci-gates-")
+    try:
+        for path, text in sorted(texts.items()):
+            if text is None:
+                continue
+            full = os.path.join(work, os.path.basename(path))
+            l10nlib.write_text(full, text)
+            found, file_problems = gen_catalog.read_strings_file(full, path)
+            problems.extend(file_problems)
+            for entry in found:
+                entries.setdefault(entry.name, entry)
+    finally:
+        shutil.rmtree(work, ignore_errors=True)
+    return entries, problems
+
+
+def _entry_shape(entry):
+    """What an existing key must keep in a feature-text change: its kind, every item as written, its attributes and
+    its file. A translator's comment (the entry's note) is not English and may change."""
+    return (entry.kind, tuple((q, item.raw) for q, item in entry.items.items()), tuple(sorted(entry.meta.items())),
+            entry.translatable, entry.formatted, entry.file)
+
+
+def feature_text_problems(merge, head, changed, cwd=None):
+    """(reasons the change is not feature text, the new keys). No reasons: it only adds English."""
+    reasons = []
+    for path in changed:
+        if path.startswith(LEDGER_DIR):
+            reasons.append("%s changed (moving old text records ledger rows)" % path)
+        elif TRANSLATIONS.match(path):
+            reasons.append("%s changed (translations)" % path)
+        elif path == CHANGES_PATH:
+            reasons.append("%s changed (an English change)" % path)
+    catalog = [p for p in changed if ENGLISH_CATALOG.match(p)]
+    before, before_problems = _catalog_entries(l10nlib.read_files(merge, catalog, cwd))
+    after, after_problems = _catalog_entries(l10nlib.read_files(head, catalog, cwd))
+    reasons += ["the catalog does not read at head: %s" % p for p in after_problems[:3]]
+    reasons += ["the catalog does not read at the merge base: %s" % p for p in before_problems[:3]]
+    for name in sorted(before):
+        if name not in after:
+            reasons.append("%s: %s is removed or renamed" % (before[name].file, name))
+        elif _entry_shape(before[name]) != _entry_shape(after[name]):
+            reasons.append("%s: %s changes (its English or its attributes)" % (before[name].file, name))
+    new_keys = sorted(name for name in after if name not in before)
+    for name in new_keys:
+        for attribute in NEW_KEY_ATTRIBUTES:
+            if attribute not in after[name].meta:
+                reasons.append("%s: new key %s has no volt:%s" % (after[name].file, name, attribute))
+    sources = [p for p in changed if p.startswith("src/") and p.endswith(".java")]
+    old, new = l10nlib.read_files(merge, sources, cwd), l10nlib.read_files(head, sources, cwd)
+    for path in sources:
+        try:
+            diff = expressions.FileDiff(old[path], new[path])
+        except l10nlib.LexError as error:
+            reasons.append("%s: %s" % (path, error))
+            continue
+        for k in sorted(diff.gone):
+            token = diff.base_token(k)
+            reasons.append("%s:%d: %s %s left or changed (moving old text)" % (
+                path, token.line, "char" if token.kind == "char" else "literal", l10nlib.json_string(token.value)))
+    return reasons, new_keys
+
+
+def feature_text_edits(merge, changed, added=(), cwd=None):
+    """The proof tooling paths a feature-text change may change: listed feature tests and the two runners."""
+    allowed = feature_tests(merge, cwd).union(FEATURE_TEXT_RUNNERS)
+    return [p for p in changed if is_tooling(p) and p in allowed and not (p in added and new_test_file(p))]
+
+
+def localization_lines(text):
+    """The lines of tests/run.sh that name l10n (any case): the part that builds the catalog and runs the lists."""
+    return [line for line in (text or "").splitlines() if "l10n" in line.lower()]
+
+
+def proof_run_problems(merge, head, cwd=None):
+    """Ways a feature-text change would stop a proof test from running, or [] when none."""
+    problems = []
+    texts = (l10nlib.read_files(merge, [RUN_SH], cwd)[RUN_SH], l10nlib.read_files(head, [RUN_SH], cwd)[RUN_SH])
+    if texts[0] is not None:
+        at, lines = 0, (texts[1] or "").splitlines()
+        for wanted in localization_lines(texts[0]):
+            while at < len(lines) and lines[at] != wanted:
+                at += 1
+            if at == len(lines):
+                problems.append("%s: a line of its localization part changed or went (%s); the part that runs the "
+                                "tests/l10n/*.sources lists stays as it is" % (RUN_SH, wanted.strip()))
+                break
+            at += 1
+    features = feature_tests(merge, cwd)
+    ran = set(e for e in char_first._active_entries(merge, cwd) if char_first.runs_in_run_sh(e) and e not in features)
+    still = set(char_first._active_entries(head, cwd))
+    present = l10nlib.read_files(head, sorted(ran - still), cwd)
+    for entry in sorted(ran - still):
+        if present[entry] is not None:  # a deleted proof test is the tooling gate's
+            problems.append("%s: no tests/l10n/*.sources list runs it at head; a proof test keeps running" % entry)
+    return problems
+
+
+def feature_text_summary(new_keys):
+    names = ", ".join(new_keys[:5]) + (" and %d more" % (len(new_keys) - 5) if len(new_keys) > 5 else "")
+    count = "no new English key" if not new_keys else "%d new English key%s (%s)" % (
+        len(new_keys), "" if len(new_keys) == 1 else "s", names)
+    return "%s, no existing English changed" % count
+
+
+def choose_kind(merge, head, changed, gained, cwd=None):
+    """(kind, the reasons a batch is not feature text, new keys)."""
+    kind = kind_of(changed, bool(gained))
+    if kind != "batch":
+        return kind, [], []
+    reasons, new_keys = feature_text_problems(merge, head, changed, cwd)
+    return (FEATURE_TEXT if not reasons else kind), reasons, new_keys
 
 
 CATALOG_PACKAGE = "com.jjricks.volt"
@@ -208,18 +375,24 @@ def plan(kind, base, head, pr_head, root):
         steps.append(("G8 baselines list every finding", tool("hardcoded_lint.py", "--check", "--root", root), True))
         return steps
     strict = kind == "batch"
+    # A feature-text change keeps the goldens frozen, as a batch does; its test edits are reported (G4), as an
+    # English change's are, because its feature tests may change with the feature.
     steps += [
         ("G1 ledger", tool("ledger_check.py", "--base", base, "--head", head), True),
         ("G4 frozen test statements", tool("frozen_literals.py", "--base", base, "--head", head) +
          ([] if strict else ["--report"]), True),
         ("G8 shrink-only baselines", tool("hardcoded_lint.py", "--check", "--base", base, "--tight", "--root", root),
          True),
-        ("G9 goldens unchanged since the merge base", None, strict),
+        ("G9 goldens unchanged since the merge base", None, kind in ("batch", FEATURE_TEXT)),
         ("proof tooling unchanged", None, True),
     ]
     if kind == "english-change":
         steps.append(("no ledger rows in an English change", None, True))
         steps.append(("tests/l10n edits follow l10n/english-changes.tsv", None, False))
+    if kind == FEATURE_TEXT:
+        steps.append(("feature text adds only new English", None, True))
+        steps.append(("proof tests still run", None, True))
+        steps.append(("feature tests and runners edited", None, False))
     if pr_head:
         steps.insert(3, ("G5 characterization first", tool("char_first.py", "--base", base, "--head", pr_head), True))
     return steps
@@ -230,29 +403,55 @@ def main(argv=None):
     parser.add_argument("--base", required=True, help="base revision, for example origin/main")
     parser.add_argument("--head", default="HEAD", help="the checked-out commit (a pull request's merge commit)")
     parser.add_argument("--pr-head", default="", help="the pull request's head commit, for G5")
-    parser.add_argument("--mode", default="auto", choices=("auto", "batch", "english-change", "ordinary"))
+    parser.add_argument("--mode", default="auto", choices=("auto", "batch", FEATURE_TEXT, "english-change", "ordinary"))
     parser.add_argument("--print-mode", action="store_true", help="print the kind and exit")
     parser.add_argument("--print-tooling", action="store_true",
                         help="print the changed proof tooling files the tooling gate counts for this kind and exit")
     parser.add_argument("--print-english-tests", action="store_true",
                         help="print an English change's test edits, which are reported, not failed, and exit")
+    parser.add_argument("--print-feature-edits", action="store_true",
+                        help="print a feature-text change's test and runner edits, which are reported, and exit")
+    parser.add_argument("--check-feature-text", action="store_true",
+                        help="run only the feature-text checks (only new English; proof tests still run) and exit")
     args = parser.parse_args(argv)
     head = l10nlib.resolve(args.head)
     merge = l10nlib.merge_base(args.base, head)
     changed = l10nlib.changed_files(merge, head, ["."])
     added = added_paths(merge, head, changed)
     gained = gained_catalog_references(merge, head, changed)
-    kind = kind_of(changed, bool(gained)) if args.mode == "auto" else args.mode
-    reported = english_test_edits(merge, head, changed) if kind == "english-change" else []
-    if args.print_tooling or args.print_english_tests:
+    kind, not_feature_text, new_keys = choose_kind(merge, head, changed, gained)
+    if args.mode != "auto":
+        kind = args.mode
+        if kind == FEATURE_TEXT:
+            not_feature_text, new_keys = feature_text_problems(merge, head, changed)
+    if kind == "english-change":
+        reported = english_test_edits(merge, head, changed)
+    elif kind == FEATURE_TEXT:
+        reported = feature_text_edits(merge, changed, added)
+    else:
+        reported = []
+    if args.print_tooling or args.print_english_tests or args.print_feature_edits:
         for path in tooling_changes(changed, added, reported) if args.print_tooling else reported:
             print(path)
         return 0
     if args.print_mode:
         print(kind)
         return 0
-    print("ci_gates: %s change (%d path(s) since merge base %s)%s" % (
-        kind, len(changed), l10nlib.short(merge),
+    if args.check_feature_text:
+        problems = not_feature_text + proof_run_problems(merge, head)
+        for problem in problems:
+            print("ci_gates: %s" % problem, file=sys.stderr)
+        print("ci_gates: %s: %s" % ("FAILED" if problems else "PASS", "; ".join(problems[:3]) if problems else
+                                    "%s; proof tests still run" % feature_text_summary(new_keys)))
+        return 1 if problems else 0
+    why = ""
+    if kind == FEATURE_TEXT:
+        why = "; %s" % feature_text_summary(new_keys)
+    elif kind == "batch" and not_feature_text:
+        why = "; not feature-text: %s%s" % ("; ".join(not_feature_text[:3]), " (and %d more)" % (
+            len(not_feature_text) - 3) if len(not_feature_text) > 3 else "")
+    print("ci_gates: %s change (%d path(s) since merge base %s)%s%s" % (
+        kind, len(changed), l10nlib.short(merge), why,
         "; src gained catalog references (%s)" % ", ".join(gained[:5]) if gained else ""))
     failed = []
     for label, command, strict in plan(kind, args.base, head, args.pr_head, l10nlib.repo_root()):
@@ -277,6 +476,22 @@ def main(argv=None):
             ok = not reported
             detail = "none" if ok else "%s; check that each edit only follows a row of %s" % (
                 ", ".join(reported), CHANGES_PATH)
+        elif label.startswith("feature text adds"):
+            ok = not not_feature_text
+            detail = feature_text_summary(new_keys) if ok else "%d reason(s)" % len(not_feature_text)
+            for reason in not_feature_text:
+                print("ci_gates: %s: %s; a change that touches existing English or moves old text is a batch" % (
+                    label, reason), file=sys.stderr)
+        elif label.startswith("proof tests still run"):
+            problems = proof_run_problems(merge, head)
+            ok, detail = not problems, "%d problem(s)" % len(problems) if problems else (
+                "every proof test listed at the merge base is listed at head; tests/run.sh keeps its l10n lines")
+            for problem in problems:
+                print("ci_gates: %s: %s" % (label, problem), file=sys.stderr)
+        elif label.startswith("feature tests and runners"):
+            ok = not reported
+            detail = "none" if ok else "%s; check that each edit follows the feature (the proof tests stay frozen)" % (
+                ", ".join(reported))
         elif label.startswith("G9"):
             changes = golden_changes(merge, head)
             ok, detail = not changes, ", ".join(changes) or "unchanged"
@@ -288,7 +503,12 @@ def main(argv=None):
         else:
             changes = tooling_changes(changed, added, reported)
             ok, detail = not changes, ", ".join(changes) or "unchanged"
-            if changes:
+            if changes and kind == FEATURE_TEXT:
+                print("ci_gates: %s: %s changed; a feature-text pull request may edit only the feature tests %s "
+                      "lists, tests/run.sh and android-tests/build.sh: the proof tests (every other tests/l10n file, "
+                      "a test the list doesn't name included) and the proof tools change in their own pull request"
+                      % (label, ", ".join(changes), TEST_KINDS_PATH), file=sys.stderr)
+            elif changes:
                 print("ci_gates: %s: %s changed; change the proof tools in their own pull request, not in a "
                       "localization batch" % (label, ", ".join(changes)), file=sys.stderr)
         if not ok and strict:

@@ -183,7 +183,7 @@ T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
 | Unit logic | `UnitCode.matches(dataUnit)`, never the shown symbol |
 | Number or date in a file | `Locale.ROOT` or the writer's fixed locale, never `Fmt` |
 
-No CI check refuses a new default-locale `String.format("%.1f", v)`. A `batch` lists it as a warning for the reviewer, and an `ordinary` PR doesn't mention it, so check this yourself. Don't model code on `DisplayTime.recent`, whose `Locale.ENGLISH` upper-casing is old behaviour.
+No CI check refuses a new default-locale `String.format("%.1f", v)`. A `batch` or a `feature-text` PR lists it as a warning for the reviewer, and an `ordinary` PR doesn't mention it, so check this yourself. Don't model code on `DisplayTime.recent`, whose `Locale.ENGLISH` upper-casing is old behaviour.
 
 ## Narrow labels
 
@@ -205,25 +205,44 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 | Kind | Trigger |
 |---|---|
 | `english-change` | `l10n/english-changes.tsv` changed |
-| `batch` | `l10n/ledger/` or any `res/values*/strings_*.xml` changed, or a `src/` file gained a `T.`, `M.`, `R.string` or `R.plurals` reference |
+| `feature-text` | It would be a `batch`, but it only adds English: every changed catalog entry is a new key in `res/values/` with `volt:screen` and `volt:purpose`; no existing key changes (its English, its attributes or its file) or is removed or renamed; nothing under `res/values-*/` or `l10n/ledger/` changes; and no `src/` literal is removed or changed |
+| `batch` | `l10n/ledger/` or any `res/values*/strings_*.xml` changed, or a `src/` file gained a `T.`, `M.`, `R.string` or `R.plurals` reference, and it isn't `feature-text` |
 | `ordinary` | Anything else |
 
-"Batch" means a batch of moved text, and the messages are worded for that work. **A feature that adds one catalog string, or one more `T.` call to an existing key, is also a `batch`.** It needs no ledger rows, since the ledger only records moved text. The strict rules still apply.
+**A feature that adds new text is usually `feature-text`.** Its new `T.` and `M.` calls may name the new keys or existing ones, and it needs no ledger rows, since the ledger only records moved text. The first line CI prints names the kind and why: `feature-text change ...; 1 new English key (rides_not_saved), no existing English changed`, or `batch change ...; not feature-text: <reason>`.
 
-| | `ordinary` | `batch` |
-|---|---|---|
-| New `src/` literal | Allowed; some need [a baseline entry](#hard-coded-text-and-baselines) | Only `""`, lower-case ids (letters and digits joined by `_` or `.`, starting with a letter, two characters or more, such as `"ride_auto_export"`), and number-only formats such as `"%.1f"` (`%s` doesn't count) |
-| Code on a line holding a literal | Allowed | Refused; add a new statement on its own line |
-| Lint baselines (`l10n/baseline/`) | May grow | Shrink only |
-| Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
-| `tests/run.sh`, `build.sh`, `android-tests/build.sh`, `.github/workflows/`, `tools/l10n/` and every existing file under `tests/l10n/` except `characterization/`, `golden/` and top-level `*.sources` | May change | Must not change, not even by an added statement. Exceptions: a new `tests/l10n/<Name>.java`, and a `.sources` file |
-| Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May only gain whole statements |
-| Tests under `tests/l10n/characterization/` | May change | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`). If that commit only adds rows to an existing `.tsv` listing (for example, a new shortcut's row), the proof skips running the tests there and checks that no existing row changed; the new rows are left to the tests at head |
-| `T.` or `M.` calls, catalog strings | Not possible; adding them makes it a `batch` | Yes |
+"Batch" means a batch of moved text: moving old hard-coded text into the catalog, rewording or moving existing keys, translations and the ledger. The messages are worded for that work.
 
-MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `batch`.
+| | `ordinary` | `feature-text` | `batch` |
+|---|---|---|---|
+| New `src/` literal | Allowed; some need [a baseline entry](#hard-coded-text-and-baselines) | As in a `batch` | Only `""`, lower-case ids (letters and digits joined by `_` or `.`, starting with a letter, two characters or more, such as `"ride_auto_export"`), and number-only formats such as `"%.1f"` (`%s` doesn't count) |
+| A `src/` literal removed or changed | Allowed | Makes it a `batch` | Needs a ledger row (`G1`) |
+| Code on a line holding a literal | Allowed | Refused, as in a `batch` | Refused; add a new statement on its own line |
+| Existing catalog keys, translations, `l10n/ledger/` | Not possible; changing them makes it a `batch` | Must not change; any change makes it a `batch` | May change; see [Changing existing English](#changing-existing-english) |
+| Lint baselines (`l10n/baseline/`) | May grow | Shrink only | Shrink only |
+| Goldens | May change with `golden.sh --update`; say so in the PR | Must not change | Must not change |
+| `tests/run.sh`, `android-tests/build.sh` | May change | May change, except the lines of `tests/run.sh` that name `l10n` (they run the `tests/l10n` lists). CI lists the edits for the reviewer | Must not change |
+| `build.sh`, `.github/workflows/`, `tools/l10n/` | May change | Must not change | Must not change |
+| Existing files directly under `tests/l10n/` (not `characterization/`, `golden/` or top-level `*.sources`) | May change | Only the [feature tests](#proof-tests-and-feature-tests) `tools/l10n/test-kinds.tsv` lists may change; CI lists the edits. Proof tests, the scripts and helpers, and any test the list doesn't name must not change | Must not change, not even by an added statement |
+| A new `tests/l10n/<Name>.java`, a `.sources` file | Allowed | Allowed, but every proof test a `.sources` list ran stays listed | Allowed |
+| Other existing tests: `tests/*.java`, `android-tests/*.java` | May change | May change; `G4` lists the edits | May only gain whole statements |
+| Tests under `tests/l10n/characterization/` | May change | As in a `batch` | Added or changed only in the PR's first commit, which changes nothing in `src/` or `res/` (`G5`). If that commit only adds rows to an existing `.tsv` listing (for example, a new shortcut's row), the proof skips running the tests there and checks that no existing row changed; the new rows are left to the tests at head |
+| `T.` or `M.` calls, catalog strings | Not possible; adding them makes it `feature-text` or a `batch` | New keys, and calls to new or existing keys | Yes |
 
-### Split a feature into two PRs when it needs both
+MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `feature-text` PR and a `batch`.
+
+### Proof tests and feature tests
+
+Many tests directly under `tests/l10n/` prove that English didn't change: they assert shown English or catalog text, or how code calls the catalog. The dashboard text tests, `CatalogUsageTest` and the other gate tests are examples. Others are ordinary feature tests that live there because [a `.sources` file registers them](#registering-a-new-test), such as `AutoStartPolicyTest` and `RecordingRulesTest`. `tools/l10n/test-kinds.tsv` lists each one as `proof` or `feature`, with the reason.
+
+- **A `feature-text` PR may edit only the `feature` rows.** A proof test, and any test the list doesn't name, counts as proof tooling there, as it does in a `batch`.
+- **When unsure, it's proof.** A test that asserts any shown words is proof, even when its subject is a rule.
+- **Adding to the list.** When you add a test under `tests/l10n/`, add its row in an ordinary PR: the PR that adds it, if that one is ordinary, or the next one. A new test that asserts catalog English is `proof` from then on. CI reads the list at the merge base, so an edit takes effect only after it merges, and a `feature-text` PR or a `batch` can't edit it at all.
+- A new test file isn't frozen in the PR that adds it, in any kind.
+
+### Split a feature into two PRs when it still needs both
+
+A feature that only adds text, and changes tests, validations, `tests/run.sh` or `android-tests/build.sh` with it, needs one PR. Split it when the text part is a `batch`, which happens when it rewords or moves existing English, changes an existing key's attributes, or moves old hard-coded text. Split it too when the other part needs something `feature-text` refuses: a non-id literal in `src/`, a grown baseline, a golden change, or an edit to a proof test, `build.sh`, a workflow or `tools/l10n/`. Then:
 
 1. **Ordinary prep PR.** Logic and data with no catalog references: MIME types, file-name parts, a change to a long key list (with `--write-baselines`), report-format or golden changes, test registration, edits to existing tests.
 2. **Catalog PR**, after the first merges. Strings, `T` and `M` calls, and new statements calling the prep code.
@@ -232,10 +251,11 @@ This split was tried against the real gates when this guide was written, and bot
 
 ### Registering a new test
 
-`tests/run.sh` names its core suites, so a `tests/<Name>Test.java` needs an edit that a `batch` refuses. This route works in either kind:
+`tests/run.sh` names its core suites, so a `tests/<Name>Test.java` needs an edit that a `batch` refuses (an ordinary or `feature-text` PR may make it). This route works in every kind:
 
 - Add `tests/l10n/<Name>Test.java`, in package `com.jjricks.volt`: a class with `main` that throws on failure and prints a pass line, like `ReportsStayEnglishTest`.
 - Add `tests/l10n/<x>.sources` listing it, plus any pure `src/` class it needs. Listing a file that is already compiled is harmless.
+- Add its row to `tools/l10n/test-kinds.tsv` (see [Proof tests and feature tests](#proof-tests-and-feature-tests)).
 
 Tests compile without Android, so keep decisions in a pure class such as `RideAutoStopPolicy`.
 
@@ -247,7 +267,7 @@ Tests compile without Android, so keep decisions in a pure class such as `RideAu
 - `(helper)`: an English-looking literal in a call named like a text helper, such as `label`, `status`, `event`, `text` or `group`.
 - `(multiword)`: any other literal with two or more words, including log lines, exception text and long key lists.
 
-Shown text goes in the catalog. Text that is never shown, such as a log line or English file text, takes `--write-baselines` in an ordinary PR, and the gate then passes. A `batch` can't grow baselines, so that text goes in the prep PR.
+Shown text goes in the catalog. Text that is never shown, such as a log line or English file text, takes `--write-baselines` in an ordinary PR, and the gate then passes. A `batch` or a `feature-text` PR can't grow baselines, so that text goes in the prep PR.
 
 A passing lint doesn't prove text is localized: a single word outside the text helpers goes unseen.
 
@@ -264,13 +284,13 @@ When a row or screen moves, its text stays where it is:
 
 - **Keep each key in its `strings_<area>.xml` file.** Translations must sit in the same area file as their English, so moving a key to another file fails `ship_check.py` in every shipped language.
 - **Update the metadata freely.** Changing `volt:screen`, `volt:purpose` or `volt:max` doesn't touch the text, so CI keeps the translations as current. A new `volt:max` isn't re-checked against existing translations by CI, so if a label now has less room, say so in the PR: a translation can be longer than the English.
-- **Moving code that calls `T.` or `M.` to another file makes the PR a `batch`,** even though no text changed, because that file gained catalog references. Moving it within one file doesn't. A moved statement that also holds a literal other than a lower-case id fails `G1` in a `batch`. [Working on the UI](development-notes.md#working-on-the-ui) has the order this forces.
+- **Moving code that calls `T.` or `M.` to another file makes the PR `feature-text` or a `batch`,** even though no text changed, because that file gained catalog references. Moving it within one file doesn't. A moved statement that also holds a literal other than a lower-case id fails `G1` in a `batch`. [Working on the UI](development-notes.md#working-on-the-ui) has the order this forces.
 
 Lock, alarm, PIN and other safety text (`volt:safety`) gets stricter translation. Don't reword it to fit a new layout; a change to safety wording needs the project owner's yes first.
 
 ## What gets refused, and how it reads
 
-CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py` (`G5` only with `--pr-head`, as CI runs it), and `R2` to `R6` from `CatalogUsageTest` in `tests/run.sh`. These messages are worded for moving old text, so "extraction batch" includes your feature PR.
+CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py` (`G5` only with `--pr-head`, as CI runs it), and `R2` to `R6` from `CatalogUsageTest` in `tests/run.sh`. These messages are worded for moving old text, so "extraction batch" includes your `feature-text` PR.
 
 | Message contains | Meaning | Fix |
 |---|---|---|
@@ -283,6 +303,9 @@ CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py` (
 | `G4`: `a test statement with "..." was changed or removed` | You edited an existing test in a `batch` | Add whole statements instead, or move the edit to a prep PR |
 | `G5`: `... is a characterization test but the first commit ... does not add it; characterization tests come first` | A `batch` added or changed a test under `tests/l10n/characterization/` after its first commit | Put those tests in the PR's first commit, with no `src/` or `res/` change, or move them to a prep PR |
 | `G9`: `<file> changed since <sha>` | A golden changed in a `batch` | Move the format change to a prep PR |
+| `batch change ...; not feature-text: <reason>` (CI's first line) | Your PR adds text, but it also touches existing English: a changed or removed key, a translation, the ledger, or a `src/` literal removed or changed. So it's a `batch` | Revert that part, or move it to its own PR |
+| `proof tooling unchanged: ...; a feature-text pull request may edit only the feature tests tools/l10n/test-kinds.tsv lists` | A `feature-text` PR edited a proof test, a test the list doesn't name, or other proof tooling | Move the edit to an ordinary PR. If the test asserts no shown words, an ordinary PR can list it as `feature` |
+| `proof tests still run: ...` | A `feature-text` PR removed or commented out a proof test's `.sources` entry, or changed a line of `tests/run.sh` that names `l10n` | Restore it |
 | `proof tooling unchanged: tests/run.sh changed`, or a `tests/l10n/` test changed | A `batch` touched proof tooling, which includes the existing tests directly under `tests/l10n/` | Move it to a prep PR, or use a `.sources` file |
 | `import static ...; call T.x(), M.x() or R.string.x instead` | A static import of a catalog member | Call by the class name |
 | `gen_catalog: ...: unescaped apostrophe` | Spelling | Write `\'` |
