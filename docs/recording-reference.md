@@ -346,8 +346,10 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   full) is tried once per ride: its toast asks the rider to free space and
   Retry save, and the rider's Stop is that retry. The 30-second wait belongs to the scooter that
   charged, and is saved (ride_charge_wait, this phone only; the boot count
-  and the last charging reading's elapsed time, at most 5 s behind while
-  charging and exact once a reading isn't), so a service restarted inside it
+  and the last charging reading's elapsed time: exact when saved as the wait
+  begins, by the first reading that isn't charging; saved at most every 5 s
+  mid-charge, and then restored as 5 s later, the latest a charging reading
+  could have come before a process death), so a service restarted inside it
   still waits. Record rides automatically starts nothing while
   charging or within 30 seconds of the last charging reading (so an unplug
   and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
@@ -357,13 +359,21 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
 - **Short rides aren't kept** (RideStore.kept). When a ride ends, by any end,
   it is deleted with its phone GPS and motion files only on positive evidence
   that it is under 20 s or 0.01 mi (16.09 m); otherwise it is kept.
-  - Covered: speed or odometer readings (never battery, voltage, current,
-    temperature or charging values) ran from the start to the ride's real end
-    with no gap over 10 s (COVERED_GAP_MS; the recording poll is 2 s, and the
-    link drops after 12 s of silence). The real end is the shown end when Volt
-    knows the scooter stopped: the rider's stop, the no-motion end, the parked
-    or switched-off verdict, or a charge; the verdict's own wait after the last
-    reading is no gap. A went-quiet end (the link lost) is never covered.
+  - Covered (RideStore.covered): the speed integrator itself measured the
+    whole ride, from its start to its end, with no interval it skipped. It
+    integrates only between two samples that both hold a speed no older than
+    3 s (MAX_SENSOR_AGE_MS), so a gap it skips is a gap in coverage; the UT5
+    MAX pushes its speed about once a second, parked too. Odometer readings
+    never count (a flat one proves nothing at a tenth of a km), nor do battery,
+    voltage, current, temperature or charging values; a ride with no speed
+    reading isn't covered. The window starts with a speed reading within 3 s
+    of the start, and ends at the last speed reading (0 included) before the
+    end cause's wait began: for the rider's stop and a charge that is the stop
+    itself, so the reading must still be fresh then; for the no-motion end and
+    the switch-off it is the last one at or before the last movement (the last
+    of all with none), so the verdict's wait and its battery polls are no gap.
+    A went-quiet end and the parked end (a link loss plus its grace) prove the
+    link went, not that the scooter stopped: they are never covered.
   - A covered ride is deleted when its shown duration is under 20 s, whatever
     the phone's track says, or when both its measured distance and the phone's
     track are under 16 m. Measured is the larger of the odometer's (two or

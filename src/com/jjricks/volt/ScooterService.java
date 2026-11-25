@@ -2680,7 +2680,7 @@ public final class ScooterService extends Service {
     /** Saves the charging wait when RideChargeRule.saveDue says so, so a new service (a restart inside the 30 s) still waits. */
     private void keepChargeWait(Boolean live){
         if(settings==null||!RideChargeRule.saveDue(rideCharge.chargingSeenMs(),chargeWaitSaved,live))return;
-        String saved=rideCharge.savedWait(bootCount());
+        String saved=rideCharge.savedWait(bootCount(),Boolean.TRUE.equals(live));
         if(saved==null)return;
         settings.edit().putString(RideChargeRule.WAIT_KEY,saved).apply();chargeWaitSaved=rideCharge.chargingSeenMs();
     }

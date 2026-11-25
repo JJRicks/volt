@@ -109,12 +109,14 @@ public final class RecordingRulesTest {
         // Charging readings every 2 s for most of a minute, saved at most every 5 s, then unplugged.
         for (long now = t; now <= last; now += 2000) {
             before.observe(A, Boolean.TRUE, now);
-            if (RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.TRUE)) { stored = before.savedWait(7); saved = before.chargingSeenMs(); }
+            if (RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.TRUE)) { stored = before.savedWait(7, true); saved = before.chargingSeenMs(); }
         }
         check(saved < last && last - saved <= RideChargeRule.SAVE_EVERY_MS, "while charging, saved at most 5 s behind the last reading: " + (last - saved));
         before.observe(A, Boolean.FALSE, last + 2000);
         check(RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.FALSE), "the reading that isn't charging saves the exact last one");
-        stored = before.savedWait(7); saved = before.chargingSeenMs();
+        String midCharge = stored;
+        long midSaved = saved;
+        stored = before.savedWait(7, false); saved = before.chargingSeenMs();
         check(saved == last && !RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.FALSE), "saved once");
         // The service is recreated 10 s after the last charging reading.
         RideChargeRule after = new RideChargeRule();
@@ -130,6 +132,14 @@ public final class RecordingRulesTest {
         RideChargeRule seen = new RideChargeRule();
         seen.observe(A, Boolean.TRUE, last + 9_000);
         check(!seen.restoreWait(stored, 7, last + 10_000) && seen.chargingSeenMs() == last + 9_000, "a reading already seen wins over the saved one");
+        // A process death mid-charge (round 5, F01): the last save was taken mid-charge, so the restore takes the latest
+        // time a charging reading could have come before the death (one save interval later), never an earlier one.
+        RideChargeRule died = new RideChargeRule();
+        check(died.restoreWait(midCharge, 7, midSaved + 20_000) && died.chargingSeenMs() == midSaved + RideChargeRule.SAVE_EVERY_MS,
+                "a save made mid-charge restores as " + RideChargeRule.SAVE_EVERY_MS + " ms later");
+        check(died.blocksAutoRecord(A, midSaved + RideChargeRule.SAVE_EVERY_MS + 29_999, false), "so the wait never ends early");
+        RideChargeRule soon = new RideChargeRule();
+        check(soon.restoreWait(midCharge, 7, midSaved + 1000) && soon.chargingSeenMs() == midSaved + 1000, "never later than now");
         check(RideChargeRule.WAIT_KEY.equals("ride_charge_wait"), "key");
     }
 
@@ -320,13 +330,14 @@ public final class RecordingRulesTest {
         File dir = Files.createTempDirectory("volt-covered").toFile();
         try {
             RideStore rides = new RideStore(dir);
-            check(RideStore.COVERED_GAP_MS == 10_000 && RideStore.COVERED_GAP_MS > StatusCadence.POLL_FAST_MS
-                    && RideStore.COVERED_GAP_MS < StatusCadence.SILENCE_FAST_MS, "10 s: over the recording poll, under the link's silence limit");
-            check(RideStore.covered(true, 10_000, 0, 0, -1) && !RideStore.covered(true, 10_001, 0, 0, -1), "a 10 s wait to the end is covered, longer isn't");
-            check(!RideStore.covered(true, 50_000, 0, 50_000, 20_000) && RideStore.covered(true, 50_000, 0, 50_000, 45_000),
-                    "a long wait counts as far as it reaches before the end");
-            check(!RideStore.covered(true, 5_000, -1, -1, -1) && !RideStore.covered(false, 5_000, 0, 5_000, -1), "no reading, or a went-quiet end: never covered");
-            check(RideStore.covered(true, 5_000, 0, 600_000, -1), "readings past a trimmed end (the no-motion stop's still minutes) are no gap");
+            RideStore.EndKind stop = RideStore.EndKind.AT_STOP, wait = RideStore.EndKind.AFTER_WAIT, quiet = RideStore.EndKind.QUIET;
+            check(RideStore.covered(stop, 23_000, 0, 20_000, false) && !RideStore.covered(stop, 23_001, 0, 20_000, false),
+                    "a rider's stop: the last speed reading still fresh (3 s) at the stop");
+            check(RideStore.covered(wait, 600_000, 0, 20_000, false), "a verdict's wait after the window is no gap");
+            check(!RideStore.covered(quiet, 20_000, 0, 20_000, false), "a quiet end is never covered");
+            check(!RideStore.covered(stop, 20_000, 0, 20_000, true), "an interval the integrator skipped breaks coverage");
+            check(!RideStore.covered(stop, 20_000, -1, -1, false) && !RideStore.covered(stop, 20_000, 3_001, 20_000, false)
+                    && RideStore.covered(stop, 20_000, 3_000, 20_000, false), "no speed reading, or the first after 3 s: not covered");
             long t = 10_000;
             // Readings to 60 s, stopped at 75 s: the last 15 s unseen.
             rides.start(PROFILE, "", WALL0 + t, t);
@@ -336,14 +347,20 @@ public final class RecordingRulesTest {
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 60_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            stop(rides, t + 69_000, "", null);
-            check(rides.lastStopDiscarded(), "0 m to 60 s, stopped at 69 s: covered, not kept");
+            stop(rides, t + 61_000, "", null);
+            check(rides.lastStopDiscarded(), "0 m to 60 s, stopped at 61 s: covered, not kept");
             // The first reading 12 s after the start.
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t + 12_000; u <= t + 40_000; u += 1000) sample(rides, u, 0.0, 100.0);
             stop(rides, t + 40_000, "", null);
             check(!rides.lastStopDiscarded(), "no reading for the first 12 s, then 0 m: not covered, kept");
+            // Odometer readings alone, flat: they prove nothing.
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, null, 100.0);
+            stop(rides, t + 31_000, "", null);
+            check(!rides.lastStopDiscarded(), "30 s of a flat odometer and no speed: not covered, kept");
             // Speed only, to the stop: 6 m covered.
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
@@ -359,54 +376,142 @@ public final class RecordingRulesTest {
         } finally { remove(dir); }
     }
 
-    /** The rounds 3 and 4 grid: discard only on positive evidence, otherwise keep; each stop with its real wait. */
+    /** Speed at 1 s samples, pushed every pushMs, each push lead ms before a sample's whole second; the odometer flat. */
+    private static void pushed(RideStore rides, long from, long to, double kmh, long pushMs, long lead) throws IOException {
+        for (long u = from; u <= to; u += 1000) {
+            long push = from - lead + ((u - from + lead) / pushMs) * pushMs;
+            Map<String, RideStore.Sample> v = new LinkedHashMap<>();
+            v.put("speed_kmh", new RideStore.Sample(kmh, Math.min(u, push)));
+            v.put("odometer_km", new RideStore.Sample(100.0, u));
+            v.put("voltage_v", new RideStore.Sample(50, u)); v.put("current_a", new RideStore.Sample(0.1, u)); v.put("battery_percent", new RideStore.Sample(60, u));
+            rides.sample(WALL0 + u, u, v);
+        }
+    }
+    /** Moving at kmh to the end time, ended by cause with its real wait; returns whether the ride was kept. */
+    private static boolean endedAt(RideStore rides, long t, long seconds, double kmh, String cause) throws IOException {
+        rides.start(PROFILE, "", WALL0 + t, t);
+        long end = t + seconds * 1000;
+        for (long u = t; u <= end; u += 1000) sample(rides, u, kmh, 100.0 + (u - t) / 3.6e9 * kmh * 1000);
+        long stopAt = end;
+        if (cause.equals(RideStore.STOP_AUTO_NO_MOTION)) {            // ten still minutes, speed 0, the link up
+            for (long u = end + 1000; u <= end + 600_000; u += 1000) sample(rides, u, 0.0, null);
+            stopAt = end + 600_000;
+        } else if (RideStore.isSwitchedOffStop(cause)) {               // switched off: battery polls, no speed; 10 s verdict, 10 s grace
+            for (long u = end + 1000; u <= end + 20_000; u += 1000) sample(rides, u, null, null);
+            stopAt = end + 20_000;
+        }
+        stop(rides, stopAt, cause, null);
+        return !rides.lastStopDiscarded();
+    }
+
+    /**
+     * The keep rule's grid (#643 rounds 3 to 5): discard only on positive evidence, otherwise keep. Every stop goes through
+     * RideStore.stop with its end cause's real wait, never at the instant of the last sample.
+     */
     private static void keepGrid() throws IOException {
         File dir = Files.createTempDirectory("volt-keep-grid").toFile();
         try {
             RideStore rides = new RideStore(new File(dir, "rides"));
-            // A 4 s jostle, then switched off: battery polls still answered, no speed; the 10 s verdict and 10 s grace.
+            String off = RideStore.switchedOffStopReason(RideStore.STOP_AUTO_QUIET), quiet = RideStore.quietStopReason(8, false);
             long t = 10_000;
+            // Round 5's triggers. F02: the parked end is a link loss, so a short scooter time with a long GPS track is kept.
             rides.start(PROFILE, "", WALL0 + t, t);
-            for (long u = t; u < t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
-            for (long u = t + 4_000; u <= t + 24_000; u += 1000) sample(rides, u, null, null);
-            RideStore.Summary off = stop(rides, t + 24_000, RideStore.switchedOffStopReason(RideStore.STOP_AUTO_QUIET), null);
-            check(off.stopSwitchedOff && rides.lastStopDiscarded(), "a 4 s jostle, then switched off (20 s of verdict and grace): covered to its last movement, not kept");
-            // A jostle, a few still seconds, the link gone, and the parked end 10 s later.
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 12.0, 100.0);
+            stop(rides, t + 14_000, RideStore.STOP_AUTO_PARKED, 0.3);
+            check(!rides.lastStopDiscarded(), "the parked end after 4 s of scooter readings, 300 m of GPS: kept");
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 12.0, 100.0);
+            stop(rides, t + 14_000, RideStore.STOP_AUTO_PARKED, null);
+            check(rides.lastStopDiscarded(), "the same with no GPS, 14 s in all: not kept");
+            // F03: speed frames every 8 s at 4.5 km/h for 30 s, no GPS, the odometer flat: the integrator skips, not covered.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            pushed(rides, t, t + 30_000, 4.5, 8_000, 0);
+            RideStore.Summary sparse = stop(rides, t + 30_000, "", null);
+            check(!rides.lastStopDiscarded() && sparse.speedIntegratedDistanceKm < RideStore.MIN_KEEP_KM,
+                    "speed every 8 s at 4.5 km/h for 30 s (37 m, " + Math.round(sparse.speedIntegratedDistanceKm * 1000) + " m integrated): not covered, kept");
+            // F04: Record tapped while parked, no movement (speed 0), then switched off after 25 s; and the no-motion end.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            for (long u = t + 26_000; u <= t + 45_000; u += 1000) sample(rides, u, null, null);
+            stop(rides, t + 45_000, off, null);
+            check(rides.lastStopDiscarded(), "Record tapped while parked, switched off after 25 s: not kept");
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 600_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 600_000, RideStore.STOP_AUTO_NO_MOTION, null);
+            check(rides.lastStopDiscarded(), "Record tapped while parked, the no-motion end: not kept");
+            // Each known end at 19 s and 21 s, covered (15 km/h: 79 m and 87 m).
+            for (String cause : new String[]{"", RideStore.STOP_CHARGING, RideStore.STOP_AUTO_NO_MOTION, off}) {
+                t += 2_000_000;
+                check(!endedAt(rides, t, 19, 15.0, cause), "end '" + cause + "' at 19 s: not kept");
+                t += 2_000_000;
+                check(endedAt(rides, t, 21, 15.0, cause), "end '" + cause + "' at 21 s: kept");
+            }
+            // A covered ride of 15 m and of 17 m (30 s, a hand stop), no GPS.
+            t += 2_000_000;
+            check(!endedAt(rides, t, 30, 1.8, ""), "a covered 30 s ride of 15 m: not kept");
+            t += 2_000_000;
+            check(endedAt(rides, t, 30, 2.04, ""), "a covered 30 s ride of 17 m: kept");
+            // A quiet end at 19 s and 21 s with no track, and at 15 s with a track at the 0.01 mi line (16.09 m).
+            for (long seconds : new long[]{19, 21}) {
+                t += 1_000_000;
+                rides.start(PROFILE, "", WALL0 + t, t);
+                for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 15.0, 100.0);
+                stop(rides, t + seconds * 1000, quiet, null);
+                check(rides.lastStopDiscarded() == (seconds < 20), "a quiet end at " + seconds + " s, no track: " + (seconds < 20 ? "not kept" : "kept"));
+            }
+            for (double phone : new double[]{0.0161, 0.0160}) {
+                t += 1_000_000;
+                rides.start(PROFILE, "", WALL0 + t, t);
+                for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 15.0, 100.0);
+                stop(rides, t + 15_000, quiet, phone);
+                check(rides.lastStopDiscarded() == (phone < RideStore.MIN_KEEP_KM), "a quiet end at 15 s with " + phone * 1000 + " m of GPS: " + (phone < RideStore.MIN_KEEP_KM ? "not kept" : "kept"));
+            }
+            // A gap of exactly the freshness limit: pushes every 4 s, the oldest sample 3000 ms after its push, is covered; 3001 isn't.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            pushed(rides, t, t + 25_000, 1.44, 4_000, 0);
+            stop(rides, t + 25_000, "", null);
+            check(rides.lastStopDiscarded(), "speed pushed every 4 s (3000 ms old at most), 25 s, 10 m: covered, not kept");
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            pushed(rides, t, t + 25_000, 1.44, 4_000, 1);
+            stop(rides, t + 25_000, "", null);
+            check(!rides.lastStopDiscarded(), "the same with samples 3001 ms after a push: skipped, not covered, kept");
+
+            // The earlier grid.
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u < t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
-            for (long u = t + 4_000; u <= t + 9_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            RideStore.Summary parked = stop(rides, t + 19_000, RideStore.STOP_AUTO_PARKED, null);
-            check(parked.automaticStop && rides.lastStopDiscarded(), "a jostle, then the parked end after its 10 s wait: not kept");
-            // A jostle, then ten still minutes with the link up: the no-motion end.
+            for (long u = t + 4_000; u <= t + 24_000; u += 1000) sample(rides, u, null, null);
+            RideStore.Summary offed = stop(rides, t + 24_000, off, null);
+            check(offed.stopSwitchedOff && rides.lastStopDiscarded(), "a 4 s jostle, then switched off (20 s of verdict and grace): not kept");
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u < t + 5_000; u += 1000) sample(rides, u, 3.0, 100.0);
             for (long u = t + 5_000; u <= t + 605_000; u += 1000) sample(rides, u, 0.0, 100.0);
             RideStore.Summary jostle = stop(rides, t + 605_000, RideStore.STOP_AUTO_NO_MOTION, null);
             check(jostle.stopEndsAtMotion && rides.lastStopDiscarded(), "a jostle ended by no motion: not kept");
-            // A 6 s hand stop, a tap a second after the last sample.
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 8.0, 100.0);
             stop(rides, t + 6_000, "", null);
             check(rides.lastStopDiscarded(), "a 6 s hand stop: not kept");
-            // A covered 15 s ride with 50 m of GPS: under 20 s, whatever the phone says.
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 14_000; u += 1000) sample(rides, u, 12.0, 100.0);
             stop(rides, t + 15_000, "", 0.05);
             check(rides.lastStopDiscarded(), "a covered 15 s ride with 50 m of GPS: not kept");
-            // Bluetooth lost 5 s in, the phone recording 5 minutes (1.2 km), the quiet end; and with no GPS.
             for (Double phone : new Double[]{1.2, null}) {
                 t += 1_000_000;
                 rides.start(PROFILE, "", WALL0 + t, t);
                 for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 15.0, 100.0);
-                RideStore.Summary quiet = stop(rides, t + 300_000, RideStore.quietStopReason(8, false), phone);
-                check(!rides.lastStopDiscarded() && quiet.shownElapsedMs <= 5_000,
-                        "Bluetooth lost 5 s in, quiet end at 5 min, " + (phone == null ? "no GPS" : "1.2 km of GPS") + ": kept (shown " + quiet.shownElapsedMs + " ms)");
+                stop(rides, t + 300_000, quiet, phone);
+                check(!rides.lastStopDiscarded(), "Bluetooth lost 5 s in, quiet end at 5 min, " + (phone == null ? "no GPS" : "1.2 km of GPS") + ": kept");
             }
-            // Speed and odometer pushes missing for 30 s while battery readings go on, then slow travel: not covered.
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 3_000; u += 1000) sample(rides, u, 1.0, 100.0);
@@ -414,13 +519,8 @@ public final class RecordingRulesTest {
             for (long u = t + 34_000; u <= t + 44_000; u += 1000) sample(rides, u, 1.0, 100.0);
             stop(rides, t + 45_000, "", null);
             check(!rides.lastStopDiscarded(), "30 s of battery readings with no speed or odometer, then travel: not covered, kept");
-            // A covered 25 s ride of 10 m, no GPS.
             t += 1_000_000;
-            rides.start(PROFILE, "", WALL0 + t, t);
-            for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 1.44, 100.0);
-            RideStore.Summary ten = stop(rides, t + 26_000, "", null);
-            check(rides.lastStopDiscarded() && Math.abs(ten.speedIntegratedDistanceKm - 0.010) < 0.001, "a covered 25 s ride of 10 m, no GPS: not kept");
-            // The same with 20 m on the phone's track: kept.
+            check(!endedAt(rides, t, 25, 1.44, ""), "a covered 25 s ride of 10 m, no GPS: not kept");
             t += 1_000_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 1.44, 100.0);

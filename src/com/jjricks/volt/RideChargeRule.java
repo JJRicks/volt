@@ -34,15 +34,17 @@ final class RideChargeRule {
     /** How long after the last charging reading Record rides automatically still waits (an unplug and replug). */
     static final long SETTLE_MS = 30_000;
     /**
-     * app_settings: the wait's start, kept across a service restart (#643 round 4, F05) as "boot;elapsed;profile": the
-     * boot count (Settings.Global.BOOT_COUNT), the last charging reading's elapsedRealtime and the scooter. Restored only in
-     * the same boot. Belongs to this phone; BackupRegistry leaves it out.
+     * app_settings: the wait's start, kept across a service restart (#643 round 4, F05) as "boot;elapsed;state;profile": the
+     * boot count (Settings.Global.BOOT_COUNT), the last charging reading's elapsedRealtime, E when that was the exact last
+     * one (saved by the reading that wasn't charging: the wait had begun) or C when it was saved mid-charge, and the
+     * scooter. Restored only in the same boot. Belongs to this phone; BackupRegistry leaves it out.
      */
     static final String WAIT_KEY = "ride_charge_wait";
     /**
-     * While charging, the wait is saved at most this often (every charging reading moves it, one every 2 s), so after a
-     * process death mid-charge the restored wait starts at most this much early; the reading that isn't charging saves
-     * the exact last one (saveDue).
+     * While charging, the wait is saved at most this often (every charging reading moves it, one every 2 s); the reading
+     * that isn't charging saves the exact last one as the wait begins (saveDue). A save made mid-charge is restored as
+     * this much later (restoreWait): with no later save, the process died within this time of it, so a charging reading
+     * could have come up to then, and the restored wait never starts early (#643 round 5, F01).
      */
     static final long SAVE_EVERY_MS = 5_000;
 
@@ -124,8 +126,10 @@ final class RideChargeRule {
     /** The last charging reading's time (monotonic ms), -1 for none: the wait's start. */
     long chargingSeenMs() { return chargingSeenMs; }
 
-    /** The wait as WAIT_KEY saves it, or null with none. */
-    String savedWait(int bootCount) { return chargingSeenMs < 0 ? null : bootCount + ";" + chargingSeenMs + ";" + chargingProfile; }
+    /** The wait as WAIT_KEY saves it, or null with none. charging: saved from a charging reading (mid-charge). */
+    String savedWait(int bootCount, boolean charging) {
+        return chargingSeenMs < 0 ? null : bootCount + ";" + chargingSeenMs + ";" + (charging ? "C" : "E") + ";" + chargingProfile;
+    }
 
     /**
      * Whether to save the wait now: a newer start than the one saved (savedMs, -1 for none), at most every SAVE_EVERY_MS
@@ -142,12 +146,12 @@ final class RideChargeRule {
      */
     boolean restoreWait(String saved, int bootCount, long nowMs) {
         if (saved == null || bootCount < 0 || chargingSeenMs >= 0) return false;
-        String[] f = saved.split(";", 3);
-        if (f.length != 3) return false;
+        String[] f = saved.split(";", 4);
+        if (f.length != 4 || !("C".equals(f[2]) || "E".equals(f[2]))) return false;
         try {
             long seen = Long.parseLong(f[1]);
             if (Integer.parseInt(f[0]) != bootCount || seen < 0 || seen > nowMs) return false;
-            chargingProfile = f[2]; chargingSeenMs = seen;
+            chargingProfile = f[3]; chargingSeenMs = "C".equals(f[2]) ? Math.min(nowMs, seen + SAVE_EVERY_MS) : seen;
             return true;
         } catch (NumberFormatException malformed) { return false; }
     }
