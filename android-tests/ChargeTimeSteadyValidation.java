@@ -120,6 +120,7 @@ public final class ChargeTimeSteadyValidation extends ValidationInstrumentation 
         record(label + " " + page + ": settled on '" + settled.get() + "'");
         capture(new File(dir(), label + "-" + page + "-before.png"), tileRect.get());
         AtomicReference<Bitmap> snapshot = new AtomicReference<>();
+        AtomicReference<View> home = new AtomicReference<>();
         AtomicReference<String> after = new AtomicReference<>();
         AtomicReference<Boolean> remeasure = new AtomicReference<>();
         main(() -> {
@@ -128,6 +129,7 @@ public final class ChargeTimeSteadyValidation extends ValidationInstrumentation 
             TextView value = value();
             after.set(value.getText().toString());
             remeasure.set(value.isLayoutRequested());
+            home.set(root());
             snapshot.set((Bitmap) invokeStatic("com.jjricks.volt.Motion", "capture", new Class<?>[]{View.class}, root()));
             // The dock's Settings and Search buttons (MainActivity: open(SETTINGS), open(SEARCH) and its field).
             invoke(activity, "open", new Class<?>[]{String.class}, page);
@@ -138,16 +140,13 @@ public final class ChargeTimeSteadyValidation extends ValidationInstrumentation 
         while (SystemClock.uptimeMillis() < end && frames.size() < 8) { Bitmap b = getUiAutomation().takeScreenshot(); if (b != null) frames.add(b); }
         int[] g = tileRect.get();
         for (int i = 0; i < frames.size(); i++) {
-            File frame = new File(dir(), label + "-" + page + "-frame" + i + ".png");
-            save(frames.get(i), frame, g);
-            TextCensus.skip(frame, "a frame of the page change, cropped to the time tile; the settled screens carry the census");
+            // Censused as Home's views: the frames show Home's snapshot fading over the new page.
+            save(frames.get(i), new File(dir(), label + "-" + page + "-frame" + i + ".png"), g, home.get());
         }
         if (snapshot.get() != null) {
             int[] at = new int[2];
             main(() -> root().getLocationOnScreen(at));
-            File shot = new File(dir(), label + "-" + page + "-snapshot.png");
-            save(snapshot.get(), shot, new int[] {g[0] - at[0], g[1] - at[1], g[2] - at[0], g[3] - at[1]});
-            TextCensus.skip(shot, "the page change's snapshot of Home, cropped to the time tile");
+            save(snapshot.get(), new File(dir(), label + "-" + page + "-snapshot.png"), new int[] {g[0] - at[0], g[1] - at[1], g[2] - at[0], g[3] - at[1]}, home.get());
         }
         record(label + " " + page + ": after the refresh the tile draws '" + after.get() + "', new measure asked " + remeasure.get()
                 + ", snapshot " + (snapshot.get() != null) + ", " + frames.size() + " frames");
@@ -232,10 +231,10 @@ public final class ChargeTimeSteadyValidation extends ValidationInstrumentation 
     private void capture(File file, int[] g) throws Exception {
         sync();
         Bitmap full = getUiAutomation().takeScreenshot(); require(full != null, "Screenshot unavailable");
-        save(full, file, g);
-        TextCensus.write(this, file);
+        save(full, file, g, null);
     }
-    private void save(Bitmap full, File file, int[] g) throws Exception {
+    /** Saves full (cropped to g when given) with its census: Home's views for a render of them, else the app's windows now. */
+    private void save(Bitmap full, File file, int[] g, View render) throws Exception {
         Bitmap out = full;
         if (g != null) {
             int pad = Math.round(8 * getTargetContext().getResources().getDisplayMetrics().density);
@@ -246,6 +245,7 @@ public final class ChargeTimeSteadyValidation extends ValidationInstrumentation 
         if (out != full) out.recycle();
         full.recycle();
         screenshots.add(file.getAbsolutePath());
+        if (render != null) TextCensus.writeView(this, file, render); else TextCensus.write(this, file);
     }
 
     // ---- Plumbing ---------------------------------------------------------------------------------------------
