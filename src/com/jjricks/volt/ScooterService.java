@@ -154,6 +154,8 @@ public final class ScooterService extends Service {
     /** A ride's notice the owner swiped away stays away for that ride (LiveNotices.Dismissal); the last built notice was a ride's, and is held back. */
     private final LiveNotices.Dismissal rideDismissal=new LiveNotices.Dismissal();private boolean noticeBuiltRide,noticeHeld;
     private PendingIntent rideNoticeDelete;
+    /** The live charging card's Live Update, swiped away: it stays away for the rest of that charge, like a ride's (owner, Nov 24). */
+    private final LiveNotices.Dismissal chargeDismissal=new LiveNotices.Dismissal();private PendingIntent chargeNoticeDelete;
     /** The labels each channel was last created with in this process: Android keeps a channel, so it's created again only when its language changes. */
     private static String scooterChannelLabel,alertChannelLabel;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
@@ -167,6 +169,7 @@ public final class ScooterService extends Service {
     static final String CHARGE_LIVE_CHIP="charge_live_chip";
     /** The ride notice's delete intent: the owner swiped it away (LiveNotices.Dismissal). */
     static final String RIDE_NOTICE_DISMISSED="ride_notice_dismissed";
+    static final String CHARGE_NOTICE_DISMISSED="charge_notice_dismissed";
     /**
      * The card's Stops, one per scooter whose charge it was pressed for, kept on this device so a recreated service
      * doesn't arm them again (not backed up): a JSON object of profile id to {"best": level, "wall": when pressed}.
@@ -308,6 +311,8 @@ public final class ScooterService extends Service {
         if(STOP_CHARGE_LIVE.equals(action))stopAction=true;
         // The owner swiped the ride's notice away: nothing to start or post, and the notice stays away for this ride.
         if(RIDE_NOTICE_DISMISSED.equals(action)&&foregroundStarted){rideNoticeDismissed(true);return isRecording()?START_STICKY:START_NOT_STICKY;}
+        // The same for the live charging card: it stays away for the rest of this charge.
+        if(CHARGE_NOTICE_DISMISSED.equals(action)&&foregroundStarted){chargeNoticeDismissed(true);return isRecording()?START_STICKY:START_NOT_STICKY;}
         startForegroundNotice(true);applyVisibility(uiVisible,!stopAction);
         if("STOP_RECORDING".equals(action))stopRide();
         else if("STOP_CHARGE_RECORDING".equals(action))stopChargeRecording();
@@ -3605,7 +3610,7 @@ public final class ScooterService extends Service {
         else startForeground(71, notice);
         chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
         // startForeground shows the notice again (opening Volt does this), so a swiped ride's hold ends here (#644 F06).
-        rideDismissal.reshown();noticeHeld = false;
+        rideDismissal.reshown();chargeDismissal.reshown();noticeHeld = false;
         noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
@@ -3713,15 +3718,19 @@ public final class ScooterService extends Service {
         // A recording ride's notice (its clock, error or sensor warning, with Stop recording): the swipe that dismisses it is heard.
         boolean rideNotice = isRecording() && !isChargeRecording() && !phoneSaving();
         noticeBuiltRide = rideNotice;
-        if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
+        // The live card takes the ride's place when both could show: its swipe is the card's.
+        if (live != null) builder.setDeleteIntent(chargeNoticeDismissed(false));
+        else if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
         // Android 16 and later: the ride's notice asks to be a Live Update, its chip the ride clock (LiveNotices.promoteRide).
         // A recording error or a phone sensor warning is not one: it is the plain notice, and it always posts.
         boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0 && !sensorWarning;
         boolean ridePromoted = live == null && LiveNotices.promoteRide(Build.VERSION.SDK_INT, liveUpdateRequestAvailable(), liveUpdateAllowed(), rideClock)
                 && promoteRide(builder);
         // Only the ride clock's Live Update can be held back after a swipe; any other notice posts and ends the hold (#644 F08).
-        noticeHeld = rideDismissal.holds(ridePromoted);
         if (live != null) chargeLiveCard(builder, live, liveWords, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
+        // The same for the live card (owner, Nov 24): only its Live Update is held. A stopped charger's ordinary card, a battery
+        // alert, the alarm, the plain notice after an unplug: each posts and ends the hold, so the next charge's card shows.
+        noticeHeld = LiveNotices.held(chargeDismissal, live != null && liveUpdateAsked, rideDismissal, ridePromoted);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
@@ -3765,6 +3774,12 @@ public final class ScooterService extends Service {
      * dismissed false: the ride notice's delete intent, made once. True: that intent came (the owner swiped the notice
      * away), so the ride's notice isn't posted again until the ride ends (LiveNotices.Dismissal); returns null then.
      */
+    /** As rideNoticeDismissed, for the live charging card: held until that card ends (LiveNotices.Dismissal). */
+    private PendingIntent chargeNoticeDismissed(boolean dismissed){
+        if(dismissed){if(chargeLiveShown())chargeDismissal.dismissed();return null;}
+        if(chargeNoticeDelete==null)chargeNoticeDelete=PendingIntent.getService(this,3,new Intent(this,ScooterService.class).setAction(CHARGE_NOTICE_DISMISSED),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        return chargeNoticeDelete;
+    }
     private PendingIntent rideNoticeDismissed(boolean dismissed){
         if(dismissed){if(isRecording())rideDismissal.dismissed();return null;}
         if(rideNoticeDelete==null)rideNoticeDelete=PendingIntent.getService(this,2,new Intent(this,ScooterService.class).setAction(RIDE_NOTICE_DISMISSED),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
@@ -3799,7 +3814,7 @@ public final class ScooterService extends Service {
             Object key=id==71?noticeKey(notice):null;
             long now=SystemClock.elapsedRealtime();
             sent=key==null||noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing);
-            // A ride's notice the owner swiped away isn't put back while that ride records (LiveNotices.Dismissal).
+            // A ride's notice (or the live card) the owner swiped away isn't put back while that ride records (or that charge lasts; LiveNotices.Dismissal).
             if(id==71&&noticeHeld)sent=false;
             // A skipped notice is the one showing, so the live card's baseline is what it carries either way.
             if(sent)getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());

@@ -63,15 +63,25 @@ public final class LiveNotices {
      * if Android restarts Volt's service during the ride, the notice comes back (#644 F04, documented). Not thread-safe;
      * the service calls it on its handler.
      */
+    /**
+     * Whether this build of the connection notice is held back: the live card's Live Update after its swipe, or the ride
+     * clock's after the ride's. Both dismissals see every build, so any notice that isn't the held one ends that hold.
+     */
+    public static boolean held(Dismissal card, boolean cardLiveUpdate, Dismissal ride, boolean rideLiveUpdate) {
+        boolean cardHeld = card.holds(cardLiveUpdate), rideHeld = ride.holds(rideLiveUpdate);
+        return cardHeld || rideHeld;
+    }
+
     public static final class Dismissal {
         private boolean dismissed;
 
-        /** The owner dismissed the ride's notice (its delete intent). */
+        /** The owner dismissed the ride's notice, or the live charging card (its delete intent). */
         public void dismissed() { dismissed = true; }
 
         /**
          * For each built connection notice: true when this post is held back. holdable: the notice is the ride clock's
-         * Live Update (LiveNotices.promoteRide, asked); any other notice is never held and ends the hold.
+         * Live Update (LiveNotices.promoteRide, asked), or for the card's dismissal the live card's Live Update (asked);
+         * any other notice is never held and ends the hold.
          */
         public boolean holds(boolean holdable) {
             if (!holdable) dismissed = false;

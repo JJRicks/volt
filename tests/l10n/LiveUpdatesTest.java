@@ -119,6 +119,22 @@ public final class LiveUpdatesTest {
         check(d.holds(true), "swiped again: held");
         d.reshown();
         check(!d.active() && !d.holds(true) && !d.holds(true), "reshown by the foreground start: every later update posts");
+        // The live charging card (owner, Nov 24): swiped, it stays gone for the rest of that charge, as the service combines
+        // the two (LiveNotices.held).
+        LiveNotices.Dismissal card = new LiveNotices.Dismissal(), ride = new LiveNotices.Dismissal();
+        check(!LiveNotices.held(card, true, ride, false), "the card's Live Update posts until it is swiped");
+        card.dismissed();
+        check(LiveNotices.held(card, true, ride, false) && LiveNotices.held(card, true, ride, false), "swiped: the card stays gone while its values change");
+        check(!ride.active(), "the card's swipe isn't the ride's");
+        check(!LiveNotices.held(card, false, ride, false) && !card.active(), "unplugged (Scooter connected), a stopped charger's ordinary card or an alert: it posts and ends the hold");
+        check(!LiveNotices.held(card, true, ride, false), "so the next charge's card shows");
+        card.dismissed();
+        check(LiveNotices.held(card, true, ride, false), "swiped again: held");
+        card.reshown();
+        check(!LiveNotices.held(card, true, ride, false), "opening Volt shows it again (startForeground): later updates post");
+        ride.dismissed();
+        check(!LiveNotices.held(card, true, ride, false) && !ride.active(), "a card that shows ends a ride's hold, as any other notice does");
+        check(LiveNotices.held(card, false, ride, true) == false, "and the ride that follows posts");
     }
 
     private static void backup() throws Exception {
