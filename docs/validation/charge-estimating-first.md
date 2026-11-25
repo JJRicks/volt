@@ -9,7 +9,7 @@ estimator and its numbers are unchanged, and so are charge recordings.
 
 Right after plugging in, the first time a UT5 MAX charge showed was often far off:
 
-- **The fast charger's soft start.** It starts at about 1.3 A for up to a minute or two before its bulk current.
+- **The fast charger's soft start.** It starts at about 1.3 A, for up to about a minute (55 s at most in the recorded charges), before its bulk current; full current came within about 90 s of plug-in.
   - The only time those readings give is the plain current rate (battery left ÷ current): 80 to 300 minutes for a
     charge that takes 35 to 60.
   - A 2 A ramp reading on one public replay charge (session 6) read 82 minutes long.

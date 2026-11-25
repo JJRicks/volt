@@ -30,29 +30,66 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Run core suites
-        run: |
-          bash tests/run.sh
-          python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
-          python3 docs/validation/data/stock-finish-v9/fit_stock_finish.py --check
-          python3 tests/owner-capture-guard-test.py
-          python3 tests/capture-owner-test.py
-          python3 tests/hardware-sweep-test.py
-          python3 tests/rides-timing-gate-test.py
-          python3 tests/release-sweep-summary-test.py
-          python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
-      - name: Localization proof gates (l10n/README.md)
+      # The three parts below read the checkout and write only their own build and temporary folders, so they run
+      # side by side (Nov 24 2026: the job took about 10 minutes one after another). Each part's output is printed
+      # whole, and each part's failure fails its step and so the job.
+      - name: Localization proof gates (l10n/README.md), started beside the core suites
         env:
           L10N_BASE: origin/${{ github.base_ref || 'main' }}
           L10N_PR_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          python3 -m unittest discover -s tools/l10n
-          python3 tools/l10n/gen_catalog.py --check
-          # Every beta or stable language, from committed files; no keys or network. See l10n/README.md.
-          python3 tools/l10n/ship_check.py
-          bash tests/l10n/golden.sh
-          # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
-          python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"
+          {
+            # A separate bash -e: set -e inside ( ... ) is ignored on the left of ||, so a failed command there
+            # would not stop the part or fail it.
+            bash -eo pipefail -c '
+              python3 -m unittest discover -s tools/l10n
+              python3 tools/l10n/gen_catalog.py --check
+              # Every beta or stable language, from committed files; no keys or network. See l10n/README.md.
+              python3 tools/l10n/ship_check.py
+              bash tests/l10n/golden.sh
+              # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
+              python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"
+            ' > "$RUNNER_TEMP/l10n-gates.log" 2>&1 || status=$?
+            echo "${status:-0}" > "$RUNNER_TEMP/l10n-gates.status"
+          } > /dev/null 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/l10n-gates.pid"
+      - name: Run core suites
+        run: |
+          {
+            # A separate bash -e: set -e inside ( ... ) is ignored on the left of ||, so a failed command there
+            # would not stop the part or fail it.
+            bash -eo pipefail -c '
+              python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
+              python3 docs/validation/data/stock-finish-v9/fit_stock_finish.py --check
+              python3 tests/owner-capture-guard-test.py
+              python3 tests/capture-owner-test.py
+              python3 tests/hardware-sweep-test.py
+              python3 tests/rides-timing-gate-test.py
+              python3 tests/release-sweep-summary-test.py
+              python3 -m unittest discover -s ops/ci -p "test_*.py" -q
+            ' > "$RUNNER_TEMP/core-python.log" 2>&1 || status=$?
+            echo "${status:-0}" > "$RUNNER_TEMP/core-python.status"
+          } > /dev/null 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/core-python.pid"
+          run_status=0
+          bash tests/run.sh || run_status=$?
+          bash .github/await-part.sh "$RUNNER_TEMP/core-python"
+          echo "---- Python suites (ran beside tests/run.sh)"
+          cat "$RUNNER_TEMP/core-python.log"
+          python_status="$(cat "$RUNNER_TEMP/core-python.status")"
+          if [[ "$run_status" != 0 ]]; then echo "::error::tests/run.sh failed (exit $run_status)"; fi
+          if [[ "$python_status" != 0 ]]; then echo "::error::the Python suites failed (exit $python_status)"; fi
+          [[ "$run_status" == 0 && "$python_status" == 0 ]]
+      - name: Localization proof gates (l10n/README.md)
+        # Started beside the core suites (above); this waits for them, prints their output and fails with them. It runs
+        # even when the core suites failed, so a run shows both results.
+        if: ${{ !cancelled() }}
+        run: |
+          bash .github/await-part.sh "$RUNNER_TEMP/l10n-gates"
+          cat "$RUNNER_TEMP/l10n-gates.log"
+          status="$(cat "$RUNNER_TEMP/l10n-gates.status")"
+          if [[ "$status" != 0 ]]; then echo "::error::the localization proof gates failed (exit $status)"; fi
+          [[ "$status" == 0 ]]
   android-build:
     # Android SDK builds stay off the private ARM workers (ops/ci/README.md): Google ships no Linux ARM64
     # build-tools, and the worker controller only serves core-tests and web-setup. GitHub's runner image

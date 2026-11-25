@@ -25,6 +25,21 @@ public final class ChargeLiveState {
             return DETAILS;
         }
     }
+    /**
+     * What the Live Update's status-bar chip shows (owner, Nov 24 2026): the battery level, Volt's default as shipped in
+     * 2.0, or the finish time the card shows ("4:45 PM"), the level standing in while there is none. Its id is what the
+     * preference stores.
+     */
+    public enum Chip {
+        LEVEL("level"), FINISH("finish");
+        public final String id;
+        Chip(String id) { this.id = id; }
+        /** Unknown or missing text is LEVEL, the default. */
+        public static Chip of(String id) {
+            for (Chip c : values()) if (c.id.equals(id)) return c;
+            return LEVEL;
+        }
+    }
 
     /** The facts one card is built from. */
     public static final class Input {
@@ -67,13 +82,20 @@ public final class ChargeLiveState {
     public final Integer dialPercent;
     /** The promoted card's title, not the lock screen's: the target alone when the dial shows the level ("Charging to 80%"), or the plain title. */
     public final String dialTitle;
+    /**
+     * The finish time the card shows, as the phone's clock ("10:42 PM"): the estimate's while charging, Charge done by's
+     * while a schedule waits. Null when the card shows none (estimating, Scheduled charging alone, reconnecting).
+     */
+    public final String finish;
 
     private ChargeLiveState(Kind kind, String title, String text, String subText, String publicTitle, String publicText,
-            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent, Integer watts, Integer dialPercent, String dialTitle) {
+            String publicSubText, int progress, int max, java.util.List<Object> dedupeKey, Detail detail, Integer percent, Integer watts, Integer dialPercent, String dialTitle,
+            String finish) {
         this.kind = kind;this.title = title;this.text = text;this.subText = subText;this.publicTitle = publicTitle;
         this.publicText = publicText;this.publicSubText = publicSubText;this.progress = progress;this.max = max;
         this.dedupeKey = dedupeKey;this.detail = detail;
         this.percent = percent;this.watts = watts;this.dialPercent = dialPercent;this.dialTitle = dialTitle;
+        this.finish = finish;
     }
 
     /** clock formats a wall time as the phone's clock (DisplayTime.clock in the service). */
@@ -87,7 +109,7 @@ public final class ChargeLiveState {
         boolean eta = kind == Kind.CHARGING && minutes > 0;
         Integer watts = in.watts == null || !Double.isFinite(in.watts) || in.watts < 1 ? null : (int) Math.round(in.watts);
         String title;
-        String text, plain, done = null;
+        String text, plain, done = null, finish = null;
         switch (kind) {
             case RECONNECTING:
                 title = pct == null ? (capped ? T.chargingAlertWatchTitle(Fmt.integer(max)) : T.chargingAlertWatchFull()) : T.chargeLiveTitleLastSeen(Fmt.integer(pct));
@@ -96,6 +118,7 @@ public final class ChargeLiveState {
             case WAITING:
                 String start = clock.apply(in.startWallMs);
                 title = pct == null ? T.chargeLiveTitleWaitingTime(start) : T.chargeLiveTitleWaiting(start, Fmt.integer(pct));
+                finish = in.doneByWallMs > 0 ? clock.apply(in.doneByWallMs) : null;
                 text = plain = in.doneByWallMs > 0 ? T.chargeLiveTextDoneBy(clock.apply(in.doneByWallMs)) : T.chargeLiveTextScheduled();
                 break;
             default:
@@ -105,6 +128,7 @@ public final class ChargeLiveState {
                 if (eta) {
                     // Owner, 2026-11-06: only the finish time and the power ("Done 10:42 PM · 412 W"), no time left or countdown.
                     done = clock.apply(in.nowWall + minutes * 60_000L);
+                    finish = done;
                     plain = T.chargeLiveTextEta(done);
                     text = power == null ? plain : T.chargeLiveTextEtaWatts(done, power);
                 } else {
@@ -126,7 +150,8 @@ public final class ChargeLiveState {
         String dialTitle = dialPercent == null ? title : kind == Kind.WAITING ? T.chargeLiveTitleWaitingTime(clock.apply(in.startWallMs))
                 : capped ? T.chargingAlertWatchTitle(Fmt.integer(max)) : T.chargingAlertWatchFull();
         java.util.List<Object> key = java.util.Arrays.asList(kind, pct, done, max, in.startWallMs, in.doneByWallMs, detail, name, shownWatts != null, dialPercent != null);
-        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct, shownWatts, dialPercent, dialTitle);
+        return new ChargeLiveState(kind, title, text, name, publicTitle, publicText, publicSub, progress, max, key, detail, pct, shownWatts, dialPercent, dialTitle,
+                finish);
     }
 
     /**

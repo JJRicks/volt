@@ -49,6 +49,13 @@ English-looking: a literal with two letters in a row (or any non-ASCII letter) t
 lower-case key, path or id such as "app_settings" or "com.jjricks.volt". Java files only.
 
   frozen_literals.py --base origin/main [--head HEAD|WORKTREE] [--ledger FILE ...] [--per-file] [--report]
+  frozen_literals.py --base origin/main [--relax PATH ...] [--relax-all]
+
+--report lists every problem and never fails. --relax PATH (a kind that lets some tests change, such as
+feature-text) lists the problems in PATH and fails on every other one; --relax-all lists the problems in any
+path. Either way, some problems fail in every path (ALWAYS_STRICT): a new test file declaring a src/, java.lang
+or existing test type name, which would replace that type for the frozen tests compiled with it (a quiet
+AssertionError), and added code that calls exit, halt or another way to end or quiet the JVM (STRICT_ESCAPES).
 """
 
 import argparse
@@ -113,6 +120,10 @@ ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "set
            "newInstance", "MethodHandles", "MethodHandle", "MethodType", "VarHandle", "LambdaMetafactory", "Proxy",
            "ClassLoader", "loadClass", "defineClass", "ServiceLoader", "Unsafe", "ProcessBuilder", "ProcessHandle",
            "exec", "ScriptEngineManager", "ScriptEngine", "JShell", "ToolProvider", "Thread", "Instrumentation", "Signal"}
+# Calls that can end the JVM with any status, or catch what a failing test throws: added code that calls one fails
+# even where test edits are only listed (--relax), since it could make a failing suite exit 0.
+STRICT_ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "setUncaughtExceptionHandler",
+                  "setSecurityManager", "addShutdownHook"}
 TYPE_WORDS = {"class", "interface", "enum", "record"}
 # Every top-level type in java.base's java.lang (JDK 25): a type of that name in the tests' package
 # replaces the implicitly imported one in every test compiled with it (AssertionError, String, System).
@@ -415,8 +426,37 @@ def _changed_regions(before, after):
             difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes() if tag != "equal"]
 
 
+def escape_calls(path, before, after):
+    """Problems for code added to an existing test file that names a STRICT_ESCAPES call; [] when none."""
+    if before is None or after is None:
+        return []
+    base, head = l10nlib.lex_java(before), l10nlib.lex_java(after)
+    a, b = [_key(t) for t in base], [_key(t) for t in head]
+    found = []
+    for tag, i1, i2, j1, j2 in _token_opcodes(before, after, base, head, a, b):
+        if tag in ("replace", "insert"):
+            for t in head[j1:j2]:
+                if t.kind == "ident" and t.value in STRICT_ESCAPES:
+                    found.append("%s:%d: added code calls %s, which can end a test run with any status; a test may "
+                                 "not add it in any kind" % (path, t.line, t.value))
+                    break
+    return found
+
+
 def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
     """(problems, summary)."""
+    problems, _, summary = run_detailed(base, head, explicit_ledgers, per_file, cwd)
+    return problems, summary
+
+
+def problem_path(problem):
+    """The path a problem names first ("tests/A.java:12: ..." -> "tests/A.java")."""
+    return problem.split(":", 1)[0]
+
+
+def run_detailed(base, head, explicit_ledgers=None, per_file=False, cwd=None):
+    """(problems, the problems that fail in every kind, summary)."""
+    always = []
     merge = l10nlib.merge_base(base, head, cwd)
     files = [p for p in l10nlib.changed_files(merge, head, list(TEST_DIRS), cwd) if p.endswith(".java")]
     before = l10nlib.read_files(merge, files, cwd)
@@ -508,6 +548,7 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
             for name in sorted(declared & src_classes):
                 problems.append("%s: declares %s, the name of a src/ class; a test build compiling both would use "
                                 "the test's copy" % (path, name))
+                always.append(problems[-1])
             try:
                 top = top_level_types(added_text[path]) | {os.path.basename(path)[:-len(".java")]}
             except l10nlib.LexError:
@@ -515,6 +556,7 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
             for name in sorted(top & JAVA_LANG):
                 problems.append("%s: declares %s, the name of a java.lang type; every test compiled with it would "
                                 "use this copy instead of java.lang.%s" % (path, name, name))
+                always.append(problems[-1])
             if test_types is None:
                 test_types = {}
                 existing = [p for p in l10nlib.list_files(merge, list(TEST_DIRS), cwd) if p.endswith(".java")]
@@ -528,16 +570,20 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
             for name in sorted((top & set(test_types)) - JAVA_LANG):
                 problems.append("%s: declares %s, a type %s already declares; a test build compiling both would use "
                                 "one copy for every test" % (path, name, test_types[name]))
+                always.append(problems[-1])
     for path in files:
         try:
             problems.extend(code_problems(path, before[path], after[path], removable[path],
                                           new_types - set(declared_types(before[path]))))
+            escapes = escape_calls(path, before[path], after[path])
         except l10nlib.LexError:
-            pass  # reported above
+            continue  # reported above
+        problems.extend(escapes)
+        always.extend(escapes)
     added = sum((new - old).values())
     summary = "%d changed test file(s); %d English statement(s) kept, %d added, %d removed (%d recorded in the ledger)" % (
         len(files), sum((old & new).values()), added, sum(removed.values()), recorded)
-    return problems, summary
+    return problems, always, summary
 
 
 def main(argv=None):
@@ -547,14 +593,23 @@ def main(argv=None):
     parser.add_argument("--ledger", nargs="*", help="ledger files (default: rows added since the merge base)")
     parser.add_argument("--per-file", action="store_true", help="also forbid moving a statement between files")
     parser.add_argument("--report", action="store_true",
-                        help="list changes but never fail (an owner-approved English change, plan part D)")
+                        help="list changes but never fail (prove-english.sh on an ordinary change)")
+    parser.add_argument("--relax", action="append", default=[], metavar="PATH",
+                        help="list the problems in this path instead of failing (ALWAYS_STRICT ones still fail)")
+    parser.add_argument("--relax-all", action="store_true",
+                        help="list the problems in every path instead of failing (ALWAYS_STRICT ones still fail)")
     args = parser.parse_args(argv)
-    problems, summary = run(args.base, l10nlib.resolve(args.head), args.ledger, args.per_file)
+    problems, always, summary = run_detailed(args.base, l10nlib.resolve(args.head), args.ledger, args.per_file)
+    relaxed = set(args.relax)
+    failing = []
     for problem in problems:
-        print("frozen_literals: %s%s" % ("report: " if args.report else "", problem), file=sys.stderr)
-    status = "FAILED" if problems and not args.report else "PASS" if not problems else "REPORT"
+        listed = args.report or (problem not in always and (args.relax_all or problem_path(problem) in relaxed))
+        if not listed:
+            failing.append(problem)
+        print("frozen_literals: %s%s" % ("report: " if listed else "", problem), file=sys.stderr)
+    status = "FAILED" if failing else "PASS" if not problems else "REPORT"
     print("frozen_literals: %s: %s" % (status, summary))
-    return 1 if problems and not args.report else 0
+    return 1 if failing else 0
 
 
 if __name__ == "__main__":

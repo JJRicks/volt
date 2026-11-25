@@ -52,7 +52,7 @@ public final class ChargeLiveUpdate {
     /** The tracker's position, 0 to MAX; indeterminate when no level was ever read. */
     public final int progress;
     public final boolean indeterminate;
-    /** The chip's text ("72%"), or null without a level. */
+    /** The chip's text ("72%", or the finish time "4:45 PM" with Chip.FINISH), or null with neither. */
     public final String shortCritical;
 
     private ChargeLiveUpdate(List<Segment> segments, List<Point> points, int progress, boolean indeterminate, String shortCritical) {
@@ -60,8 +60,22 @@ public final class ChargeLiveUpdate {
         this.shortCritical = shortCritical;
     }
 
-    /** The bar for one card. alertAt is a battery alert's level (models without a charge limit only), or null. */
+    /** The bar for one card, the level as the chip. alertAt is a battery alert's level (models without a charge limit only), or null. */
     public static ChargeLiveUpdate of(ChargeLiveState live, Integer alertAt) {
+        return of(live, alertAt, ChargeLiveState.Chip.LEVEL);
+    }
+
+    /**
+     * The same, with the owner's chip choice: Chip.FINISH shows the finish time the card shows (ChargeLiveState.finish),
+     * and the level while it has none (estimating, Scheduled charging alone, reconnecting).
+     */
+    public static ChargeLiveUpdate of(ChargeLiveState live, Integer alertAt, ChargeLiveState.Chip chip) {
+        ChargeLiveUpdate level = levelBar(live, alertAt);
+        String finish = chip == ChargeLiveState.Chip.FINISH ? live.finish : null;
+        return finish == null ? level : new ChargeLiveUpdate(level.segments, level.points, level.progress, level.indeterminate, finish);
+    }
+
+    private static ChargeLiveUpdate levelBar(ChargeLiveState live, Integer alertAt) {
         Role fill = live.kind == ChargeLiveState.Kind.RECONNECTING ? Role.STALE : live.kind == ChargeLiveState.Kind.WAITING ? Role.HELD : Role.CHARGING;
         List<Segment> segments = new ArrayList<>();
         List<Point> points = new ArrayList<>();

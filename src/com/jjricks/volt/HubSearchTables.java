@@ -148,7 +148,7 @@ final class HubSearchTables {
             case ROW_CHARGER: return "charger for estimates automatic auto stock high speed charging time remaining";
             case ROW_CHARGE_ALERT: return "charge alert battery alerts level reached full charged notify notification alarm sound";
             case ROW_LOW_ALERT: return "low battery alert battery alerts notify notification alarm sound";
-            case ROW_CHARGE_LIVE: return "live charging lock screen notification card";
+            case ROW_CHARGE_LIVE: return "live charging lock screen notification card live update status bar chip finish time";
             case ROW_SECURITY_LINK: return "pin password proximity unlock pairing bluetooth bond security";
             case ROW_SCOOTER_NAME: return "scooter name rename profile";
             case ROW_MAINTENANCE: return "maintenance reminders service check tyre tire brakes";

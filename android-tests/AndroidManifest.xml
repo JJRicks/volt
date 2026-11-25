@@ -41,6 +41,7 @@
   <instrumentation android:name="com.jjricks.volt.ChargeScheduleWireValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated schedule command callback validation" />
   <instrumentation android:name="com.jjricks.volt.ChargeEvidenceValidation" android:targetPackage="com.jjricks.volt" android:label="Report diagnostics charge evidence: the seven questions and a worst-case Preview" />
   <instrumentation android:name="com.jjricks.volt.ChargeLiveUnplugValidation" android:targetPackage="com.jjricks.volt" android:label="Live charging card out of sight, in-process fake scooter" />
+  <instrumentation android:name="com.jjricks.volt.LiveUpdatesValidation" android:targetPackage="com.jjricks.volt" android:label="Ride and charging Live Updates out of sight, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.ChargeAutoRecordValidation" android:targetPackage="com.jjricks.volt" android:label="Record charges automatically, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.IdleEfficiencyValidation" android:targetPackage="com.jjricks.volt" android:label="Idle notice posts, window flag and simulator stop, in-process fake scooter" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeScheduleValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charge scheduling UI validation" />
@@ -56,6 +57,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.ScooterOffValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated scooter switched off but answering: Home and refusals (simulator hook)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargingPillValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging pill states validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ChargeEstimatingFirstValidation" android:targetPackage="com.jjricks.volt" android:label="Estimating time left first: the plug-in hold on every charging time (simulator)" />
+  <instrumentation android:name="com.jjricks.volt.tests.ChargeTimeSteadyValidation" android:targetPackage="com.jjricks.volt" android:label="The held time's words hold still through a page change (simulator)" />
   <instrumentation android:name="com.jjricks.volt.tests.ModelPhotosValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated model photo set and Home photo validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.ChargeBarValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated charging view draggable charge bar validation (simulator)" />
   <instrumentation android:name="com.jjricks.volt.EstimateTipValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated Home estimate tip validation (simulator)" />

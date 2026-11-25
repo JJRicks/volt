@@ -85,7 +85,7 @@ The widget dashboard stays, and an alternative goes beside it, not in its place.
 - `DashboardConfig` owns the format and its validation, `DefaultDashboard` the defaults, `DashboardLayout` the pure grid logic, and `DashboardScreen` the rendering and editor. `DashboardScreen` is large; add a new class for a new dashboard instead of growing it.
 - Reuse the existing reading helpers (`ReadingSpan`, `ReadingUnits`, `ScooterReadingLabels`, `DashboardWords`, `LiveStatsTitle`) so units, missing values and spoken labels stay consistent.
 - The switch between dashboards is a saved choice (see [Stored state](#stored-state)), and its absence means the widget dashboard.
-- Many tests read `DashboardScreen.java` and `QuickAccessGrid.java` as text (`DashboardScreenTextTest`, `DashboardFollowupsTest`, `ConnectingLabelTest`, `RecorderTapTest`, `NarrowLabelLadderTest`, `DashboardModelTileTest` and others under `tests/l10n/`). Restructuring those files can fail them even when the app works; such a test edit goes in an ordinary pull request (see below).
+- Many tests read `DashboardScreen.java` and `QuickAccessGrid.java` as text (`DashboardScreenTextTest`, `DashboardFollowupsTest`, `ConnectingLabelTest`, `RecorderTapTest`, `NarrowLabelLadderTest`, `DashboardModelTileTest` and others under `tests/l10n/`). Restructuring those files can fail them even when the app works. Most of them are proof tests (`tools/l10n/test-kinds.tsv`), so such a test edit goes in an ordinary pull request (see below).
 
 ### Tests that navigate the UI, and the order CI forces
 
@@ -94,14 +94,15 @@ CI runs the JVM and Python suites and builds the app and the validation APK, but
 The localization gates decide what one pull request can hold. Its kind comes from what it changes ([Pull request kinds](localization-for-contributors.md#pull-request-kinds)):
 
 - **Moving code within one file** keeps that file's catalog references the same, so the pull request stays `ordinary` unless it changes other things.
-- **Moving code that calls `T.` or `M.` into another file** makes it a `batch`, because the new file gained catalog references. That passes if the moved code has no text or data literals other than lower-case ids.
+- **Moving code that calls `T.` or `M.` into another file** makes it a `batch`, because the new file gained catalog references and the lines it left called the catalog. That passes if the moved code has no text or data literals other than lower-case ids.
 - **Moving code that has both catalog calls and other literals** (such as `"Locked"` or a section id like `"Lights"`) into another file fails `G1`: the literal counts as removed from one file and new in the other. Move only the catalog calls in that pull request, and ask on the issue about the literals; the maintainers record them.
-- **A `batch` may not edit the tests directly under `tests/l10n/` at all**, not even by adding a statement: they count as proof tooling, like `tests/run.sh`, `android-tests/build.sh` and `tools/l10n/`. That includes the dashboard text tests named above. Other existing tests (`tests/*.java`, `android-tests/*.java`) may only gain whole statements. A `batch` also may not change goldens, and may only shrink `l10n/baseline/`. So a test that reads a file you restructured, or a validation that needs more than added statements, can't be fixed in the same `batch`.
+- **A `feature-text` pull request** (it only adds English, on new lines) may change feature tests, validations, `tests/run.sh` (except its lines that name `l10n`; every proof suite must still run) and `android-tests/build.sh`, as an ordinary one may. It may not edit the proof tests directly under `tests/l10n/`, which `tools/l10n/test-kinds.tsv` lists and which include the dashboard text tests named above, nor change goldens or grow `l10n/baseline/`. So a feature with new text and its test or validation changes is one pull request, unless one of those changes is to a proof test.
+- **A `batch`** (moving or rewording existing text) may not edit the tests directly under `tests/l10n/` at all, not even by adding a statement: they count as proof tooling, like `tests/run.sh`, `android-tests/build.sh` and `tools/l10n/`. Other existing tests (`tests/*.java`, `android-tests/*.java`) may only gain whole statements. A `batch` also may not change goldens, and may only shrink `l10n/baseline/`. So a test that reads a file you restructured, or a validation that needs more than added statements, can't be fixed in the same `batch`.
 
 That gives a large move this order:
 
-1. **Ordinary prep pull requests**: pure logic, new classes with no catalog references, new preference keys and their backup classes, and any edit to existing tests.
-2. **The move itself**, with the catalog calls. Keep it small: one screen or section at a time.
+1. **Ordinary prep pull requests**: pure logic, new classes with no catalog references, new preference keys and their backup classes, and any edit to a proof test (and, before a `batch`, to any existing test).
+2. **The move itself**, with the catalog calls. Keep it small: one screen or section at a time. When it's `feature-text`, its feature-test and validation edits can go with it.
 3. **Validation updates** by the maintainers, as a follow-up or stacked pull request, after their emulator pass.
 
 Run `python3 tools/l10n/ci_gates.py --base origin/main --print-mode` to see a pull request's kind before you push it. Never delete or disable a validation, test or golden to get past a failure.
@@ -109,7 +110,7 @@ Run `python3 tools/l10n/ci_gates.py --base origin/main --print-mode` to see a pu
 ### Text when it moves or changes
 
 - A moved row keeps its key, its file and its translations. Only update `volt:screen`.
-- New text is English only, in a `batch`. The maintainers translate it before the next release.
+- New text is English only, in a `feature-text` pull request (or a `batch`). The maintainers translate it before the next release.
 - Rewording an existing key changes every language: most keys have ledger rows, and rewording one fails `G1` unless it goes through the owner-approved English-change route in its own pull request. See [Changing existing English](localization-for-contributors.md#changing-existing-english).
 - A label that now has less room needs a shorter rung ([Narrow labels](localization-for-contributors.md#narrow-labels)), not smaller text. Say so in the pull request, because translations are usually longer.
 - A key that is no longer used doesn't fail CI. Say in the pull request which keys you stopped using; the maintainers retire them.
@@ -133,7 +134,7 @@ This is optional reference. A new validation class must be registered in three p
 2. `android-tests/build.sh`: the class's source file in its compile list. Without it, the run fails with `ClassNotFoundException`.
 3. `android-tests/run-release-sweep.py`: a step in `STEPS`, or an entry in `EXCLUDED` or `SUBSUMED` with the reason. Otherwise the sweep refuses to start (`Not covered by the release sweep`), and `tests/release-sweep-summary-test.py` fails in CI.
 
-Editing `android-tests/build.sh` is refused in a pull request with catalog text (a `batch`), so a new validation goes in an ordinary pull request, before or after the one that adds the text. Edits to existing validations in a `batch` may only add whole statements.
+A pull request that only adds new English (`feature-text`) may add a validation and edit `android-tests/build.sh` and existing validations, as an ordinary one may. A `batch`, which moves or rewords existing text, refuses an `android-tests/build.sh` edit, so there a new validation goes in an ordinary pull request before or after it, and edits to existing validations may only add whole statements.
 
 ### Individual runners
 

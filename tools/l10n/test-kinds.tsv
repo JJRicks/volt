@@ -1,0 +1,166 @@
+# Which top-level tests/l10n/<Name>.java files are proof tests and which are feature tests that live there
+# (tools/l10n/ci_gates.py, feature-text kind). A feature-text pull request may edit a feature test; a proof
+# test, a file not listed here and a file whose row says proof stay frozen. Add a row in an ordinary pull
+# request: a test that asserts shown English, catalog text or how code calls the catalog is proof; when
+# unsure, proof. CI reads this list at the merge base, so a pull request's own edit applies only after it merges.
+test	kind	reason
+tests/l10n/AutoStartPolicyTest.java	feature	auto-record and auto ride mode gate and hold rules on synthesized inputs; asserts no shown text
+tests/l10n/BackgroundScheduleTest.java	proof	asserts the refusal text a write in the gap gets (Connect the scooter first)
+tests/l10n/BackupEngineTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/BackupRelabelTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/BackupScreenTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/BackupViewsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/BatteryOverviewSpeechTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/BleTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/CatalogCheckTest.java	proof	gate test (catalog form checks)
+tests/l10n/CatalogUsageTest.java	proof	gate test (R2-R6 catalog usage)
+tests/l10n/ChargeAutoRecordPolicyTest.java	feature	Record charges automatically: policy rules and the store's automatic recordings; asserts stored keys and file names, not shown text
+tests/l10n/ChargeCardSimplerTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargeEstimateTipRuleTest.java	feature	when the estimate tip shows, its preference and backup, and text-free wiring; its words are ChargeEstimateTipTextTest's
+tests/l10n/ChargeEstimateTipTextTest.java	proof	the estimate tip's words and narrow rungs
+tests/l10n/ChargeInviteRuleTest.java	feature	when the recordings invite shows, and text-free wiring; its words are ChargeInviteTextTest's
+tests/l10n/ChargeInviteTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargeLiveBackgroundTest.java	proof	asserts the live card's words out of sight (Charging, reconnecting)
+tests/l10n/ChargeLiveDialTest.java	proof	asserts what the live card's title says
+tests/l10n/ChargeLivePausedTitleTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargeLiveTest.java	proof	asserts the live card's wording
+tests/l10n/ChargeLiveUpdateTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargeTimeReadingsTest.java	feature	which charge-time readings exist and which shows; asserts targets and saved choices, not words
+tests/l10n/ChargeTimeStateRungsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargerTipTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ChargingPillStatusTest.java	proof	asserts the charging pill's words and their ladder
+tests/l10n/ChargingTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/CompatKeyNamesTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/CompatibilityDisplayTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ConnectingLabelTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ConnectionNoticeBackgroundTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ControllerConsumersTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ControlsConsumersTest.java	proof	B4's consumer guard: pins which files read the controls' display accessors
+tests/l10n/ControlsTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/DashboardFollowupsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/DashboardModelTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/DashboardModelTileTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/DashboardScreenTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/EnglishFixes202Test.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ExportMenuTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/FindNearbyTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/FitLadderTest.java	feature	the charging time's rung and size from synthetic widths; no text
+tests/l10n/FixedCountPluralsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/FmtLegacyTest.java	proof	gate test (G10)
+tests/l10n/FmtSignedTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/FollowupsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/GlyphCoverageTest.java	proof	gate test (glyph coverage)
+tests/l10n/GoldenReports.java	proof	G9's golden generator (not a test; proof tooling)
+tests/l10n/GpsAccuracyTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/GroupedCountsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HardcodedTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HomeTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HomeWidgetsNavTest.java	feature	layout and animation code in Android-only classes, read from source; asserts no text or catalog calls
+tests/l10n/HubConditionTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubPlanTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubSearchOwnRowsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubSearchRowsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubSearchTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubSearchTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/HubTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/IdleEfficiencyTest.java	feature	NoticeRepeat, KeepScreenOn and WorkReasons on synthesized values; its strings are inputs compared by content
+tests/l10n/JustBackBasemapTest.java	proof	asserts the summary text Just back's basemap row shows
+tests/l10n/JustBackSpeedTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/KeyBackupsTest.java	proof	asserts a refusal's message names the owner key
+tests/l10n/KickStartTryEnglishTest.java	proof	pins kick-start tries' English line for line
+tests/l10n/L10nFiles.java	proof	shared helper the proof tests read files and sources with (not a test; proof tooling)
+tests/l10n/LabStatusRungsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/LanguageEmailEnglishTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/LanguagePickerTest.java	proof	the Language sheet's sections and languages; unsure, so proof
+tests/l10n/LearnedChargerMatchTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/LearnedCurveReasonsTest.java	feature	learned-curve gap reasons as enum values; no shown text
+tests/l10n/LedgerTest.java	proof	gate test (G2)
+tests/l10n/LinkFreshnessTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/LiveChargingHoldCheckTest.java	feature	the hardware sweep's hold rule; its strings are the sweep's own English report, not app text
+tests/l10n/LockStateTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/MadeKeyPromptTest.java	feature	when the made-key backup prompt shows, on synthetic keys, and its control flow in source; no words
+tests/l10n/MainTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/MaintenanceManualTest.java	proof	asserts maintenance task names and interval text (Every 6 months or 500 km)
+tests/l10n/MaintenanceNotifyTest.java	proof	asserts reminder notice text; unsure, so proof
+tests/l10n/MaintenanceOfflineAddTest.java	proof	asserts the add and edit sheets' note text
+tests/l10n/MaintenancePageTest.java	proof	asserts the page's text and order in km, mi and dual units
+tests/l10n/MapDefaultTest.java	feature	the map provider default and the USGS pin rules on stored ids (usgs, osm); no shown text
+tests/l10n/MapPinTest.java	feature	writing the old-default USGS pin, on stored ids; no shown text
+tests/l10n/MapStyleTest.java	feature	the shared map style's three states on stored ids (light, dark); no shown text
+tests/l10n/MeasureNoticeTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/MoreTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/MoreTreeTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/MotionSamplesTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/NarrowLabelLadderTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/NewKeyRouteTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/NewOwnerKeyTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/NightFadeTest.java	feature	night vision's colour matrix and fade levels; numbers only
+tests/l10n/NightScheduleTest.java	feature	sunrise and sunset maths and the night schedule's windows; its place names label the fixtures
+tests/l10n/OdometerCarryTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/OffRowsTapTest.java	feature	that a refused row's tap runs its refusal, read from MainActivity's source; not which words
+tests/l10n/OnboardingTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/OnboardingTileLabelTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/OneQuestionTest.java	feature	the one-time USGS offer's lifetime; no shown text
+tests/l10n/OverviewReadingsTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/OwnerReleaseDropTest.java	feature	Release this scooter's quick-drop timing; no text
+tests/l10n/OwnerReleaseTest.java	feature	the release frame, its gate and which outcomes remove the profile; no shown text
+tests/l10n/OwnerSetupTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ReadingSearchMatcherTest.java	feature	that both reading pickers share one matcher, read from source; not which words
+tests/l10n/ReadingsCatalogTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RecorderTapTest.java	feature	the ride recorder card's tap targets and rows; no shown text
+tests/l10n/RecordingPillTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RecordingRulesTest.java	feature	added by #643: charge-ends-ride and short-ride rules on synthesized timelines, plus wiring in source; asserts end codes, not words
+tests/l10n/ReleaseHoldsTest.java	feature	the release hold's persistence and BleController's use of it, read from source; no words
+tests/l10n/ReleaseNotesTest.java	feature	GitHub release-note Markdown parsing; its English is input data, not app text
+tests/l10n/ReportsStayEnglishTest.java	proof	gate test (G9: reports never read the catalog)
+tests/l10n/RideAutoExportNoticeTest.java	feature	when a failed automatic ride copy posts its notice; not what it says
+tests/l10n/RideAutoExportTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideAutoStopWireTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideDistanceSourceTest.java	proof	asserts the GPS distance line's label
+tests/l10n/RideDistanceTextTest.java	proof	the ride graph's distance line in English
+tests/l10n/RideExportEverythingSheetTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideExportEverythingTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideExportFilesTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideListCachedTest.java	feature	Rides never replays a journal on the UI thread; its ride name is fixture data
+tests/l10n/RideMapPopupTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideMapsTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideNoMotionStopTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RideRecordingControlTest.java	proof	asserts the start and stop path's messages; unsure, so proof
+tests/l10n/RidesFollowupsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidesTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidesTileIconTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingAlertTest.java	proof	asserts what the battery alert banner says
+tests/l10n/RidingBrightnessTest.java	feature	riding brightness curve, choice and rotation, and a scan for brightness writes; no shown text
+tests/l10n/RidingChipEmptyTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingChipPlaceTest.java	feature	where Focus's chips go, from widths; no text
+tests/l10n/RidingChipRowsTest.java	feature	Focus's chip rows from widest widths; its labels are width inputs, not asserted text
+tests/l10n/RidingChipSlotsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingChipSteadyTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingChipWidenTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingClockSecondsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingDisplayStateTest.java	feature	riding display lifecycle (sensors, ticks, brightness) against the activity's; no text
+tests/l10n/RidingEditorTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingFocusTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingFramesTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingNightTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/RidingStoppedControlsTest.java	proof	asserts the keep-it-stopped notice (Bring the scooter to a stop first)
+tests/l10n/RidingUnitLineTest.java	feature	chips on the unit line, from widths; no text
+tests/l10n/RoutePopupPlacementTest.java	feature	the ride map popup's placement geometry; no text
+tests/l10n/RouteTileBudgetTest.java	feature	the ride map's tile cache budget; no text
+tests/l10n/ScooterChangeMeasureTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ScooterOffRideEndTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ScooterOffWordsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ServiceConsumersTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/ServiceTextTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/SimulatorScenesTest.java	proof	asserts Developer options' simulated model and scene labels; unsure, so proof
+tests/l10n/StatsCatalogTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/StatsStateWordsTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/SymbolMovesTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/TextLogicTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/TileShortRungTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/UiToolkitTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/UnitsJoinedTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it
+tests/l10n/UpdateApkTest.java	feature	which APK address the update dialog hands the browser; its notes are reply data
+tests/l10n/UpdateFetchTest.java	feature	the update check's request path against a local server; no shown text
+tests/l10n/UpdateRunsTest.java	feature	update check run ownership; no shown text
+tests/l10n/UpdateScheduleTest.java	proof	references the catalog (T, M, Msg or EnglishText), so it asserts catalog English or how code calls it

@@ -212,6 +212,9 @@ STEPS += [
     inst('charge-evidence', PKG + '.ChargeEvidenceValidation', size='344x882', hidden_api=True),
     inst('charge-live-unplug', PKG + '.ChargeLiveUnplugValidation', hidden_api=True),
     inst('charge-live-unplug-notifications-off', PKG + '.ChargeLiveUnplugValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT'), hidden_api=True),
+    # 2.0.6: the ride recording's notice as a Live Update (chip, no reposts, a swipe away keeps it away) and the live
+    # card's chip choice, through the real service; Android 16 (API 36) emulators only.
+    inst('live-updates', PKG + '.LiveUpdatesValidation', hidden_api=True),
     # Record charges automatically: turns the emulator's Bluetooth on for its run (a recording ends at once with it off) and off again.
     inst('charge-auto-record', PKG + '.ChargeAutoRecordValidation', hidden_api=True),
     # A charge recording (by hand or automatic) shows the live card as a charge without one does, Live Update or not (owner, Nov 20 2026).
@@ -262,6 +265,12 @@ STEPS += [
     # and Charge done by, Widgets and Clean, dark and light, on a phone and the unfolded Fold.
     inst('charge-estimating-first-412', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', '412', size='412x915'),
     inst('charge-estimating-first-fold', T + 'ChargeEstimatingFirstValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # The held time's words hold still through a page change (owner, Nov 24 2026: "Estimating time" flashed as Settings
+    # opened): a refresh keeps the rung drawn, the page change's snapshot and frames; Widgets and Clean, dark and light. At
+    # 457 dp wide Clean's tile draws "Estimating" where the long words' first line, "Estimating time", fits: the owner's flash.
+    inst('charge-time-steady-412', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('charge-time-steady-457', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', '457', size='457x915'),
+    inst('charge-time-steady-fold', T + 'ChargeTimeSteadyValidation', '-e', 'size_label', 'fold', size='790x820'),
     # Clean Home's Just back basemap switch (owner, Nov 19 2026): off by default, the shared explanation, on, saved across a
     # relaunch, off, both themes, a provider that can't be reached, and a ride ending in the switch's corner; at a phone's
     # sizes and the Fold's folded and unfolded screens. With a network the "on" pictures show tiles.
