@@ -34,8 +34,9 @@ public final class RecordingRulesTest {
         keptRidesStay();
         discardLeavesNoSummary();
         unmeasuredDistance();
-        measuredToTheEnd();
-        phoneTrackDistance();
+        coveredRides();
+        keepGrid();
+        savedPhoneTrack();
         exemptionInTheJournal();
         discardNotedFirst();
         serviceWiring();
@@ -229,9 +230,14 @@ public final class RecordingRulesTest {
         } finally { remove(dir); }
     }
 
+    /** A stop under the rule with the phone's distance (km, null for none). */
+    private static RideStore.Summary stop(RideStore rides, long t, String reason, Double phoneKm) throws IOException {
+        return rides.stop(WALL0 + t, t, reason, true, phoneKm == null ? null : () -> phoneKm, null);
+    }
+
     /**
-     * #643 round 1, finding 3: a link lost right after the start leaves one odometer reading and no speed interval. That
-     * distance wasn't measured, so the duration decides, and the phone's track counts when it has one.
+     * #643 round 1, finding 3, and round 3: a link lost right after the start leaves the scooter's evidence incomplete, so
+     * only the whole recording's time can discard it; the phone's track keeps it either way.
      */
     private static void unmeasuredDistance() throws IOException {
         File dir = Files.createTempDirectory("volt-unmeasured").toFile();
@@ -241,119 +247,162 @@ public final class RecordingRulesTest {
             rides.start(PROFILE, "", WALL0 + now, now);
             sample(rides, now, 0.0, 100.0);          // the one reading before the link went
             long end = now + 40_000;                  // 40 s more, disconnected: no samples
-            RideStore.Summary s = rides.stop(WALL0 + end, end, "", true, 0.3);
+            RideStore.Summary s = stop(rides, end, "", 0.3);
             check(!rides.lastStopDiscarded() && rides.get(s.id) != null, "link lost at the start, a 300 m phone track: kept");
             rides.start(PROFILE, "", WALL0 + end, end);
             sample(rides, end, 0.0, 100.0);
-            rides.stop(WALL0 + end + 40_000, end + 40_000, "", true, null);
-            check(!rides.lastStopDiscarded(), "link lost at the start, no phone track, over 20 s: kept (distance unknown)");
+            stop(rides, end + 40_000, "", null);
+            check(!rides.lastStopDiscarded(), "link lost at the start, no phone track, 40 s: kept (not covered, over 20 s)");
             long t = end + 100_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             sample(rides, t, 0.0, 100.0);
-            rides.stop(WALL0 + t + 12_000, t + 12_000, "", true, 0.3);
-            check(rides.lastStopDiscarded(), "12 s: not kept, whatever the phone says");
-            // Measured over most of the ride and short; the phone's track decides between kept and not.
+            stop(rides, t + 12_000, "", null);
+            check(rides.lastStopDiscarded(), "12 s in all, no phone track: not kept");
+            t += 100_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            sample(rides, t, 0.0, 100.0);
+            stop(rides, t + 12_000, "", 0.3);
+            check(!rides.lastStopDiscarded(), "12 s with 300 m on the phone's track: kept (phone first)");
+            // Covered and short; the phone's track decides between kept and not.
             t += 100_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            rides.stop(WALL0 + t + 30_000, t + 30_000, "", true, 0.030);
+            stop(rides, t + 30_000, "", 0.030);
             check(!rides.lastStopDiscarded(), "the scooter measured 0 m but the phone's track has 30 m: kept");
             t += 100_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            rides.stop(WALL0 + t + 30_000, t + 30_000, "", true, 0.010);
+            stop(rides, t + 30_000, "", 0.010);
             check(rides.lastStopDiscarded(), "the scooter measured 0 m and the phone 10 m: not kept");
-            // Half the ride measured: the odometer's two readings span exactly half.
-            t += 100_000;
-            rides.start(PROFILE, "", WALL0 + t, t);
-            sample(rides, t + 20_000, null, 100.0); sample(rides, t + 40_000, null, 100.0);
-            rides.stop(WALL0 + t + 40_000, t + 40_000, "", true, null);
-            check(rides.lastStopDiscarded(), "two odometer readings over the second half of the ride, 0 m: measured, not kept");
-            t += 100_000;
-            rides.start(PROFILE, "", WALL0 + t, t);
-            sample(rides, t, null, 100.0); sample(rides, t + 15_000, null, 100.0);
-            rides.stop(WALL0 + t + 40_000, t + 40_000, "", true, null);
-            check(!rides.lastStopDiscarded(), "two odometer readings over under half of it: not measured, kept");
         } finally { remove(dir); }
     }
 
     /**
-     * #643 round 2, F05: distance is measured only when its readings reach the ride's end (within MEASURED_END_GAP_MS);
-     * a link lost before the end leaves the last stretch unmeasured, and the duration decides.
+     * #643 round 3: covered means scooter readings from the start to the stop with no gap over COVERED_GAP_MS (10 s, above
+     * the 2 s recording poll). A gap anywhere, at the start, in the middle or before the stop, leaves only the whole
+     * recording's time as evidence.
      */
-    private static void measuredToTheEnd() throws IOException {
-        File dir = Files.createTempDirectory("volt-measured-end").toFile();
+    private static void coveredRides() throws IOException {
+        File dir = Files.createTempDirectory("volt-covered").toFile();
         try {
             RideStore rides = new RideStore(dir);
-            check(RideStore.MEASURED_END_GAP_MS == 10_000, "10 s");
+            check(RideStore.COVERED_GAP_MS == 10_000 && RideStore.COVERED_GAP_MS > StatusCadence.POLL_FAST_MS
+                    && RideStore.COVERED_GAP_MS < StatusCadence.SILENCE_FAST_MS, "10 s: over the recording poll, under the link's silence limit");
+            check(RideStore.covered(0, 0, 10_000) && !RideStore.covered(0, 0, 10_001) && !RideStore.covered(10_001, 50_000, 50_000)
+                    && !RideStore.covered(0, -1, 5_000), "a 10 s wait is covered, longer isn't, and no reading never is");
             long t = 10_000;
-            // 30 s of readings at 0 km/h, the link lost, 60 s more before the hand stop: most of it covered, not the end.
+            // Readings to 60 s, stopped at 75 s: the last 15 s unseen.
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 60_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            rides.stop(WALL0 + t + 75_000, t + 75_000, "", true, null);
-            check(!rides.lastStopDiscarded(), "readings over 80% of a 75 s ride, the last 15 s before the stop: distance unknown, kept");
+            stop(rides, t + 75_000, "", null);
+            check(!rides.lastStopDiscarded(), "0 m to 60 s, stopped at 75 s: not covered, kept");
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 60_000; u += 1000) sample(rides, u, 0.0, 100.0);
-            rides.stop(WALL0 + t + 69_000, t + 69_000, "", true, null);
-            check(rides.lastStopDiscarded(), "the last reading 9 s before the stop: measured (0 m), not kept");
-            // The speed alone, reaching the end: measured; stopping 11 s after it: not.
+            stop(rides, t + 69_000, "", null);
+            check(rides.lastStopDiscarded(), "0 m to 60 s, stopped at 69 s: covered, not kept");
+            // The first reading 12 s after the start.
+            t += 200_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t + 12_000; u <= t + 40_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 40_000, "", null);
+            check(!rides.lastStopDiscarded(), "no reading for the first 12 s, then 0 m: not covered, kept");
+            // Speed only, to the stop: 6 m covered.
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
             for (long u = t; u <= t + 40_000; u += 1000) sample(rides, u, 0.5, null);
-            rides.stop(WALL0 + t + 51_000, t + 51_000, "", true, null);
-            check(!rides.lastStopDiscarded(), "speed readings ending 11 s before the stop: distance unknown, kept");
+            stop(rides, t + 41_000, "", null);
+            check(rides.lastStopDiscarded(), "speed readings to the stop, 6 m: covered, not kept");
+            // Readings with no distance at all (no odometer, no speed): no evidence against it.
             t += 200_000;
             rides.start(PROFILE, "", WALL0 + t, t);
-            for (long u = t; u <= t + 40_000; u += 1000) sample(rides, u, 0.5, null);
-            rides.stop(WALL0 + t + 41_000, t + 41_000, "", true, null);
-            check(rides.lastStopDiscarded(), "speed readings to the end, 6 m: not kept");
-            // A went-quiet automatic stop ends at its last reading (the shown end), so the wait after it isn't a gap.
-            t += 200_000;
-            rides.start(PROFILE, "", WALL0 + t, t);
-            for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, 1.0, 100.0);
-            RideStore.Summary quiet = rides.stop(WALL0 + t + 150_000, t + 150_000, RideStore.quietStopReason(8, false), true, null);
-            check(quiet.shownElapsedMs == 30_000 && rides.lastStopDiscarded(), "went quiet after a 30 s roll at 1 km/h (8 m): measured to its shown end, not kept");
+            for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, null, null);
+            stop(rides, t + 30_000, "", null);
+            check(!rides.lastStopDiscarded(), "covered for 30 s with no distance reading: kept");
         } finally { remove(dir); }
     }
 
-    /** The recorder's running GPS distance counts as the saved track's: Track.distanceMeters, by the same steps. */
-    private static void phoneTrackDistance() throws IOException {
-        File dir = Files.createTempDirectory("volt-phone-distance").toFile();
+    /** #643 round 3's grid: discard only on positive evidence, otherwise keep. */
+    private static void keepGrid() throws IOException {
+        File dir = Files.createTempDirectory("volt-keep-grid").toFile();
         try {
-            PhoneRideStore store = new PhoneRideStore(dir);
-            PhoneRideStore.MovingDistance live = new PhoneRideStore.MovingDistance();
-            check(live.meters() == null, "no fixes: no distance");
-            store.start("p1", WALL0, 1000);
-            StringBuilder rows = new StringBuilder();
-            double lat = 40.0, lon = -105.0;
-            // 40 s riding north at 5 m/s, a stationary minute of jitter (speed 0), a jump the rule rejects, a 12 s gap.
-            long mono = 1000;
-            Object[][] fixes = new Object[150][];
-            int n = 0;
-            for (int i = 0; i < 40; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0}; }
-            for (int i = 0; i < 60; i++) { mono += 1000; fixes[n++] = new Object[]{mono, lat + (i % 2) * 3 / 111_320.0, lon, 8.0, 0.0}; }
-            mono += 1000; fixes[n++] = new Object[]{mono, lat + 2000 / 111_320.0, lon, 5.0, 5.0};
-            for (int i = 0; i < 10; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0}; }
-            mono += 12_000; lat += 60 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0};
-            for (int i = 0; i < 5; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0}; }
-            // #643 round 2, F03: after another gap, 10 steps of 5 m whose speed is no surer than 3 m/s: no speed, so none count.
-            mono += 12_000;
-            for (int i = 0; i < 10; i++) { mono += 1000; lat += 5 / 111_320.0; fixes[n++] = new Object[]{mono, lat, lon, 5.0, 5.0, 3.0}; }
-            for (int i = 0; i < n; i++) {
-                Object[] f = fixes[i];
-                long m = (Long) f[0];
-                Double speedAccuracy = f.length > 5 ? (Double) f[5] : null;
-                live.fix(m, (Double) f[1], (Double) f[2], (Double) f[3], (Double) f[4], speedAccuracy);
-                rows.append(PhoneRideStore.row("GPS", WALL0 + m, m, f[1], f[2], f[3], f[4], speedAccuracy, null, null));
+            RideStore rides = new RideStore(new File(dir, "rides"));
+            // Jostled with the link up, ended by the no-motion stop: 5 s of 3 km/h, ten still minutes.
+            long t = 10_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u < t + 5_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            for (long u = t + 5_000; u <= t + 605_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            RideStore.Summary jostle = stop(rides, t + 605_000, RideStore.STOP_AUTO_NO_MOTION, null);
+            check(jostle.stopEndsAtMotion && jostle.shownElapsedMs < RideStore.MIN_KEEP_MS && rides.lastStopDiscarded(),
+                    "a jostle with the link up, ended by no motion: covered, shown " + jostle.shownElapsedMs + " ms, not kept");
+            // A 6 s hand stop.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 6_000; u += 1000) sample(rides, u, 8.0, 100.0);
+            stop(rides, t + 6_000, "", null);
+            check(rides.lastStopDiscarded(), "a 6 s hand stop: not kept");
+            // Bluetooth lost 5 s in, the phone recording 5 minutes (1.2 km), the quiet stop: kept; and with no GPS.
+            for (Double phone : new Double[]{1.2, null}) {
+                t += 1_000_000;
+                rides.start(PROFILE, "", WALL0 + t, t);
+                for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 15.0, 100.0);
+                RideStore.Summary quiet = stop(rides, t + 300_000, RideStore.quietStopReason(8, false), phone);
+                check(!rides.lastStopDiscarded() && quiet.shownElapsedMs <= 5_000,
+                        "Bluetooth lost 5 s in, quiet stop at 5 min, " + (phone == null ? "no GPS" : "1.2 km of GPS") + ": kept (shown " + quiet.shownElapsedMs + " ms)");
             }
-            store.appendBatch("p1", rows.toString(), "");
-            store.stop("p1", WALL0 + mono, mono);
-            Double saved = store.load("p1").distanceMeters;
-            check(saved != null && live.meters() != null && Math.abs(saved - live.meters()) < 0.5,
-                    "the running distance matches the saved track's: " + live.meters() + " vs " + saved);
-            check(live.meters() > 200 && live.meters() < 300, "about 40 + 10 + 5 steps of 5 m (jitter, the jump, the gaps and the unsure speeds add nothing): " + live.meters());
+            // A gap with movement (30 s), then 60 s stationary with the link back, then a hand stop.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 3_000; u += 1000) sample(rides, u, 12.0, 100.0);
+            for (long u = t + 33_000; u <= t + 93_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 93_000, "", null);
+            check(!rides.lastStopDiscarded(), "moving into a 30 s gap, then a still minute: kept");
+            // A 25 s covered ride of 10 m.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 1.44, 100.0);
+            RideStore.Summary ten = stop(rides, t + 25_000, "", null);
+            check(rides.lastStopDiscarded() && Math.abs(ten.speedIntegratedDistanceKm - 0.010) < 0.001, "a covered 25 s ride of 10 m: not kept");
         } finally { remove(dir); }
+    }
+
+    /**
+     * #643 round 3: the phone's evidence is its saved journal, read at the stop (PhoneRideStore.load's own filter: moving
+     * steps, speeds no less sure than 1.5 m/s), so a ride recovered after a restart counts its whole track.
+     */
+    private static void savedPhoneTrack() throws IOException {
+        File dir = Files.createTempDirectory("volt-saved-phone").toFile();
+        try {
+            PhoneRideStore phone = new PhoneRideStore(new File(dir, "phone-rides"));
+            RideStore rides = new RideStore(new File(dir, "rides"));
+            long t = 10_000;
+            String id = rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 15.0, 100.0);
+            // The phone: 60 fixes 5 m apart at 5 m/s, a 300 m track.
+            phone.start(id, WALL0 + t, t);
+            StringBuilder rows = new StringBuilder();
+            double lat = 40.0;
+            for (int i = 1; i <= 60; i++) { lat += 5 / 111_320.0; rows.append(PhoneRideStore.row("GPS", WALL0 + t + i * 1000L, t + i * 1000L, lat, -105.0, 5.0, 5.0, 0.5, null, null)); }
+            phone.appendBatch(id, rows.toString(), "");
+            // The process dies; a new store recovers the ride, and it is stopped 15 s in with no reading since 5 s.
+            RideStore recovered = new RideStore(new File(dir, "rides"));
+            check(id.equals(recovered.activeId()), "the ride was recovered");
+            recovered.stop(WALL0 + t + 15_000, t + 15_000, "", true, () -> km(phone, id), null);
+            check(!recovered.lastStopDiscarded() && recovered.get(id) != null && km(phone, id) > 0.29,
+                    "recovered after a restart, 15 s, with a 300 m saved phone track: kept (" + km(phone, id) + " km)");
+            // The same track with speeds no surer than 3 m/s: no moving steps, so no phone evidence.
+            String unsure = recovered.start(PROFILE, "", WALL0 + t + 100_000, t + 100_000);
+            phone.start(unsure, WALL0 + t + 100_000, t + 100_000);
+            rows.setLength(0);
+            for (int i = 1; i <= 10; i++) { lat += 5 / 111_320.0; rows.append(PhoneRideStore.row("GPS", WALL0 + t + 100_000 + i * 1000L, t + 100_000 + i * 1000L, lat, -105.0, 5.0, 5.0, 3.0, null, null)); }
+            phone.appendBatch(unsure, rows.toString(), "");
+            RideStore third = new RideStore(new File(dir, "rides"));
+            third.stop(WALL0 + t + 112_000, t + 112_000, "", true, () -> km(phone, unsure), null);
+            check(third.lastStopDiscarded(), "12 s, 50 m of fixes whose speed is no surer than 3 m/s: no phone evidence, not kept");
+        } finally { remove(dir); }
+    }
+    private static Double km(PhoneRideStore phone, String id) {
+        try { Double m = phone.load(id).distanceMeters; return m == null ? null : m / 1000.0; } catch (IOException e) { return null; }
     }
 
     /** #643 F09: a ride's standing against a charge is in its journal, so a recovered ride keeps it; older readers skip it. */
@@ -386,7 +435,7 @@ public final class RecordingRulesTest {
             long now = 10_000;
             String id = rides.start(PROFILE, "", WALL0 + now, now);
             for (; now < 18_000; now += 1000) sample(rides, now, 3.0, 100.0);
-            rides.stop(WALL0 + now, now, "", true, null, rid -> { heard.add(rid); journalThen[0] = rides.journal(rid).exists(); });
+            rides.stop(WALL0 + now, now, "", true, null, rid -> { heard.add(rid); journalThen[0] = rides.journal(rid).exists(); return true; });
             check(heard.size() == 1 && heard.get(0).equals(id) && journalThen[0] && rides.lastStopDiscarded() && !rides.journal(id).exists(),
                     "an 8 s ride: noted while its journal was still there, then deleted");
             heard.clear();
@@ -394,6 +443,13 @@ public final class RecordingRulesTest {
             for (long end = now + 60_000; now < end; now += 1000) sample(rides, now, 15.0, 100.0 + now / 1e6);
             rides.stop(WALL0 + now, now, "", true, null, rid -> heard.add(rid));
             check(heard.isEmpty() && !rides.lastStopDiscarded() && rides.get(kept) != null, "a kept ride: nothing noted");
+            // #643 round 3, F08: the note couldn't be saved (commit() false): the short ride is kept, journal and all.
+            long savedBefore = rides.lastStopWallMs();
+            String unnoted = rides.start(PROFILE, "", WALL0 + now, now);
+            for (long end = now + 8_000; now < end; now += 1000) sample(rides, now, 3.0, 100.0);
+            rides.stop(WALL0 + now, now, "", true, null, rid -> false);
+            check(!rides.lastStopDiscarded() && rides.journal(unnoted).exists() && rides.get(unnoted) != null
+                    && rides.lastStopWallMs() == WALL0 + now && rides.lastStopWallMs() != savedBefore, "an 8 s ride whose note failed: kept as a saved ride");
         } finally { remove(dir); }
     }
 
@@ -459,7 +515,7 @@ public final class RecordingRulesTest {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
         int a = src.indexOf("private boolean stopRide(String reason){"); check(a >= 0, "stopRide found");
         String stop = src.substring(a, src.indexOf("\n    /**", a));
-        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm(),id->pendingPhoneDiscard(id,true))") && RideStore.discardsShort(),
+        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),()->phoneSavedKm(stopping),id->pendingPhoneDiscard(id,true))") && RideStore.discardsShort(),
                 "every stop, the rider's and the automatic ones, discards a short ride (the validations' hold is off in the app)");
         check(stop.contains("if(!discarded)RideAutoExportFolder.queue(settings,stopping);"), "a discarded ride is never copied out (ride auto-export)");
         check(stop.contains("phoneDiscard=discarded?stopping:null;stopPhoneRecording();"), "its phone GPS files go once saved");
@@ -477,6 +533,9 @@ public final class RecordingRulesTest {
         check(ends.indexOf("chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;") > 0 && ends.indexOf("chargeEndKeepUntil=now+CHARGE_END_KEEP_MS;") < ends.indexOf("stopRide(RideStore.STOP_CHARGING);"),
                 "the link is held for the charge recording before the stop's work policy runs (#643 finding 4)");
         check(src.contains("private boolean holding(){return chargeMeasure.active()||scheduleTesting()||chargeEndHolds();}"), "and the hold keeps the transport up out of sight");
+        check(src.contains("private boolean pendingPhoneDiscard(String id,boolean add){") && src.contains("return settings.edit().putString(RideStore.DISCARD_PENDING_KEY,String.join(\" \",ids)).commit();"),
+                "the note reports whether commit() saved it, so a failed one keeps the ride (round 3 F08)");
+        check(src.contains("PhoneRideStore.Track track=phoneRides.load(id);"), "the phone's evidence is its saved journal (round 3)");
         check(src.contains("finishPhoneDiscards();") && stop.contains("id->pendingPhoneDiscard(id,true)") && stop.contains("if(!discarded)pendingPhoneDiscard(stopping,false);"),
                 "pending phone-file deletes are noted before the journal goes and outlive a process death (F11, round 2 F06)");
         check(ends.indexOf("rideCharge.stopTried(id);") > 0 && ends.indexOf("rideCharge.stopTried(id);") < ends.indexOf("stopRide(RideStore.STOP_CHARGING);"),

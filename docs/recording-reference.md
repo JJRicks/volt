@@ -319,11 +319,13 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   power-on (its trip distance and time can read 0 minutes after a ride with no
   power cycle), so half an hour stands for a scooter parked and left. After a
   reconnect that followed Volt's own pause, a fresh speed above 10 km/h held
-  for 3 s of samples (RIDE_ON_KMH, RIDE_ON_MS) ends the session too: a
+  for 3 s of samples (RIDE_ON_KMH, RIDE_ON_MS) ends both holds too: a
   switch-off and on during the pause (a coffee stop) is otherwise unseen. A
   scooter walked in goes 3 to 6 km/h, and 3 s above 10 km/h is at least 8 m
-  ridden. A hand stop or back-out made after the reconnect, or no own pause at
-  all (Volt on screen throughout), leaves riding on held. The holds
+  ridden. Each hold has its own release: a hand stop made after the reconnect
+  keeps the recording hold through a ride-off, and a back-out made then keeps
+  riding mode's; neither touches the other's. With no own pause at all (Volt on
+  screen throughout), riding on after a hand stop stays held. The holds
   live for the process, so a service that stopped while Volt was out of sight
   keeps them; a new service's Disconnect count is a new baseline, not a
   Disconnect. A failed automatic start and riding mode's automatic open still
@@ -349,19 +351,25 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   rule is unchanged: a ride started by hand ends an automatic charge recording. They can't loop: that
   ride is exempt, an automatic ride never starts while charging, and the charge's
   end of a ride holds nothing.
-- **Short rides aren't kept.** When a ride ends, by any end, it is deleted with
-  its phone GPS and motion files if its shown duration is under 20 s or its
-  distance under 0.01 mi (16.09 m): the larger of the odometer distance (two or
-  more readings spanning at least half the ride) and the speed-integrated one
-  (intervals covering at least half of it), each only when its last reading is
-  within 10 s of the ride's shown end (MEASURED_END_GAP_MS); the odometer counts
-  tenths of a km, whole km on older models. With neither measured, the duration
-  decides; a phone GPS track of 16 m or more keeps it (steps count while a fix
-  reports 1 m/s or more, with a speed accuracy of 1.5 m/s or better, as the
-  saved track counts them). Phone files still to delete are noted
-  (ride_discard_pending, this phone only) before the journal is deleted and
-  finished at the next service
-  start after a process death; only a ride whose journal is gone loses them. It leaves no journal, no
+- **Short rides aren't kept** (RideStore.kept). When a ride ends, by any end,
+  it is deleted with its phone GPS and motion files only on positive evidence
+  that it is under 20 s or 0.01 mi (16.09 m); otherwise it is kept.
+  - Phone first: a phone GPS track of 16 m or more keeps it, read from its
+    saved journal at the stop with the track's own rule (PhoneRideStore.load:
+    moving steps, speeds no less sure than 1.5 m/s), so a ride recovered after
+    a restart counts its whole track.
+  - Covered: scooter readings ran from the start to the stop with no gap over
+    10 s (COVERED_GAP_MS; the recording poll is 2 s, and the link drops after
+    12 s of silence). Then it is deleted when its shown duration is under
+    20 s or its measured distance is under 16 m: the larger of the odometer's
+    (two or more readings; tenths of a km, whole km on older models) and the
+    speed-integrated one. No distance reading at all is no evidence.
+  - Not covered (any longer gap, at the start, in the middle or before the
+    stop): only a whole recording, start to stop, under 20 s deletes it.
+  - Phone files still to delete are noted (ride_discard_pending, this phone
+    only) before the journal is deleted, and finished at the next service
+    start after a process death; only a ride whose journal is gone loses them.
+    If the note can't be saved, the ride is kept. A deleted ride leaves no journal, no
   saved summary, no auto-save copy and no Ride saved automatically notice, and
   the last saved ride stays the one Home and riding mode show. Rides saved before
   this rule are not touched.

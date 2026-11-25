@@ -81,7 +81,8 @@ final class AutoStartPolicy {
      * jog beside it under 10; 3 s above 10 km/h is at least 8 m ridden, which no roll-in through a door does, and long
      * enough that one stray sample can't. The slow roll in after the pause stays held, and short strays are not kept
      * anyway (RideStore.kept). Without an own pause (Volt on screen the whole time) riding on after a hand stop stays held:
-     * the rider chose to stop.
+     * the rider chose to stop. Each hold has its own release: a hand stop after the reconnect keeps the recording hold
+     * through a ride-off, a back-out keeps riding mode's, and neither touches the other's.
      */
     static final double RIDE_ON_KMH = 10;
     static final long RIDE_ON_MS = 3000;
@@ -101,8 +102,11 @@ final class AutoStartPolicy {
     /** The transport whose Disconnect count is riderDisconnects, and that count at the last look. */
     private Object controller;
     private long riderDisconnects;
-    /** The link came back after Volt's own pause and no hold was set since; the first fast sample's time (-1 for none). */
-    private boolean afterOwnPause;
+    /**
+     * The link came back after Volt's own pause, so riding off releases each hold (observeSpeed); a fresh choice about one
+     * hold since (a hand stop, a back-out) disarms that hold's release only. The first fast sample's time (-1 for none).
+     */
+    private boolean recordRelease, rideModeRelease;
     private long fastSinceMs = -1;
 
     /** True for a current link reporting a speed above zero, received within {@link #SPEED_FRESH_MS}. */
@@ -140,10 +144,10 @@ final class AutoStartPolicy {
         }
         if (lostMs >= SESSION_END_MS || pausedMs >= OWN_PAUSE_END_MS) sessionEnded = true;
         if (connected) {
-            if (pausedMs > 0) afterOwnPause = true;
+            if (pausedMs > 0) recordRelease = rideModeRelease = true;
             lostMs = pausedMs = 0;
             if (!switchedOff) {
-                if (sessionEnded) { recordHeld = rideModeHeld = false; afterOwnPause = false; }
+                if (sessionEnded) { recordHeld = rideModeHeld = false; recordRelease = rideModeRelease = false; }
                 sessionEnded = false;
             }
         } else fastSinceMs = -1;
@@ -157,8 +161,8 @@ final class AutoStartPolicy {
 
     /**
      * Each speed sample, after observeLink: once the link is back after Volt's own pause, a fresh speed above
-     * {@link #RIDE_ON_KMH} through {@link #RIDE_ON_MS} of samples ends the session and its holds (see RIDE_ON_KMH). Any
-     * slower or stale sample starts the count again.
+     * {@link #RIDE_ON_KMH} through {@link #RIDE_ON_MS} of samples ends each hold whose release is still armed (see
+     * RIDE_ON_KMH). Any slower or stale sample starts the count again.
      *
      * @param speedRaw BleController.speedRaw, in 0.1 km/h
      * @param sampleMs the sample's own time (monotonic ms)
@@ -166,22 +170,23 @@ final class AutoStartPolicy {
     void observeSpeed(boolean connected, int speedRaw, long sampleMs, long nowMs) {
         boolean fast = connected && speedRaw / 10.0 > RIDE_ON_KMH && sampleMs > 0 && nowMs >= sampleMs
                 && nowMs - sampleMs <= SPEED_FRESH_MS;
-        if (!afterOwnPause || !linked || !fast) { fastSinceMs = -1; return; }
+        if (!(recordRelease || rideModeRelease) || !linked || !fast) { fastSinceMs = -1; return; }
         if (fastSinceMs < 0 || sampleMs < fastSinceMs) { fastSinceMs = sampleMs; return; }
         if (sampleMs - fastSinceMs < RIDE_ON_MS) return;
-        recordHeld = rideModeHeld = false;
-        afterOwnPause = false;
+        if (recordRelease) recordHeld = false;
+        if (rideModeRelease) rideModeHeld = false;
+        recordRelease = rideModeRelease = false;
         fastSinceMs = -1;
     }
 
     /** The rider ended a recording by hand (not an automatic ride end): a choice made now, so riding on stays held. */
-    void riderStoppedRecording() { recordHeld = true; afterOwnPause = false; fastSinceMs = -1; }
+    void riderStoppedRecording() { recordHeld = true; recordRelease = false; }
 
     /** An automatic start was tried and failed. */
     void recordingStartFailed() { startFailed = true; }
 
     /** The rider backed out of riding mode. */
-    void riderLeftRidingMode() { rideModeHeld = true; afterOwnPause = false; fastSinceMs = -1; }
+    void riderLeftRidingMode() { rideModeHeld = true; rideModeRelease = false; }
 
     /** Riding mode was opened automatically. */
     void rideModeOpened() { autoOpened = true; }

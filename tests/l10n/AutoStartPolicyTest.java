@@ -214,12 +214,20 @@ public final class AutoStartPolicyTest {
         samples(onScreen, t + 101_000, 10, 25);
         check(onScreen.recordHeld(), "a short real drop, then riding on: still held");
 
-        // A hand stop made after the reconnect is a choice made then: riding on after it stays held.
+        // A hand stop made after the reconnect is a choice made then: riding on after it keeps the recording hold, and
+        // only that one (#643 round 3, F04): riding mode's release still stands.
         AutoStartPolicy again = pausedAndBack(t, 5);
         back = t + 15_000 + 5 * MIN;
         again.riderStoppedRecording();
         samples(again, back + 1000, 10, 20);
-        check(again.recordHeld(), "back from the pause, stopped by hand again, ridden on: held");
+        check(again.recordHeld() && !record(again), "back from the pause, stopped by hand again, ridden on: the recording hold stays");
+        check(!again.rideModeHeld() && ride(again, true), "and the back-out from before the pause is released by the ride-off");
+        // A back-out after the reconnect keeps riding mode's hold only: the ride-off still releases the recording hold.
+        AutoStartPolicy backOut = pausedAndBack(t, 5);
+        backOut.riderLeftRidingMode();
+        samples(backOut, back + 1000, 10, 20);
+        check(!backOut.recordHeld() && record(backOut), "back from the pause, backed out of riding mode, ridden off: it records");
+        check(backOut.rideModeHeld() && !ride(backOut, true), "and riding mode stays held: the back-out was made then");
         // The link down again: no count runs across it.
         AutoStartPolicy split = pausedAndBack(t, 5);
         back = t + 15_000 + 5 * MIN;

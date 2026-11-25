@@ -2658,7 +2658,7 @@ public final class ScooterService extends Service {
         // rides.stop clears the active id: keep it for the automatic copy.
         String stopping=rides.activeId();RideStore.Summary stopped;
         // Too short to keep (RideStore.kept: under 0.01 mi or 20 s), whatever ended it: removed at once, no summary row.
-        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),phoneTrackKm(),id->pendingPhoneDiscard(id,true));invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort(),()->phoneSavedKm(stopping),id->pendingPhoneDiscard(id,true));invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
@@ -2667,7 +2667,8 @@ public final class ScooterService extends Service {
         if(!discarded)RideAutoExportFolder.queue(settings,stopping);
         // Counted kept or not: a riding mode open for it closes either way.
         if(stopped!=null&&stopped.endedByItself())autoEnds.stopped(stopping);
-        // Noted before its journal went (RideStore.stop's discarding); a journal that couldn't be deleted keeps the ride, files and all.
+        // Noted before its journal went (RideStore.stop's discarding); a note that couldn't be saved, or a journal that couldn't be
+        // deleted, keeps the ride, files and all.
         if(!discarded)pendingPhoneDiscard(stopping,false);
         phoneDiscard=discarded?stopping:null;stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
     /** The selected scooter's charging state reading, or null: not connected to the selected scooter, or the simulator. */
@@ -2687,8 +2688,16 @@ public final class ScooterService extends Service {
     }
     /** A fresh speed reading above ChargeAutoRecordPolicy.END_SPEED_KMH: ridden off, not jostled at the charger. */
     private boolean chargeRideFast(long mono){return ChargeAutoRecordPolicy.movedAway(ble.connected()&&!simulating(),ble.speedRaw(),ble.motionSampleMs(),mono);}
-    /** The running phone track's GPS distance in km (RideStore.kept counts 16 m of it as a ride), or null for none. */
-    private Double phoneTrackKm(){Double m=phoneRecorder==null?null:phoneRecorder.gpsDistanceMeters();return m==null?null:m/1000.0;}
+    /**
+     * The ride's phone GPS distance in km as its saved journal reads (PhoneRideStore.load: moving steps, speeds no less sure
+     * than 1.5 m/s), or null for none: RideStore.kept's phone evidence, asked only for a ride the scooter's evidence would
+     * discard. Read from disk, so a ride recovered after a restart counts its whole track; the recorder writes it every second.
+     */
+    private Double phoneSavedKm(String id){
+        if(id==null||phoneRides==null)return null;
+        try{PhoneRideStore.Track track=phoneRides.load(id);return track==null||track.distanceMeters==null?null:track.distanceMeters/1000.0;}
+        catch(IOException|RuntimeException unreadable){return null;}
+    }
     /** When the recording ride started (monotonic ms; beginRide). */
     private long rideStartMono;
     /** The new ride's standing against a charge (RideChargeRule), from the reading at its start; kept in its journal. */
@@ -2909,13 +2918,16 @@ public final class ScooterService extends Service {
         if(id==null||phoneRides==null)return;
         try{phoneRides.delete(id);pendingPhoneDiscard(id,false);}catch(IOException|RuntimeException ignored){/* left pending for the next start */}
     }
-    /** Notes (or forgets) a discarded ride whose phone files are still to go, committed so a process death can't lose it. */
-    private void pendingPhoneDiscard(String id,boolean add){
+    /**
+     * Notes (or forgets) a discarded ride whose phone files are still to go, committed so a process death can't lose it.
+     * Returns whether the note stands as asked: false when it couldn't be saved, and then RideStore.stop keeps the ride.
+     */
+    private boolean pendingPhoneDiscard(String id,boolean add){
         java.util.LinkedHashSet<String> ids=new java.util.LinkedHashSet<>();
         for(String one:settings.getString(RideStore.DISCARD_PENDING_KEY,"").trim().split(" +"))if(one.matches("[A-Za-z0-9-]{1,64}"))ids.add(one);
-        if(add?!ids.add(id):!ids.remove(id))return;
-        if(ids.isEmpty())settings.edit().remove(RideStore.DISCARD_PENDING_KEY).commit();
-        else settings.edit().putString(RideStore.DISCARD_PENDING_KEY,String.join(" ",ids)).commit();
+        if(add?!ids.add(id):!ids.remove(id))return true;
+        if(ids.isEmpty())return settings.edit().remove(RideStore.DISCARD_PENDING_KEY).commit();
+        return settings.edit().putString(RideStore.DISCARD_PENDING_KEY,String.join(" ",ids)).commit();
     }
     /**
      * At service start: phone files of discarded rides a process death left behind. Only a ride whose journal is gone (the
