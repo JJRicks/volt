@@ -38,6 +38,7 @@ public final class RecordingRulesTest {
         coveredRides();
         keepGrid();
         roundSevenCoverage();
+        heldForUndo();
         savedPhoneTrack();
         exemptionInTheJournal();
         discardNotedFirst();
@@ -743,6 +744,91 @@ public final class RecordingRulesTest {
         } finally { remove(dir); }
     }
 
+    private static byte[] bytes(File f) throws IOException { return Files.readAllBytes(f.toPath()); }
+    /** A short ride with phone files, discarded through RideStore.stop into the hold; returns its id. */
+    private static String discardWithPhone(RideStore rides, RideHold hold, PhoneRideStore phone, long t) throws IOException {
+        rides.start(PROFILE, "", WALL0 + t, t);
+        String id = rides.activeId();
+        phone.start(id, WALL0 + t, t); phone.appendBatch(id, "FIX,1,2\n", "1,2,3\n"); phone.stop(id, WALL0 + t + 6_000, t + 6_000);
+        for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 8.0, 100.0);
+        stop(rides, t + 6_000, "", null);
+        check(rides.lastStopDiscarded() && !rides.journal(id).exists() && hold.holds(id), "a 6 s ride is discarded into the hold, not deleted");
+        // The service's discardPhoneRide, once the recorder is done.
+        check(hold.add(id, phone.rawCsv(id), phone.motionCsv(id)) && !phone.rawCsv(id).exists() && !phone.motionCsv(id).exists(), "its phone files join it");
+        return id;
+    }
+
+    /**
+     * The owner's Undo (Nov 24 2026): a discarded ride is held a day (RideHold), its journal and phone files byte for byte,
+     * outside the ride list, and Undo brings it back as if kept; a process death in between loses nothing; after the day it
+     * is gone, and Undo then changes nothing; two discards back to back both stay restorable.
+     */
+    private static void heldForUndo() throws IOException {
+        File dir = Files.createTempDirectory("volt-held").toFile();
+        try {
+            File ridesDir = new File(dir, "rides"), heldDir = new File(dir, "no-backup-held");
+            RideStore rides = new RideStore(ridesDir);
+            RideHold hold = new RideHold(heldDir);
+            rides.holdDiscards(hold);
+            PhoneRideStore phone = new PhoneRideStore(new File(dir, "phone-rides"));
+            long t = 10_000;
+            String id = discardWithPhone(rides, hold, phone, t);
+            File heldEntry = new File(heldDir, id);
+            byte[] journal = bytes(new File(heldEntry, id + ".csv")), raw = bytes(new File(heldEntry, id + "-phone.csv")), motion = bytes(new File(heldEntry, id + "-motion.csv"));
+            check(rides.list().isEmpty() && rides.get(id) == null, "a held ride isn't in the ride list");
+            // A process death: a new store and hold on the same folders still have it.
+            rides = new RideStore(ridesDir); hold = new RideHold(heldDir); rides.holdDiscards(hold);
+            check(hold.holds(id) && rides.list().isEmpty(), "held on disk: a process death keeps it, still out of the list");
+            check(hold.purge(WALL0 + t + 6_000 + RideHold.KEEP_MS - 60_000).isEmpty(), "inside the day nothing is purged");
+            check(rides.restoreHeld(id, phone.rawCsv(id), phone.motionCsv(id)), "Undo restores it");
+            check(java.util.Arrays.equals(bytes(rides.journal(id)), journal) && java.util.Arrays.equals(bytes(phone.rawCsv(id)), raw)
+                    && java.util.Arrays.equals(bytes(phone.motionCsv(id)), motion), "byte for byte: the journal and both phone files");
+            check(!hold.holds(id) && !heldEntry.exists(), "nothing left in the hold");
+            RideStore.Summary back = rides.get(id);
+            check(back != null && rides.list().size() == 1 && rides.list().get(0).id.equals(id) && back.shownElapsedMs == 6_000, "the ride lists as a kept one, its summary as recorded");
+            check(phone.load(id) != null, "its phone track reads again");
+            check(!rides.restoreHeld(id, phone.rawCsv(id), phone.motionCsv(id)) && rides.list().size() == 1, "a second Undo changes nothing");
+            // A reload agrees.
+            RideStore reloaded = new RideStore(ridesDir);
+            check(reloaded.list().size() == 1 && reloaded.get(id).shownElapsedMs == 6_000, "a reload lists it too");
+
+            // Two discards back to back: both held, either restorable.
+            t += 1_000_000;
+            String first = discardWithPhone(rides, hold, phone, t);
+            t += 100_000;
+            String second = discardWithPhone(rides, hold, phone, t);
+            check(hold.holds(first) && hold.holds(second), "two discards back to back: both held");
+            check(rides.restoreHeld(first, phone.rawCsv(first), phone.motionCsv(first)) && hold.holds(second), "the older one restores, the newer stays held");
+            check(rides.restoreHeld(second, phone.rawCsv(second), phone.motionCsv(second)) && rides.list().size() == 3, "and the newer one too");
+
+            // After the day: purged, and Undo then changes nothing.
+            t += 1_000_000;
+            String old = discardWithPhone(rides, hold, phone, t);
+            long heldAt = WALL0 + t + 6_000;
+            check(hold.purge(heldAt + RideHold.KEEP_MS - 1_000).isEmpty() && hold.holds(old), "a second under the day: still held");
+            check(hold.purge(heldAt + RideHold.KEEP_MS + 1_000).contains(old) && !hold.holds(old) && !new File(heldDir, old).exists(), "past the day: purged, files and all");
+            check(!rides.restoreHeld(old, phone.rawCsv(old), phone.motionCsv(old)) && !rides.journal(old).exists() && !phone.rawCsv(old).exists()
+                    && rides.list().size() == 3, "Undo after the purge does nothing (no file, no list change)");
+            // A clock set back a day and more: the stamp is in the future, so it goes too.
+            t += 1_000_000;
+            String future = discardWithPhone(rides, hold, phone, t);
+            check(hold.purge(WALL0 + t - RideHold.KEEP_MS - 60_000).contains(future), "a stamp more than a day ahead (clock set back) is purged");
+            // A held ride whose place is taken is left held.
+            t += 1_000_000;
+            String taken = discardWithPhone(rides, hold, phone, t);
+            Files.write(phone.rawCsv(taken).toPath(), new byte[]{1});
+            check(!rides.restoreHeld(taken, phone.rawCsv(taken), phone.motionCsv(taken)) && hold.holds(taken) && !rides.journal(taken).exists(),
+                    "a target already there: nothing moves, the ride stays held");
+            // Without a hold (the store as tests and old callers use it) a discard still deletes at once.
+            RideStore plain = new RideStore(new File(dir, "plain"));
+            plain.start(PROFILE, "", WALL0, 0);
+            String gone = plain.activeId();
+            for (long u = 0; u <= 5_000; u += 1000) sample(plain, u, 8.0, 100.0);
+            plain.stop(WALL0 + 6_000, 6_000, "", true);
+            check(plain.lastStopDiscarded() && !plain.journal(gone).exists() && !plain.restoreHeld(gone), "no hold: deleted, nothing to restore");
+        } finally { remove(dir); }
+    }
+
     /**
      * #643 round 3: the phone's evidence is its saved journal, read at the stop (PhoneRideStore.load's own filter: moving
      * steps, speeds no less sure than 1.5 m/s), so a ride recovered after a restart counts its whole track.
@@ -929,11 +1015,23 @@ public final class RecordingRulesTest {
                 "riding off after Volt's own pause ends the holds (round 2 F01)");
         check(src.contains("stopRide(RideStore.STOP_CHARGING)"), "the charge end saves with its own code");
         check(src.contains("private static final AutoStartPolicy AUTO_START=new AutoStartPolicy();"), "one hold for the process, so a new service keeps it");
-        check(stop.contains("if(discarded)android.widget.Toast.makeText(this,T.serviceRideNotSavedShort(),android.widget.Toast.LENGTH_SHORT).show();")
-                && stop.indexOf("T.serviceRideNotSavedShort()") == stop.lastIndexOf("T.serviceRideNotSavedShort()")
-                && src.indexOf("T.serviceRideNotSavedShort()") == src.lastIndexOf("T.serviceRideNotSavedShort()")
-                && !stop.contains("Vibrat") && !stop.contains("Ringtone") && !stop.contains("MediaPlayer"),
-                "a discarded ride says so once from the one stop path, on screen or not, a plain toast with no sound or vibration");
+        check(stop.contains("if(discarded)offerUndo(stopping);") && stop.indexOf("offerUndo(") == stop.lastIndexOf("offerUndo(")
+                && stop.indexOf("purgeHeldRides();") > stop.indexOf("offerUndo(stopping);") && src.contains("finishPhoneDiscards();purgeHeldRides();"),
+                "a discarded ride is offered back once from the one stop path; held rides past the day go after each stop and at start");
+        int u = src.indexOf("private void offerUndo(String id){");
+        String offer = src.substring(u, src.indexOf("\n    }", u));
+        check(offer.contains("undoOfferedAt=visible?SystemClock.elapsedRealtime():-1;") && offer.contains("if(visible)return;")
+                && offer.contains("LiveNotices.channel(true,false,channelAllowed(LiveNotices.QUIET_CHANNEL))") && offer.contains(".setTimeoutAfter(UNDO_NOTICE_MS)")
+                && offer.contains("post(UNDO_NOTICE,") && offer.contains("cancelNotice(UNDO_NOTICE);")
+                && !offer.contains("Vibrat") && !offer.contains("setSound") && !offer.contains("Toast"),
+                "on screen the bar, out of sight one silent notice on the quiet channel (Low where it is off) that times out; a newer one replaces it");
+        check(src.contains("static final long UNDO_NOTICE_MS=10*60_000L;") && RideHold.KEEP_MS == 24L * 3_600_000, "the notice goes after 10 minutes, the ride after a day");
+        int d = src.indexOf("private void discardPhoneRide(String id){");
+        String phoneGo = src.substring(d, src.indexOf("\n    }", d));
+        check(phoneGo.contains("!pendingPhoneDiscards().contains(id))return;") && phoneGo.indexOf("rideHold.add(id,") < phoneGo.indexOf("phoneRides.delete(id)"),
+                "a discarded ride's phone files join it in holding, and an Undo that came first leaves them in place");
+        check(src.contains("rideHold=new RideHold(new File(getNoBackupFilesDir(),\"rides-held\"));rides.holdDiscards(rideHold);"),
+                "held rides live in no-backup storage, outside every backup and export");
         check(phoneKm.contains("phoneRecorder.active()&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS)&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))return RideStore.PHONE_TRACK_UNKNOWN;"),
                 "both flush waits timed out: the track is unknown and keeps the ride (round 7 F05)");
         int g = src.indexOf("rides.markGap(wall, mono, ble.scooterOff() ? \"Scooter switched off\" : \"Bluetooth disconnected\");");

@@ -3,6 +3,7 @@
 # and runs each tests/l10n/**Test.java from the repository root; most of these are also compiled by other lists.
 src/com/jjricks/volt/RideChargeRule.java
 src/com/jjricks/volt/RideStore.java
+src/com/jjricks/volt/RideHold.java
 src/com/jjricks/volt/ChargeAutoRecordPolicy.java
 src/com/jjricks/volt/AutoStartPolicy.java
 src/com/jjricks/volt/ChargeSessionStore.java

@@ -486,7 +486,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         super.onPause();
     }
     @Override public void onDestroy(){
-        connectionHaptics.cancel();
+        connectionHaptics.cancel();if(undoBar!=null)undoBar.dismiss();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
         destroyed=true;closeQuickMenu();pendingRideLocation=null;if(dock!=null){dock.close();dock=null;}if(controlDialog!=null)controlDialog.dismiss();closeChargeDoneSheet();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();if(whatsNewSheet!=null)whatsNewSheet.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
@@ -685,13 +685,27 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(dock!=null)dock.refresh();
     }
     /** BLE packets update lock/pending state immediately; heavy screen refreshes share the 1 Hz pulse. */
+    /** The short-ride message with Undo while Volt is on screen (ShortRideUndoBar), and the discard it last showed. */
+    private ShortRideUndoBar undoBar;private String undoBarShown;
+    /** Shows the service's Undo offer once per discard (a recreation shows what is left of it); takes down one undone or replaced. */
+    private void maybeShowUndoBar(){
+        if(scooterService==null||design==null)return;
+        String id=scooterService.undoOffer();
+        if(undoBar!=null&&undoBar.showing()!=null&&!undoBar.showing().equals(id))undoBar.dismiss();
+        if(id==null||id.equals(undoBarShown)||!resumed)return;
+        undoBarShown=id;
+        if(undoBar==null)undoBar=new ShortRideUndoBar(this,design);
+        View dockView=dock==null?null:dock.view();
+        undoBar.show(id,T.serviceRideNotSavedShort(),T.dashboardUndo(),ShortRideUndoBar.showFor(this,scooterService.undoOfferedAt()),
+                dockView!=null&&dockView.isShown()?dockView.getHeight():0,()->{if(scooterService!=null)scooterService.undoShortRide(id);});
+    }
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
         if(!rebuilding&&dropAutoEndedRiding()){transitionRebuild(0);return;}
         if(riding!=null&&scooterService!=null)riding.observeLink(scooterService.ble.connected());
         observeConnectionFeedback(false);maybeAutoOpenRiding();maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeShowReleaseHold();maybeInviteReport();maybeOfferConnectionReport();
-        maybeShowOwedKeyPrompt();
+        maybeShowOwedKeyPrompt();maybeShowUndoBar();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }

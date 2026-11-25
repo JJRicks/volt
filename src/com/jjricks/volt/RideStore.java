@@ -732,7 +732,8 @@ public final class RideStore {
         active = null;
         boolean tooShort = discardShort && !kept(result, covered, odometerReadings, heldKm, phoneKm);
         if (tooShort && discarding != null && !discarding.test(result.id)) tooShort = false;
-        lastStopDiscarded = tooShort && file(result.id).delete();
+        // Held for Undo when the store has a holding area (RideHold), else deleted.
+        lastStopDiscarded = tooShort && (hold != null ? hold.hold(result.id, wallMillis, file(result.id)) : file(result.id).delete());
         if (lastStopDiscarded) { forget(result.id); if (index != null) index.remove(result.id); return result; }
         lastStopWallMs = wallMillis;
         lastStopAutomatic = result.endedByItself();
@@ -841,6 +842,22 @@ public final class RideStore {
     private boolean lastStopDiscarded;
     /** Whether the last stop removed its ride as too short (stop with discardShort). */
     public synchronized boolean lastStopDiscarded() { return lastStopDiscarded; }
+    /** Where a ride the short-ride rule discards goes, for Undo; null deletes it at once. */
+    private RideHold hold;
+    synchronized void holdDiscards(RideHold hold) { this.hold = hold; }
+    /**
+     * Undo for a discarded ride (RideHold): its journal and the given phone files go back where they were, byte for byte,
+     * and it is saved as a kept ride is, so Rides lists it and its summary is saved again. False when it isn't held any
+     * more (purged, or already back) or its place is taken; then nothing changes.
+     */
+    synchronized boolean restoreHeld(String id, File... phoneFiles) {
+        if (hold == null || active != null && active.id.equals(id)) return false;
+        File journal = file(id);
+        if (!hold.restore(id, journal, phoneFiles)) return false;
+        forget(id);
+        if (index != null) index.submit(() -> { try { get(id); } catch (IOException | RuntimeException ignored) { } });
+        return true;
+    }
     public synchronized Summary activeSummary() { return active == null ? null : new Summary(active); }
     /**
      * The active ride is answered from memory. A finished journal comes from the shared cache while its length and

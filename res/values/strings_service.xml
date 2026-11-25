@@ -309,9 +309,10 @@
     <string name="service_ride_finishing" volt:screen="Home" volt:purpose="toast">Finishing the previous ride</string>
     <!-- Volt ended a ride on its own after the scooter stayed out of reach while parked. -->
     <string name="service_ride_saved_auto" volt:screen="Toast and notification" volt:purpose="title" volt:safety="ride">Ride saved automatically</string>
-    <!-- Toast, also shown while Volt isn't on screen: a ride that just ended was under 20 seconds or 0.01 mile, so Volt
-         deleted it (the short-ride rule). -->
-    <string name="service_ride_not_saved_short" volt:screen="Toast" volt:purpose="message" volt:safety="ride">Ride not saved, too short</string>
+    <!-- A ride that just ended was under 20 seconds or 0.01 mile, so Volt didn't keep it (the short-ride rule). Shown
+         beside an Undo button: in a bar at the foot of Volt's screen, or as a notification's title while Volt isn't on
+         screen. Undo brings the ride back. -->
+    <string name="service_ride_not_saved_short" volt:screen="Short-ride bar and notification" volt:purpose="message" volt:safety="ride">Ride not saved, too short</string>
     <!-- Notification title: an automatic copy of a finished ride to the rider's folder failed. The ride itself is saved in Volt. -->
     <string name="service_auto_save_failed" volt:screen="Auto-save notification" volt:purpose="title">Ride copy not saved</string>
     <!-- Notification text: the auto-save folder was deleted or Volt lost access to it. -->
