@@ -120,7 +120,7 @@
     <string name="hub_recording_speed" volt:src="37dfd34a6f6c2e26a0eb06efee5eb51b7ba02fd6">Velocidade da viagem</string>
     <string name="hub_recording_speed_short" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidade</string>
     <string name="hub_recording_range" volt:src="e035744dcbe17ac57b2f0283930e5dacb2955b12">Autonomia estim.</string>
-    <string name="hub_recording_range_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Autonomia</string>
+    <string name="hub_recording_range_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d" volt:attempt="2">Autonomia</string>
     <string name="hub_recording_speed_now" volt:src="24714a05cd504f1a0914e9c79572d389ff95fa82">%1$s agora</string>
     <string name="hub_recording_spoken_under_minute" volt:src="eb10a53b46f74881d3ac6c3be375938719680d4c">Gravando há menos de um minuto</string>
     <string name="hub_recording_spoken_next" volt:src="7de70eaff3962a1ffb6faac108e77ec4797ce542">%1$s. %2$s</string>

@@ -129,7 +129,7 @@
     <string name="hub_recording_paused_storage" volt:src="e98db2fba3c245ef2622860c9692efae932cfa03">Wstrzymano: pamięć pełna</string>
     <string name="hub_recording_paused_storage_short" volt:src="7fb4b8e1a5c643f0abab48f594470ce9c49bb11b">Pamięć pełna</string>
     <string name="hub_recording_save_failed" volt:src="bb03aa47eac52a99920d9629cfc1f1ca9e58916f">Pamięć pełna: zwolnij miejsce, a potem „Ponów zapis”</string>
-    <string name="hub_recording_save_failed_short" volt:src="d909598b3c0ff81655f69f000ac3e92672b1b853">Nie zapisano: pamięć pełna</string>
+    <string name="hub_recording_save_failed_short" volt:src="d909598b3c0ff81655f69f000ac3e92672b1b853" volt:attempt="2">Brak miejsca na zapis</string>
     <string name="hub_moment_recording" volt:src="58debfba4284260fc9b51c484a3ab565b5e7aab0">Pokazuj przejazd podczas nagrywania</string>
     <string name="hub_just_back_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Bateria</string>
     <string name="hub_just_back_time_seconds" volt:src="50f369a58a796cbe5e0fddd6cbc43dc05caa82c9">%1$ss</string>

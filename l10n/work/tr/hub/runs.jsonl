@@ -60,3 +60,5 @@
 {"chunk":0,"draft":"google","keys":14,"model":"gemini-3.8-flash","provider":"google","stage":"api-call","step":"draft","usage":{"candidatesTokenCount":370,"promptTokenCount":15664,"thoughtsTokenCount":13834,"totalTokenCount":29868},"when":"2026-11-25T05:19:09Z"}
 {"calls":1,"chunk":0,"draft":"google","keys":14,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":14,"stage":"draft","top_up":true,"when":"2026-11-25T05:19:09Z"}
 {"chunks":1,"draft":"claude-opus","keys":14,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"db79bf133131","stage":"import-chunks","when":"2026-11-25T05:35:55Z"}
+{"chunk":0,"draft":"google","keys":1,"model":"gemini-3.8-flash","provider":"google","stage":"api-call","step":"redraft","usage":{"candidatesTokenCount":115,"promptTokenCount":11554,"thoughtsTokenCount":7469,"totalTokenCount":19138},"when":"2026-11-25T05:38:45Z"}
+{"calls":1,"draft":"google","failed":1,"keys":1,"lacking":0,"missing":{},"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":1,"stage":"redraft","when":"2026-11-25T05:38:45Z"}
