@@ -132,12 +132,15 @@ final class RideChargeRule {
     }
 
     /**
-     * Whether to save the wait now: a newer start than the one saved (savedMs, -1 for none), at most every SAVE_EVERY_MS
-     * while the scooter charges (live), and at once when a reading isn't charging, so the last charging reading is kept exactly.
+     * Whether to save the wait now. savedMs is the start last saved (-1 for none) and savedCharging whether it was saved
+     * mid-charge. A change of state saves at once: the first charging reading (#643 round 6, F01), and the first that isn't,
+     * which keeps the last charging reading exactly as the wait begins. Mid-charge it saves at most every SAVE_EVERY_MS.
      */
-    static boolean saveDue(long seenMs, long savedMs, Boolean live) {
-        if (seenMs < 0 || seenMs == savedMs) return false;
-        return !Boolean.TRUE.equals(live) || savedMs < 0 || seenMs - savedMs >= SAVE_EVERY_MS;
+    static boolean saveDue(long seenMs, long savedMs, boolean savedCharging, Boolean live) {
+        if (seenMs < 0) return false;
+        boolean charging = Boolean.TRUE.equals(live);
+        if (savedMs < 0 || charging != savedCharging) return true;
+        return charging ? seenMs - savedMs >= SAVE_EVERY_MS : seenMs != savedMs;
     }
 
     /**

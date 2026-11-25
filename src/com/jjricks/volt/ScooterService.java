@@ -260,7 +260,7 @@ public final class ScooterService extends Service {
         finishPhoneDiscards();
         // The charging wait a previous service saw (RideChargeRule.WAIT_KEY): a restart inside it still waits.
         rideCharge.restoreWait(settings.getString(RideChargeRule.WAIT_KEY,null),bootCount(),SystemClock.elapsedRealtime());
-        chargeWaitSaved=rideCharge.chargingSeenMs();
+        chargeWaitSaved=-1; // saved again at the first look, as this service sees it
         PowerManager pm=getSystemService(PowerManager.class);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Volt:Recorder");
         wakeLock.setReferenceCounted(false);
@@ -2740,14 +2740,16 @@ public final class ScooterService extends Service {
         // deleted, keeps the ride, files and all.
         if(!discarded)pendingPhoneDiscard(stopping,false);
         phoneDiscard=discarded?stopping:null;stopPhoneRecording();if(wakeLock.isHeld()&&!phoneSaving())wakeLock.release();applyWorkPolicy(false);changed();return true;}
-    /** The charging wait last saved (RideChargeRule.WAIT_KEY), -1 for none. */
+    /** The charging wait last saved (RideChargeRule.WAIT_KEY), -1 for none, and whether it was saved mid-charge. */
     private long chargeWaitSaved=-1;
+    private boolean chargeWaitSavedCharging;
     /** Saves the charging wait when RideChargeRule.saveDue says so, so a new service (a restart inside the 30 s) still waits. */
     private void keepChargeWait(Boolean live){
-        if(settings==null||!RideChargeRule.saveDue(rideCharge.chargingSeenMs(),chargeWaitSaved,live))return;
-        String saved=rideCharge.savedWait(bootCount(),Boolean.TRUE.equals(live));
+        if(settings==null||!RideChargeRule.saveDue(rideCharge.chargingSeenMs(),chargeWaitSaved,chargeWaitSavedCharging,live))return;
+        boolean charging=Boolean.TRUE.equals(live);
+        String saved=rideCharge.savedWait(bootCount(),charging);
         if(saved==null)return;
-        settings.edit().putString(RideChargeRule.WAIT_KEY,saved).apply();chargeWaitSaved=rideCharge.chargingSeenMs();
+        settings.edit().putString(RideChargeRule.WAIT_KEY,saved).apply();chargeWaitSaved=rideCharge.chargingSeenMs();chargeWaitSavedCharging=charging;
     }
     /** Android's boot count, -1 when unavailable: a saved monotonic time is only good within the boot it came from. */
     private int bootCount(){return android.provider.Settings.Global.getInt(getContentResolver(),android.provider.Settings.Global.BOOT_COUNT,-1);}
@@ -2778,7 +2780,8 @@ public final class ScooterService extends Service {
     private Double phoneSavedKm(String id){
         if(id==null||phoneRides==null)return null;
         // The recorder writes every second; flush what it holds now, so the last fixes count too (#643 round 4, F06).
-        if(phoneRecorder!=null)phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS);
+        // Once more if the first didn't run in time (#643 round 6, F06).
+        if(phoneRecorder!=null&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS);
         try{PhoneRideStore.Track track=phoneRides.load(id);return track==null||track.distanceMeters==null?null:track.distanceMeters/1000.0;}
         catch(IOException|RuntimeException unreadable){return null;}
     }

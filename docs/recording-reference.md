@@ -347,8 +347,8 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   Retry save, and the rider's Stop is that retry. The 30-second wait belongs to the scooter that
   charged, and is saved (ride_charge_wait, this phone only; the boot count
   and the last charging reading's elapsed time: exact when saved as the wait
-  begins, by the first reading that isn't charging; saved at most every 5 s
-  mid-charge, and then restored as 5 s later, the latest a charging reading
+  begins, by the first reading that isn't charging; saved at once when
+  charging starts again, then at most every 5 s mid-charge, and then restored as 5 s later, the latest a charging reading
   could have come before a process death), so a service restarted inside it
   still waits. Record rides automatically starts nothing while
   charging or within 30 seconds of the last charging reading (so an unplug
@@ -372,13 +372,18 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
     itself, so the reading must still be fresh then; for the no-motion end and
     the switch-off it is the last one at or before the last movement (the last
     of all with none), so the verdict's wait and its battery polls are no gap.
+    A link gap that reconnected anywhere before the end cause, after the last
+    movement too, leaves the ride uncovered, since a gap can hide motion; the
+    end cause's own final drop (the switch-off the verdict judges) isn't one.
     A went-quiet end and the parked end (a link loss plus its grace) prove the
     link went, not that the scooter stopped: they are never covered.
   - A covered ride is deleted when its shown duration is under 20 s, whatever
     the phone's track says, or when both its measured distance and the phone's
     track are under 16 m. Measured is the larger of the odometer's (two or
     more readings; tenths of a km, whole km on older models) and the
-    speed-integrated one; no distance reading at all is no evidence.
+    speed-integrated one, with the window's two end intervals (the start to
+    the first speed reading, and the last to a rider's stop or a charge) held
+    at those readings' speeds.
   - A ride that isn't covered is kept when the phone's track is 16 m or more,
     and otherwise deleted only when the whole recording, start to stop, is
     under 20 s.

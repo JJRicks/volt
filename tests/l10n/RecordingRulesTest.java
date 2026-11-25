@@ -109,15 +109,22 @@ public final class RecordingRulesTest {
         // Charging readings every 2 s for most of a minute, saved at most every 5 s, then unplugged.
         for (long now = t; now <= last; now += 2000) {
             before.observe(A, Boolean.TRUE, now);
-            if (RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.TRUE)) { stored = before.savedWait(7, true); saved = before.chargingSeenMs(); }
+            if (RideChargeRule.saveDue(before.chargingSeenMs(), saved, saved >= 0, Boolean.TRUE)) { stored = before.savedWait(7, true); saved = before.chargingSeenMs(); }
         }
         check(saved < last && last - saved <= RideChargeRule.SAVE_EVERY_MS, "while charging, saved at most 5 s behind the last reading: " + (last - saved));
         before.observe(A, Boolean.FALSE, last + 2000);
-        check(RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.FALSE), "the reading that isn't charging saves the exact last one");
+        check(RideChargeRule.saveDue(before.chargingSeenMs(), saved, true, Boolean.FALSE), "the reading that isn't charging saves the exact last one");
         String midCharge = stored;
         long midSaved = saved;
         stored = before.savedWait(7, false); saved = before.chargingSeenMs();
-        check(saved == last && !RideChargeRule.saveDue(before.chargingSeenMs(), saved, Boolean.FALSE), "saved once");
+        check(saved == last && !RideChargeRule.saveDue(before.chargingSeenMs(), saved, false, Boolean.FALSE), "saved once");
+        // Round 6, F01: plugged back in, the change back to charging saves at once, not 5 s later.
+        RideChargeRule replug = new RideChargeRule();
+        replug.observe(A, Boolean.TRUE, last);
+        replug.observe(A, Boolean.TRUE, last + 3000);
+        check(RideChargeRule.saveDue(replug.chargingSeenMs(), last, false, Boolean.TRUE), "charging again 3 s after the exact save: saved at once");
+        check(!RideChargeRule.saveDue(replug.chargingSeenMs(), last, true, Boolean.TRUE), "while it keeps charging, 3 s after a mid-charge save: not yet");
+        check(RideChargeRule.saveDue(replug.chargingSeenMs(), last + 3000, true, Boolean.FALSE), "the first reading that isn't charging, even right after a save: saved, exact");
         // The service is recreated 10 s after the last charging reading.
         RideChargeRule after = new RideChargeRule();
         check(after.restoreWait(stored, 7, last + 10_000), "the new service takes the saved wait");
@@ -481,6 +488,29 @@ public final class RecordingRulesTest {
             pushed(rides, t, t + 25_000, 1.44, 4_000, 1);
             stop(rides, t + 25_000, "", null);
             check(!rides.lastStopDiscarded(), "the same with samples 3001 ms after a push: skipped, not covered, kept");
+
+            // Round 6, F03: Bluetooth lost while riding on (90 s), back when stopped, then the switch-off or the no-motion end:
+            // the reconnected gap can hide motion, so the ride isn't covered and its 450 m GPS track keeps it.
+            for (String cause : new String[]{off, RideStore.STOP_AUTO_NO_MOTION}) {
+                t += 2_000_000;
+                rides.start(PROFILE, "", WALL0 + t, t);
+                for (long u = t; u <= t + 8_000; u += 1000) sample(rides, u, 15.0, 100.0);
+                rides.markGap(WALL0 + t + 9_000, t + 9_000, "Bluetooth disconnected");
+                long back = t + 100_000, still = cause.equals(off) ? 30_000 : 600_000;
+                for (long u = back; u <= back + still; u += 1000) sample(rides, u, 0.0, 100.0);
+                long stopAt = back + still;
+                if (cause.equals(off)) { for (long u = stopAt + 1000; u <= stopAt + 20_000; u += 1000) sample(rides, u, null, null); stopAt += 20_000; }
+                RideStore.Summary hidden = stop(rides, stopAt, cause, 0.45);
+                check(!rides.lastStopDiscarded() && hidden.shownElapsedMs < RideStore.MIN_KEEP_MS,
+                        "a link gap while riding, back when stopped, then end '" + cause + "': not covered, kept with its 450 m track (shown " + hidden.shownElapsedMs + " ms)");
+            }
+            // Round 6, F02: the end intervals held. First speed 3 s after the start, a hand stop 3 s after the last: 17 s
+            // integrated at 2.9 km/h is 13.7 m, the 6 s held add 4.8 m, so the ride's 18.5 m keeps it.
+            t += 1_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t + 3_000; u <= t + 20_000; u += 1000) sample(rides, u, 2.9, 100.0);
+            stop(rides, t + 23_000, "", null);
+            check(!rides.lastStopDiscarded(), "a covered 23 s ride at 2.9 km/h, its end intervals held (18.5 m): kept");
 
             // The earlier grid.
             t += 1_000_000;
