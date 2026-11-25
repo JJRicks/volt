@@ -83,6 +83,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             rideLiveUpdate();
             chargeChip();
             chargeSwipe();
+            channelsOff();
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", android.util.Log.getStackTraceString(error));
@@ -127,6 +128,8 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         require(n.deleteIntent != null, "A swipe away is heard (delete intent)");
         foregroundValid("ride");
         quiet("ride");
+        channel("ride", LiveNotices.QUIET_CHANNEL);
+        quietChannelSettings();
         // The clock counts up by itself: nothing reposts the notice while only the time moves.
         long postTime = posted.getPostTime();
         SystemClock.sleep(20 * S);
@@ -146,6 +149,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
                 10 * S, "The notice after the ride kept the ride's promotion: " + describe());
         foregroundValid("ride ended");
         quiet("ride ended");
+        channel("ride ended", LiveNotices.SCOOTER_CHANNEL);
     }
 
     /** The synthetic odometer, km: each ride() moves it on, so the distance only grows. */
@@ -287,6 +291,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         await(() -> "62%".equals(chip()), 10 * S, "Level: the chip is the level: " + chip());
         foregroundValid("card");
         quiet("card");
+        channel("card", LiveNotices.QUIET_CHANNEL);
         holdFor("charge-level");
         main(() -> service.setChargeLiveChip(ChargeLiveState.Chip.FINISH));
         require("finish".equals(settings().getString(ScooterService.CHARGE_LIVE_CHIP, null)), "The choice is saved");
@@ -313,6 +318,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
                 10 * S, "Scooter connected kept the card's promotion: " + describe());
         foregroundValid("card ended");
         quiet("card ended");
+        channel("card ended", LiveNotices.SCOOTER_CHANNEL);
         main(() -> settings().edit().remove(ScooterService.CHARGE_LIVE_CHIP).commit());
     }
     /** Arms the live card from the front with the scooter charging, then leaves Volt. */
@@ -428,6 +434,73 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             at = next;
         }
         return "";
+    }
+    /** Turns one of Volt's channels off as far as the app may (an app can lower its own channel to off), then lets the service see it. */
+    private void channelOff(String id) {
+        NotificationManager manager = (NotificationManager) getTargetContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        android.app.NotificationChannel c = manager.getNotificationChannel(id);
+        require(c != null, "Channel " + id + " exists before it is turned off");
+        c.setImportance(NotificationManager.IMPORTANCE_NONE);
+        manager.createNotificationChannel(c);
+        require(manager.getNotificationChannel(id).getImportance() == NotificationManager.IMPORTANCE_NONE, "Android kept channel " + id + " on");
+        // The app's own change sends no block-state broadcast; the service's handler for that broadcast runs here instead.
+        main(() -> service.channelsChanged());
+        log("channel " + id + " off");
+    }
+    /**
+     * #645 F03. First only "Scooter connection & recording" off: the card may show (no notifications-off warning on the
+     * Battery row), a charge recording isn't refused for notifications, and the card shows on Rides and charging, a Live
+     * Update. Then Rides and charging off too: the card can't show and a charge recording is refused for notifications.
+     * (An app can't turn a channel back on, so the other single state, only Rides and charging off, is LiveUpdatesTest's
+     * channel cases and LiveChannelGateTest.)
+     */
+    private void channelsOff() throws Exception {
+        channelOff(LiveNotices.SCOOTER_CHANNEL);
+        require(onMain(() -> service.chargeLiveAllowed()), "Only the connection channel off: the card may still show");
+        armCard();
+        await(() -> isCard() && promoted(), 30 * S, "The card didn't show on Rides and charging: " + describe());
+        channel("scooter off", LiveNotices.QUIET_CHANNEL);
+        foregroundValid("scooter off");
+        quiet("scooter off");
+        log("scooter channel off: " + describe());
+        // Once the service posts its foreground notice to a channel the app itself turned off (Volt in front posts Scooter
+        // connected there), Android raises that channel back to Low; it keeps a person's own switch in Settings off. So each
+        // check below turns the channels off again and reads the gates in that same main-thread turn, before any repost.
+        final boolean[] allowed = {false, true};
+        final String[] refused = {null, null};
+        main(() -> {
+            NotificationManager manager = (NotificationManager) getTargetContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            android.app.NotificationChannel scooter = manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
+            scooter.setImportance(NotificationManager.IMPORTANCE_NONE);
+            manager.createNotificationChannel(scooter);
+            allowed[0] = service.chargeLiveAllowed();
+            refused[0] = service.chargeCaptureUnavailable();
+            android.app.NotificationChannel quiet = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+            quiet.setImportance(NotificationManager.IMPORTANCE_NONE);
+            manager.createNotificationChannel(quiet);
+            allowed[1] = service.chargeLiveAllowed();
+            refused[1] = service.chargeCaptureUnavailable();
+        });
+        require(allowed[0], "Only the connection channel off: the card may show");
+        require(!"Allow app notifications so the Stop action stays available".equals(refused[0]), "Only the connection channel off: a charge recording isn't refused for notifications: " + refused[0]);
+        require(!allowed[1], "Both channels off: the card can't show");
+        require("Allow app notifications so the Stop action stays available".equals(refused[1]), "Both channels off: a charge recording is refused for notifications: " + refused[1]);
+        log("both channels off");
+        main(() -> link.charging(OFF));
+    }
+    /** Notice 71 is on this channel now (LiveNotices.channel): the quiet one for a ride and the card, the connection one otherwise. */
+    private void channel(String what, String expected) {
+        StatusBarNotification n = connection();
+        require(n != null && expected.equals(n.getNotification().getChannelId()), what + ": expected channel " + expected + ": " + describe());
+    }
+    /** The quiet channel as Volt creates it: Default importance, no sound, no vibration, no lights, named Rides and charging. */
+    private void quietChannelSettings() {
+        NotificationManager manager = (NotificationManager) getTargetContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        android.app.NotificationChannel c = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+        require(c != null && c.getImportance() == NotificationManager.IMPORTANCE_DEFAULT && c.getSound() == null && !c.shouldVibrate() && !c.shouldShowLights(),
+                "The quiet channel: Default importance, silent, no vibration, no lights: " + c);
+        require("Rides and charging".contentEquals(c.getName()), "The quiet channel's name: " + c.getName());
+        log("quiet channel: " + c.getName() + ", importance " + c.getImportance() + ", sound " + c.getSound() + ", lock screen " + c.getLockscreenVisibility());
     }
     private void dumpsys(String what) throws Exception { log(what + " dumpsys: " + record71(true).replace('\n', ' ')); }
     private void holdFor(String stage) {

@@ -4038,6 +4038,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         final AlertDialog dialog;
         final Switch toggle;
         final SegmentedSelector lock;
+        /** Android 16 and later: what the Live Update's chip shows; null on older Androids, which have no chip. */
+        final SegmentedSelector chip;
         final LinearLayout permission;
         ChargeLiveSheet(){
             final AlertDialog[] self=new AlertDialog[1];
@@ -4059,12 +4061,22 @@ public final class MainActivity extends Activity implements ScreenHost {
             });
             lock.setTag("charge_live_lock");
             body.addView(lock,new LinearLayout.LayoutParams(-1,-2));
+            // The chip's choice (owner, Nov 24 2026): Level, as 2.0 shipped it, or Finish time (the card's own time, the level while it has none).
+            if(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK){
+                body.addView(design.sectionLabel(T.chargeLiveChipTitle()));
+                chip=new SegmentedSelector(design,T.chargeLiveChipTitle(),new String[]{T.chargeLiveLockLevel(),T.chargeLiveChipFinish()},choice->{
+                    if(scooterService==null){dialog().dismiss();return;}
+                    scooterService.setChargeLiveChip(ChargeLiveState.Chip.values()[choice]);
+                });
+                chip.setTag("charge_live_chip");
+                body.addView(chip,new LinearLayout.LayoutParams(-1,-2));
+            }else chip=null;
             // Notifications off: the card can't show, so say so and take the owner to the one place that fixes it.
             permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge_live_permission");
             permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
             permission.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
             TextView permissionText=design.text(T.chargeLivePerm(),13,false);
-            TextView allow=pill(T.mainAlertAllow(),MainActivity.this::allowChargeAlertNotifications);allow.setContentDescription(T.mainAlertAllowDescription());
+            TextView allow=pill(T.mainAlertAllow(),MainActivity.this::allowChargeLiveNotifications);allow.setContentDescription(T.mainAlertAllowDescription());
             // Allow beside the text while its longest word fits beside it, else under it (ActionBannerFit).
             permission.addView(new BannerBody(permissionText,allow),new LinearLayout.LayoutParams(0,-2,1));
             LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=design.dp(12);body.addView(permission,pp);
@@ -4080,7 +4092,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean on=toggle.isChecked();
             scooterService.setChargeLiveEnabled(on);
             // Turning it on with notifications off asks for them once, as the battery alerts do.
-            if(on&&!scooterService.chargeLiveAllowed())allowChargeAlertNotifications();
+            if(on&&!scooterService.chargeLiveAllowed())allowChargeLiveNotifications();
             refresh();redraw();
         }
         void refresh(){
@@ -4089,6 +4101,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toggle.setChecked(on);
             lock.select(scooterService.chargeLiveDetail().ordinal(),false);
             lock.setAlpha(on?1f:0.5f);
+            if(chip!=null){chip.select(scooterService.chargeLiveChip().ordinal(),false);chip.setAlpha(on?1f:0.5f);}
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
     }
@@ -4215,6 +4228,20 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     private boolean notificationsOn(){
         android.app.NotificationManager manager=getSystemService(android.app.NotificationManager.class);return manager!=null&&manager.areNotificationsEnabled();
+    }
+    /**
+     * Live charging's Allow (#645 F03): the permission prompt or the app's notification settings while Volt's
+     * notifications are off, as the battery alerts do; with them on, the card's own channel is what's off, so its page
+     * (Rides and charging) opens, where one switch brings the card back.
+     */
+    private void allowChargeLiveNotifications(){
+        boolean appOn=(Build.VERSION.SDK_INT<33||checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED)
+                &&getSystemService(android.app.NotificationManager.class).areNotificationsEnabled();
+        if(!appOn||scooterService==null){allowChargeAlertNotifications();return;}
+        Intent channel=new Intent(android.provider.Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName())
+                .putExtra(android.provider.Settings.EXTRA_CHANNEL_ID,scooterService.liveNoticeChannel());
+        try{startActivity(channel);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){allowChargeAlertNotifications();}
     }
     /** Android 13+ asks once; after that (or when a channel is off) only Android's notification settings can change it. */
     private void allowChargeAlertNotifications(){
