@@ -1,0 +1,4 @@
+# Clean Home's Ride clock, the follow-up rules (#638/#639 review): the paused look and Home's own words for it, the speed
+# now's age, the button's parts. HubText, RecordingFit, RecordingPill and RidingFocus come from recording-moment.sources,
+# RidingValues and the catalog from tests/run.sh.
+tests/l10n/RecordingClockTest.java

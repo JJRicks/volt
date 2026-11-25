@@ -362,6 +362,60 @@ final class RecordingFit {
     /** See {@link #untilNextSecond}. */
     static final long TICK_SLACK_MS = 15;
 
+    /**
+     * Why the service has paused saving the recording (ScooterService.recordingPause, the state behind its recordingError):
+     * none; storage full while it records (samples are not saved); or the save at its stop failed for want of space (the
+     * ride still records until the rider frees space and taps Retry save on the Ride page).
+     */
+    enum Pause { NONE, STORAGE_FULL, SAVE_FAILED }
+
+    /**
+     * The head row's words at its end while saving is paused or the link has a problem, by the narrow-label ladder
+     * (owner: full, then short, never a mid-word cut or tiny text): which rung shows and whether "Recording" stays
+     * beside the dot. dot is the dot's width,
+     * label the room "Recording" takes with its gap after the dot, gap the room between the two sides, full and shorter
+     * the two rungs' widths, width the row's (all px). Returns 0: "Recording" and the full words; 1: "Recording" and the
+     * short words; 2: the dot and the full words, "Recording" given way (the words say what is recording); 3: the dot and
+     * the short words; 4: even those don't fit (only far beyond the sweep's sizes): the short words, ellipsized.
+     */
+    static int headLadder(float dot, float label, float gap, float full, float shorter, float width) {
+        if (dot + label + gap + full <= width) return 0;
+        if (dot + label + gap + shorter <= width) return 1;
+        if (dot + gap + full <= width) return 2;
+        return dot + gap + shorter <= width ? 3 : 4;
+    }
+
+    /**
+     * The look the moment's dot and head row take (riding mode's REC pill's, RecordingPill.look), and the problem look
+     * too while the service has paused saving the ride (ScooterService.recordingError: storage full): a healthy, pulsing
+     * Recording over a ride that is not being saved would hide it. elapsedMs is the recording's time.
+     */
+    static RecordingPill.Look look(long elapsedMs, RidingFocus.Link link, boolean off, boolean paused) {
+        RecordingPill.Look look = RecordingPill.look(elapsedMs, link, null, false, off);
+        return paused && look == RecordingPill.Look.RECORDING ? RecordingPill.Look.RECORDING_PROBLEM : look;
+    }
+
+    /**
+     * Whether the ribbon's speed now shows: a live reading (TelemetryHistory.Reading.live) taken no more than riding
+     * mode's {@link RidingValues#SPEED_GONE_MS} ago (capturedWallMs, the reading's own time, against wallNowMs), the link
+     * good and the scooter on, and the ride being saved (not paused). The reading's 15 s freshness alone would label a
+     * speed up to 15 s old as now; a reading from the future by more than that (a clock moved back) is not now either.
+     */
+    static boolean speedNowShown(boolean live, long capturedWallMs, long wallNowMs, boolean linkGood, boolean paused) {
+        long age = wallNowMs - capturedWallMs;
+        return live && linkGood && !paused && capturedWallMs > 0 && age <= RidingValues.SPEED_GONE_MS && age >= -RidingValues.SPEED_GONE_MS;
+    }
+
+    /**
+     * The Open riding mode button's parts that fit beside its words (px): 2 the gauge and the chevron, 1 the gauge alone,
+     * 0 the words alone. room is the button's inner width (its width less its padding); the gauge takes icon plus gap
+     * before the words, the chevron gap plus chevron after them. Each part is counted once.
+     */
+    static int buttonParts(float words, float room, float icon, float gap, float chevron) {
+        if (words + icon + gap + gap + chevron <= room) return 2;
+        return words + icon + gap <= room ? 1 : 0;
+    }
+
     /** The number of trace buckets for a ribbon width (px) at a density (px per dp): about one per TRACE_STEP_DP. */
     static int columns(int widthPx, float density) {
         float dp = density > 0 ? widthPx / density : widthPx;

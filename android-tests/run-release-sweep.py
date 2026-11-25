@@ -278,6 +278,30 @@ STEPS += [
     inst('just-back-basemap-412', PKG + '.JustBackBasemapValidation', '-e', 'size_label', '412', size='412x915'),
     inst('just-back-basemap-fold-folded', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold-folded', size='411x900'),
     inst('just-back-basemap-fold', PKG + '.JustBackBasemapValidation', '-e', 'size_label', 'fold', size='790x820'),
+    # Clean Home's recording moment, the Ride clock (Ollie, Nov 24 2026): a seeded recording on the simulator with the
+    # mock-up's readings (the mock-up's 390x844 dp phone, a 412 dp phone dark and light, 344 dp at 1x and 1.3x text, 280
+    # dp at 1.4x, the wide two panes in both units); the Lock bar stays put, the time is the Ride row's, the ribbon shows
+    # where RecordingFit gives it room, the button whole and tapped, the link lost, stopped straight to Just back, no speed
+    # yet. The range steps: without the simulator, the Range cell is the parked card's figure under both range sources,
+    # in miles, in both units at 1x, and in both units at 1.4x on the narrowest phone (the first unit, the row's fallback).
+    inst('recording-moment-390', PKG + '.RecordingMomentValidation', '-e', 'size_label', '390', size='390x844'),
+    inst('recording-moment-412', PKG + '.RecordingMomentValidation', '-e', 'size_label', '412', size='412x915'),
+    inst('recording-moment-412-light', PKG + '.RecordingMomentValidation', '-e', 'size_label', '412-light', '-e', 'theme', 'light', size='412x915'),
+    inst('recording-moment-344', PKG + '.RecordingMomentValidation', '-e', 'size_label', '344', size=PHONE[0]),
+    inst('recording-moment-344-large', PKG + '.RecordingMomentValidation', '-e', 'size_label', '344-large', '-e', 'text_scale', '1.3', size=PHONE[0]),
+    inst('recording-moment-280-large', PKG + '.RecordingMomentValidation', '-e', 'size_label', '280-large', '-e', 'text_scale', '1.4', size='280x640'),
+    inst('recording-moment-725', PKG + '.RecordingMomentValidation', '-e', 'size_label', '725', '-e', 'theme', 'light', '-e', 'units', 'dual', size=WIDE[0]),
+    # The head row's warnings (scooter off, link lost, saving paused) whole by the narrow-label ladder in Italian, the
+    # longest shipped words for them beside "Recording", at 1.3x text on the 344 dp phone and a 412 dp phone.
+    inst('recording-moment-problem-344-it-large', PKG + '.RecordingMomentValidation', '-e', 'size_label', 'problem-344-it-large', '-e', 'mode', 'problem',
+         '-e', 'language', 'it', '-e', 'text_scale', '1.3', size=PHONE[0]),
+    inst('recording-moment-problem-412-it-large', PKG + '.RecordingMomentValidation', '-e', 'size_label', 'problem-412-it-large', '-e', 'mode', 'problem',
+         '-e', 'language', 'it', '-e', 'text_scale', '1.3', '-e', 'theme', 'light', size='412x915'),
+    inst('recording-moment-range-412', PKG + '.RecordingMomentValidation', '-e', 'size_label', 'range-412', '-e', 'mode', 'range', size='412x915'),
+    inst('recording-moment-range-344-dual', PKG + '.RecordingMomentValidation', '-e', 'size_label', 'range-344-dual', '-e', 'mode', 'range',
+         '-e', 'units', 'dual', size=PHONE[0]),
+    inst('recording-moment-range-280-dual-large', PKG + '.RecordingMomentValidation', '-e', 'size_label', 'range-280-dual-large', '-e', 'mode', 'range',
+         '-e', 'units', 'dual', '-e', 'text_scale', '1.4', size='280x640'),
     # The online maps' shared dark/light style (MapStyle): ride maps and Just back together, theme changes, a fold change, Map settings.
     inst('map-style-344', PKG + '.MapStyleValidation', '-e', 'size_label', '344', size=PHONE[0]),
     inst('map-style-412', PKG + '.MapStyleValidation', '-e', 'size_label', '412', size='412x915'),

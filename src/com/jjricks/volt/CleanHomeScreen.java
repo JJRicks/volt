@@ -21,8 +21,9 @@ import java.util.List;
 /**
  * Clean Home (hub layout plan 1.5, PR 8): the fixed Home, beside the widget dashboard rather than inside it. Top to
  * bottom: the header (the status line; the scooter's name, which switches scooter, with search and Settings), a top
- * area of fixed height whose content follows the moment (the battery card, the charging view while charging, or the
- * last ride for about an hour after it ends: JustBackView), the Lock bar, four quick actions and the seven subjects. A
+ * area of fixed height whose content follows the moment (the battery card, the charging view while charging, the ride
+ * being recorded while one records: RecordingView, or the last ride for about an hour after it ends: JustBackView), the
+ * Lock bar, four quick actions and the seven subjects. A
  * long-press on a quick action (TalkBack: its "Edit Home" action) opens the Edit sheet, the style and the four quick
  * actions; the header has no Edit button, as the mock-up.
  *
@@ -55,8 +56,16 @@ final class CleanHomeScreen implements AppScreen {
     private final FrameLayout top;
     private final View overview, charging;
     private final JustBackView justBack;
-    /** The three moments' views, by HomeMoment constant. */
+    /** The ride being recorded, the Ride clock (HomeMoment.RECORDING; Ollie's mock-up, Nov 24 2026). */
+    private final RecordingView recording;
+    /** The four moments' views, by HomeMoment constant. */
     private final View[] moments;
+    /** When the recording's speed ribbon was last read (elapsed realtime, -1: never), for which ride, and whether a read is under way. */
+    private long trendAt = -1;
+    private String trendRide;
+    private boolean trendLoading;
+    /** The ride the recording moment shows, kept once it stops for the hand-off to Just back (HomeMoment.holdRecording). */
+    private String endedRide;
     /** Reads the route of the last ride from its phone journal, off the UI thread; stopped on close. */
     private final java.util.concurrent.ExecutorService worker = java.util.concurrent.Executors.newSingleThreadExecutor();
     /** The newest finished ride, or null (none, not read yet, or no ride store). */
@@ -187,12 +196,17 @@ final class CleanHomeScreen implements AppScreen {
         overview = parts.overview();
         charging = parts.chargingView();
         justBack = new JustBackView(host, this::openRide, this::dismissRide);
-        moments = new View[] {overview, charging, justBack};
+        // A tap on the recording opens the Ride page (the Ride row's place, with the live card and its End button); its
+        // button opens riding mode exactly as the Ride quick action does (HomeQuickActions.RIDING).
+        recording = new RecordingView(host, this::openRidePage, () -> quickAction(HomeQuickActions.RIDING));
+        moments = new View[] {overview, charging, justBack, recording};
         top.addView(overview, new FrameLayout.LayoutParams(-1, -1));
         top.addView(charging, new FrameLayout.LayoutParams(-1, -1));
         top.addView(justBack, new FrameLayout.LayoutParams(-1, -1));
+        top.addView(recording, new FrameLayout.LayoutParams(-1, -1));
         charging.setVisibility(View.GONE);
         justBack.setVisibility(View.GONE);
+        recording.setVisibility(View.GONE);
         page.addView(top, new LinearLayout.LayoutParams(-1, -2));
         transition = new ChargeTransition.Clean(top, overview, parts.parkedPhoto(), parts.parkedPercent(), parts.hero(), parts::chargingShown);
 
@@ -277,8 +291,21 @@ final class CleanHomeScreen implements AppScreen {
         RideStore.Summary ride = lastRide;
         Object dismissed = stored(HomeMoment.DISMISSED_KEY);
         int next = HomeMoment.choose(HomeMoment.on(stored(HomeMoment.CHARGING_KEY)), parts.charging(),
-                HomeMoment.on(stored(HomeMoment.RIDE_KEY)), recording, ride == null ? null : ride.id,
-                ride == null ? 0 : ride.shownEndWallMs, dismissed instanceof String ? (String) dismissed : null, now);
+                HomeMoment.on(stored(HomeMoment.RECORDING_KEY)), HomeMoment.on(stored(HomeMoment.RIDE_KEY)), recording,
+                ride == null ? null : ride.id, ride == null ? 0 : ride.shownEndWallMs, dismissed instanceof String ? (String) dismissed : null, now);
+        // The ride that was recording, once it stops: the recording stays until Just back can show it (HomeMoment.holdRecording).
+        // Its age is the stop's own (RideStore.lastStopWallMs), not when Home next looked: back from the background long
+        // after a stop, there is nothing to hold.
+        String activeRide = recording && service.rides != null ? service.rides.activeId() : null;
+        if (activeRide != null) endedRide = activeRide;
+        long stopWall = !recording && service != null && service.rides != null ? service.rides.lastStopWallMs() : -1;
+        if (!recording && HomeMoment.holdRecording(moment, next, endedRide, ride == null ? null : ride.id, stopWall < 0 ? -1 : now - stopWall)) {
+            next = HomeMoment.RECORDING;
+            this.recording.ended(stopWall);
+            // Look at the saved rides again at the next refresh, until the one just saved is found.
+            if (!listing) ridesLooked = -1;
+        } else if (!recording) endedRide = null;
+        if (next == HomeMoment.RECORDING && recording) showRecording(service, now);
         if (next == HomeMoment.JUST_BACK) {
             justBack.bind(ride, preferences.getString("units", "mi"), now);
             loadRoute(service, ride);
@@ -310,8 +337,11 @@ final class CleanHomeScreen implements AppScreen {
         if (!first) endCrossfade();
         // Parked to charging or back (it says when the charging view counts as shown).
         if (!first && transition.change(previous, next)) {
-            moments[HomeMoment.JUST_BACK].setVisibility(View.GONE);
-            moments[HomeMoment.JUST_BACK].setAlpha(1);
+            // Plug-in moves between the battery card and the charging view; every other moment goes at once.
+            for (int other = HomeMoment.JUST_BACK; other < moments.length; other++) {
+                moments[other].setVisibility(View.GONE);
+                moments[other].setAlpha(1);
+            }
             return;
         }
         parts.chargingShown(next == HomeMoment.CHARGING);
@@ -351,6 +381,62 @@ final class CleanHomeScreen implements AppScreen {
 
     /** The top area's moment is changing (a crossfade or "Plug in"): it takes no touches meanwhile. */
     private boolean changing() { return crossfading || transition.changing(); }
+
+    // ===== The ride being recorded =====
+
+    /**
+     * Binds the recording moment to the active ride: its summary, the link as riding mode's REC pill reads it
+     * (RidingFocus.link with RidingScreen.reconnecting, RidingFocus.showsOff), whether saving is paused
+     * (ScooterService.recordingPause, the state behind the recordingError the Ride page's live card shows), the readings the parked card shows
+     * (ScooterService.dashboardReadings, so the range follows the range source as that card's does) and the units; then
+     * asks for the speed ribbon's points.
+     */
+    private void showRecording(ScooterService service, long now) {
+        if (service == null || service.rides == null) return;
+        RideStore.Summary active = service.rides.activeSummary();
+        BleController ble = service.ble;
+        boolean ready = ble != null && ble.ready();
+        RidingFocus.Link link = RidingFocus.link(ready, RidingScreen.reconnecting(ble, ready));
+        boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOffShown());
+        // Paused: the service stopped saving the ride (storage full while recording, or a failed save): Home's own words for it.
+        recording.paused(service.recordingPause());
+        recording.bind(active, link, off, service.dashboardReadings(), preferences.getString("units", "mi"), now);
+        loadTrend(service, active, now);
+    }
+
+    /**
+     * Reads the active ride's own points for the speed ribbon (RideStore.trend: the recording's readings kept in memory
+     * while it records, about 600 at most, so it never reads a journal and works with history recording off), one read at
+     * a time on the worker, at once for a new ride and then every RecordingFit.RIBBON_EVERY_MS, never every frame.
+     */
+    private void loadTrend(ScooterService service, RideStore.Summary active, long wallNow) {
+        RideStore store = service.rides;
+        if (active == null || trendLoading) return;
+        long at = android.os.SystemClock.elapsedRealtime();
+        if (active.id.equals(trendRide) && trendAt >= 0 && at - trendAt < RecordingFit.RIBBON_EVERY_MS && at >= trendAt) return;
+        trendRide = active.id;
+        trendAt = at;
+        trendLoading = true;
+        String id = active.id;
+        try {
+            worker.execute(() -> {
+                List<RideStore.Point> points;
+                try { points = store.trend(id, RideStore.MAX_TREND_POINTS); } catch (java.io.IOException | RuntimeException unreadable) { points = null; }
+                List<RideStore.Point> read = points;
+                host.activity().runOnUiThread(() -> {
+                    trendLoading = false;
+                    if (!closed && read != null) recording.setTrend(id, read, wallNow);
+                });
+            });
+        } catch (java.util.concurrent.RejectedExecutionException stopped) {
+            trendLoading = false;
+        }
+    }
+
+    /** The Ride page, as the Ride subject row opens it (the recording's live card and its End button are there). */
+    private void openRidePage() {
+        if (!closed) host.open(HubPages.RIDE);
+    }
 
     // ===== Just back: the last ride =====
 
@@ -448,6 +534,7 @@ final class CleanHomeScreen implements AppScreen {
         closed = true;
         transition.settle();
         endCrossfade();
+        recording.close();
         worker.shutdownNow();
         if (editSheet != null && editSheet.isShowing()) editSheet.dismiss();
         editSheet = null;
