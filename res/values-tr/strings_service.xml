@@ -307,6 +307,8 @@
     <string name="service_ride_finishing">Önceki sürüş tamamlanıyor</string>
     <!-- src:42878a885535e9b4f60fdfcea021a21fff4b0386 -->
     <string name="service_ride_saved_auto">Sürüş otomatik olarak kaydedildi</string>
+    <!-- src:e9b4e504ee292a273fea9d60455e2a6e7249f178 -->
+    <string name="service_ride_not_saved_short">Sürüş kaydedilmedi, çok kısa</string>
     <!-- src:fa4d152beb13f030271b45acaba1774c5f766841 -->
     <string name="service_auto_save_failed">Sürüş kopyası kaydedilemedi</string>
     <!-- src:1ca68074495f70d2e3b5dc2a66f74d1528d5fd26 -->
@@ -345,6 +347,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Scooter kapatıldı. Bitiş: %2$s (son hareket).</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Scooter bağlantısı ve kayıt</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Sürüşler ve şarj</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">“Şarj bitiş hedefi” için şarj ölçülüyor</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

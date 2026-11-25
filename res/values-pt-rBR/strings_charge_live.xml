@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Nível</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Oculto</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">Na barra de status</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Término</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Enquanto o cartão aparece, outros apps, incluindo o oficial, não conseguem se conectar. Toque em “Desconectar” no cartão para que eles possam se conectar.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->

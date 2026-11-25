@@ -316,6 +316,8 @@
     <string name="service_ride_finishing">Finalizando a viagem anterior</string>
     <!-- src:42878a885535e9b4f60fdfcea021a21fff4b0386 -->
     <string name="service_ride_saved_auto">Viagem salva automaticamente</string>
+    <!-- src:e9b4e504ee292a273fea9d60455e2a6e7249f178 -->
+    <string name="service_ride_not_saved_short">Viagem não salva, muito curta</string>
     <!-- src:fa4d152beb13f030271b45acaba1774c5f766841 -->
     <string name="service_auto_save_failed">Cópia da viagem não salva</string>
     <!-- src:1ca68074495f70d2e3b5dc2a66f74d1528d5fd26 -->
@@ -354,6 +356,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Patinete desligado. Término: %2$s, horário do último movimento.</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Conexão e gravação do patinete</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Viagens e carregamento</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">Medindo a carga para “Carga pronta até”</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

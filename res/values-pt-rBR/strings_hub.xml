@@ -228,6 +228,34 @@
     <string name="hub_qa_search_settings">Pesquisar configurações</string>
     <!-- src:3f3dacec55518e55832c230ba1007f8e0ae1fc27 -->
     <string name="hub_qa_search_settings_short">Pesquisar</string>
+    <!-- src:c90e2ff4b76f6579ec02ada0c8ec0e532ff6a62f -->
+    <string name="hub_recording_started">Início: %1$s</string>
+    <!-- src:37dfd34a6f6c2e26a0eb06efee5eb51b7ba02fd6 -->
+    <string name="hub_recording_speed">Velocidade desta viagem</string>
+    <!-- src:9e272fa1e7e14f3dc5cb408212a703c17170b52d -->
+    <string name="hub_recording_speed_short">Velocidade</string>
+    <!-- src:e035744dcbe17ac57b2f0283930e5dacb2955b12 -->
+    <string name="hub_recording_range">Autonomia estim.</string>
+    <!-- src:815eedafb99650341c770794f40e6488e59a3b3d -->
+    <string name="hub_recording_range_short">Autonomia</string>
+    <!-- src:24714a05cd504f1a0914e9c79572d389ff95fa82 -->
+    <string name="hub_recording_speed_now">%1$s agora</string>
+    <!-- src:eb10a53b46f74881d3ac6c3be375938719680d4c -->
+    <string name="hub_recording_spoken_under_minute">Gravando há menos de um minuto</string>
+    <!-- src:7de70eaff3962a1ffb6faac108e77ec4797ce542 -->
+    <string name="hub_recording_spoken_next">%1$s. %2$s</string>
+    <!-- src:7075e9647c1abbb827f99d0d5ca9159159b7f2c8 -->
+    <string name="hub_recording_description">%1$s. A página “Viagens” será aberta.</string>
+    <!-- src:e98db2fba3c245ef2622860c9692efae932cfa03 -->
+    <string name="hub_recording_paused_storage">Salvamento pausado: armazenamento cheio</string>
+    <!-- src:7fb4b8e1a5c643f0abab48f594470ce9c49bb11b -->
+    <string name="hub_recording_paused_storage_short">Armazenamento cheio</string>
+    <!-- src:bb03aa47eac52a99920d9629cfc1f1ca9e58916f -->
+    <string name="hub_recording_save_failed">Armazenamento cheio: libere espaço e toque em “Tentar salvar novamente”</string>
+    <!-- src:d909598b3c0ff81655f69f000ac3e92672b1b853 -->
+    <string name="hub_recording_save_failed_short">Viagem não salva</string>
+    <!-- src:58debfba4284260fc9b51c484a3ab565b5e7aab0 -->
+    <string name="hub_moment_recording">Mostrar a viagem durante a gravação</string>
     <!-- src:3f1ed8549e5a3d749ad7ba328fe656ea920b727f -->
     <string name="hub_just_back_battery">Bateria</string>
     <!-- src:50f369a58a796cbe5e0fddd6cbc43dc05caa82c9 -->

@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Niveau</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Masqué</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">Dans la barre d’état</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Heure de fin</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Pendant que la carte s’affiche, les autres applications, y compris l’application officielle, ne peuvent pas connecter la trottinette. Appuyez sur « Déconnecter » sur la carte pour leur permettre de la connecter.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->
