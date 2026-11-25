@@ -103,10 +103,13 @@ public final class ChargeTimeStateRungsTest {
     private static void wired() {
         String dash = read("src/com/jjricks/volt/DashboardScreen.java");
         int fill = dash.indexOf("private void fill(int reading, String[] names, ChargingEstimate.Result estimate, Double minutes, String status) {");
-        int rungs = dash.indexOf("if (minutes == null && values[reading] instanceof FittedValue) ((FittedValue) values[reading]).setRungs(ChargingEstimate.stateRungs(estimate));");
+        int rungs = dash.indexOf("showChargeTime(values[reading], tags[reading], estimate, minutes, minutes == null ? ChargingEstimate.stateRungs(estimate) : null);");
         int spoken = dash.indexOf("spoken[reading] = spokenChargeTime(names[0], fullText(values[reading]), tags[reading], status);");
         check(fill >= 0 && fill < rungs && rungs < spoken, "the charging time tile gives its state its rungs, then speaks the value's full text");
         check(dash.contains("CharSequence fullText() { return rungs != null ? rungs[0] : getText(); }"), "a fitted value's full text is its first rung");
+        // Its text and rungs together (2.0.6): the same rungs again keep the rung drawn, never the long words until a measure.
+        check(dash.contains("if (value instanceof FittedValue) ((FittedValue) value).show(text, minutes != null ? durationRungs(minutes) : stateRungs);")
+                && dash.contains("if (next != null && Arrays.equals(next, rungs)) return;"), "a refresh with the same rungs leaves the drawn rung alone");
     }
 
     /** A text source with the two estimating strings only (others fall back to English). */
