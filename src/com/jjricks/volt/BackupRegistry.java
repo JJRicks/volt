@@ -94,9 +94,10 @@ final class BackupRegistry {
         add(app, "update_auto_check", Boolean.class, PREFERENCES);
         exclude(app, "update_auto_last", Long.class, DEVICE);
         exclude(app, "update_auto_told", String.class, DEVICE);
-        // Live charging (ChargeLiveHold): the switch and the lock screen choice travel; a Stop for one charge doesn't.
+        // Live charging (ChargeLiveHold): the switch, the lock screen choice and the Live Update chip's choice travel; a Stop for one charge doesn't.
         add(app, "charge_live_enabled", Boolean.class, PREFERENCES);
         add(app, "charge_live_lock_detail", String.class, PREFERENCES);
+        add(app, "charge_live_chip", String.class, PREFERENCES);
         // A Stop on the live charging card belongs to one charge on this phone: never restored elsewhere.
         exclude(app, "ride_auto_ends", Long.class, DEVICE);
         exclude(app, "ride_auto_ends_counted", String.class, DEVICE);

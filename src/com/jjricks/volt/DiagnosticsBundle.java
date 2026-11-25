@@ -334,7 +334,7 @@ final class DiagnosticsBundle {
         final Map<String, Boolean> permissions = new LinkedHashMap<>();
     }
     /** Volt's own notification channels, by their fixed ids. */
-    static final List<String> CHANNELS = Collections.unmodifiableList(Arrays.asList("scooter", "charge_alerts", "maintenance", "volt_updates"));
+    static final List<String> CHANNELS = Collections.unmodifiableList(Arrays.asList("scooter", "rides_charging", "charge_alerts", "maintenance", "volt_updates"));
     /** The permissions the file reports, by short name. */
     static final List<String> PERMISSIONS = Collections.unmodifiableList(Arrays.asList(
             "bluetooth_scan", "bluetooth_connect", "fine_location", "coarse_location", "post_notifications"));

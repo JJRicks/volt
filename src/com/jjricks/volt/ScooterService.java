@@ -151,6 +151,9 @@ public final class ScooterService extends Service {
     private final NoticeRepeat noticeRepeat=new NoticeRepeat();private Object noticeBuiltExtra;
     /** The connection notice's tap and its action, made once each: every rebuild used to ask Android for them again. */
     private PendingIntent noticeOpen;private final Map<String,PendingIntent> noticeActions=new HashMap<>();
+    /** A ride's notice the owner swiped away stays away for that ride (LiveNotices.Dismissal); the last built notice was a ride's, and is held back. */
+    private final LiveNotices.Dismissal rideDismissal=new LiveNotices.Dismissal();private boolean noticeBuiltRide,noticeHeld;
+    private PendingIntent rideNoticeDelete;
     /** The labels each channel was last created with in this process: Android keeps a channel, so it's created again only when its language changes. */
     private static String scooterChannelLabel,alertChannelLabel;
     private static final int CHARGE_LIVE_DONE_NOTICE=79;
@@ -160,6 +163,10 @@ public final class ScooterService extends Service {
     /** More › Bluetooth › Background connection: stay connected out of sight. Stored settings and android-tests use this key. */
     static final String BACKGROUND_CONNECTION="background_connection";
     static final String CHARGE_LIVE_LOCK_DETAIL="charge_live_lock_detail";
+    /** What the live card's Live Update chip shows (ChargeLiveState.Chip): the level (default) or the finish time. */
+    static final String CHARGE_LIVE_CHIP="charge_live_chip";
+    /** The ride notice's delete intent: the owner swiped it away (LiveNotices.Dismissal). */
+    static final String RIDE_NOTICE_DISMISSED="ride_notice_dismissed";
     /**
      * The card's Stops, one per scooter whose charge it was pressed for, kept on this device so a recreated service
      * doesn't arm them again (not backed up): a JSON object of profile id to {"best": level, "wall": when pressed}.
@@ -299,6 +306,8 @@ public final class ScooterService extends Service {
         boolean stopAction="STOP_RECORDING".equals(action)||"STOP_CHARGE_RECORDING".equals(action)||"DISCONNECT".equals(action)
                 ||"STOP_CHARGE_ALARM".equals(action)||"DISMISS_CHARGE_ALERT".equals(action)||"STOP_ALERT_WATCH".equals(action);
         if(STOP_CHARGE_LIVE.equals(action))stopAction=true;
+        // The owner swiped the ride's notice away: nothing to start or post, and the notice stays away for this ride.
+        if(RIDE_NOTICE_DISMISSED.equals(action)&&foregroundStarted){rideNoticeDismissed(true);return isRecording()?START_STICKY:START_NOT_STICKY;}
         startForegroundNotice(true);applyVisibility(uiVisible,!stopAction);
         if("STOP_RECORDING".equals(action))stopRide();
         else if("STOP_CHARGE_RECORDING".equals(action))stopChargeRecording();
@@ -1598,6 +1607,16 @@ public final class ScooterService extends Service {
         settings.edit().putString(CHARGE_LIVE_LOCK_DETAIL,detail.id).apply();
         chargeLiveReposts.reset();updateNotification();changed();
     }
+    public ChargeLiveState.Chip chargeLiveChip(){
+        return ChargeLiveState.Chip.of(settings==null?null:settings.getString(CHARGE_LIVE_CHIP,null));
+    }
+    /** The live card's chip choice, saved at once; the card showing now takes it at its next post. */
+    public void setChargeLiveChip(ChargeLiveState.Chip chip){
+        if(destroyed||dataMaintenance||settings==null||chip==null)return;
+        settings.edit().putString(CHARGE_LIVE_CHIP,chip.id).apply();
+        // The chip is outside the card's dedupe key; the rebuilt notice differs, so NoticeRepeat posts it.
+        updateNotification();changed();
+    }
     /** The card can show: app notifications on and the connection channel not blocked. */
     public boolean chargeLiveAllowed(){return notificationsAllowed();}
     /** Live charging holds the connection now. Without the connection notice nothing holds: the owner would have no Stop. */
@@ -1858,7 +1877,7 @@ public final class ScooterService extends Service {
     private boolean promoteChargeLive(Notification.Builder builder,ChargeLiveState live){
         if(!ChargeLiveUpdate.promote(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),chargeLiveStopped(live)))return false;
         ChargeAlertPolicy.Settings alerts=chargeAlertsOffered()?chargeAlerts():ChargeAlertPolicy.Settings.OFF;
-        ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null);
+        ChargeLiveUpdate bar=ChargeLiveUpdate.of(live,alerts.charge?alerts.chargeAt:null,chargeLiveChip());
         try{
             List<Notification.ProgressStyle.Segment> segments=new ArrayList<>();
             for(ChargeLiveUpdate.Segment part:bar.segments)segments.add(new Notification.ProgressStyle.Segment(part.length).setColor(liveUpdateColor(part.role)));
@@ -1883,6 +1902,26 @@ public final class ScooterService extends Service {
             return false;
         }
     }
+    /**
+     * Asks Android to promote a recording ride's notice (LiveNotices.promoteRide): the request alone, as the live card
+     * makes it. The notice keeps its own look; its chip is the ride clock it already carries. Returns false, with the
+     * builder as it was, when anything fails: the notice is then the plain one, exactly as before.
+     */
+    private boolean promoteRide(Notification.Builder builder){
+        try{
+            if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,true);
+            if(liveUpdateExtra!=null){Bundle request=new Bundle();request.putBoolean(liveUpdateExtra,true);builder.addExtras(request);}
+            liveUpdateAsked=true;
+            return true;
+        }catch(ReflectiveOperationException|RuntimeException|LinkageError failed){
+            try{
+                if(liveUpdateExtra!=null)builder.getExtras().remove(liveUpdateExtra);
+                if(liveUpdateMethod!=null)liveUpdateMethod.invoke(builder,false);
+            }catch(ReflectiveOperationException|RuntimeException|LinkageError ignored){}
+            liveUpdateAsked=false;
+            return false;
+        }
+    }
     /** Volt's palette on the bar: red to the target (as the Battery cell), orange while held, greys past the limit or out of reach. */
     private static int liveUpdateColor(ChargeLiveUpdate.Role role){
         switch(role){
@@ -1899,7 +1938,10 @@ public final class ScooterService extends Service {
         if(liveUpdateAsked&&Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK)
             try{promotable=notice.hasPromotableCharacteristics();}catch(RuntimeException|LinkageError unknown){}
         liveUpdateLast.built(liveUpdateAsked,promotable);
+        liveUpdateCard=chargeLiveBuilt!=null;
     }
+    /** The last connection notice built was the live charging card (not a ride's Live Update): only its verdict moves the card's look. */
+    private boolean liveUpdateCard;
     /**
      * Reads the posted live card back and keeps Android's verdict (device-only), so the developer row still has it once
      * opening Volt ended the card. Runs a moment after each post, just before the hold ends, and from the row.
@@ -1913,7 +1955,7 @@ public final class ScooterService extends Service {
                 if(n.getId()==71)promoted=(n.getNotification().flags&Notification.FLAG_PROMOTED_ONGOING)!=0;
         }catch(RuntimeException|LinkageError unknown){}
         if(promoted==null)return;
-        if(chargeLiveLook.observed(promoted)&&chargeLiveShown())updateNotification();
+        if(liveUpdateCard&&chargeLiveLook.observed(promoted)&&chargeLiveShown())updateNotification();
         if(!liveUpdateLast.observed(promoted,System.currentTimeMillis())||settings==null)return;
         try{
             settings.edit().putString(CHARGE_LIVE_UPDATE_LAST,new JSONObject().put("status",liveUpdateLast.status().name())
@@ -1934,7 +1976,8 @@ public final class ScooterService extends Service {
     public ChargeLiveUpdate.Status liveUpdateStatus(){
         if(destroyed)return ChargeLiveUpdate.status(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed(),false,false,false,null);
         restoreLiveUpdateLast();
-        if(chargeLiveShown())captureLiveUpdate();
+        // The live card's, or a recording ride's: either is the Live Update showing now (captureLiveUpdate reads only an asked one).
+        if(chargeLiveShown()||isRecording())captureLiveUpdate();
         return liveUpdateLast.row(Build.VERSION.SDK_INT,liveUpdateRequestAvailable(),liveUpdateAllowed());
     }
     /** Charging finished at its target out of sight: one quiet notice, then the hold ends like any other. */
@@ -3652,6 +3695,15 @@ public final class ScooterService extends Service {
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
         liveUpdateAsked = false;
+        // A recording ride's notice (its clock, error or sensor warning, with Stop recording): the swipe that dismisses it is heard.
+        boolean rideNotice = isRecording() && !isChargeRecording() && !phoneSaving();
+        noticeBuiltRide = rideNotice;
+        noticeHeld = rideDismissal.holds(rideNotice);
+        if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
+        // Android 16 and later: the ride's notice asks to be a Live Update, its chip the ride clock (LiveNotices.promoteRide).
+        boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0;
+        if (live == null && LiveNotices.promoteRide(Build.VERSION.SDK_INT, liveUpdateRequestAvailable(), liveUpdateAllowed(), rideClock))
+            promoteRide(builder);
         if (live != null) chargeLiveCard(builder, live, liveWords, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
@@ -3692,6 +3744,15 @@ public final class ScooterService extends Service {
         return "km".equals(units) ? km : "dual".equals(units) ? T.fmtDual(mi, km) : mi;
     }
     private void updateNotification(){if(foregroundStarted&&workAllowed())post(71,()->foregroundStarted&&workAllowed()?notification():null);}
+    /**
+     * dismissed false: the ride notice's delete intent, made once. True: that intent came (the owner swiped the notice
+     * away), so the ride's notice isn't posted again until the ride ends (LiveNotices.Dismissal); returns null then.
+     */
+    private PendingIntent rideNoticeDismissed(boolean dismissed){
+        if(dismissed){if(isRecording())rideDismissal.dismissed();return null;}
+        if(rideNoticeDelete==null)rideNoticeDelete=PendingIntent.getService(this,2,new Intent(this,ScooterService.class).setAction(RIDE_NOTICE_DISMISSED),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        return rideNoticeDelete;
+    }
     /** Every notification Volt posts goes through here, spaced so Android never sheds one (NotificationPacer). */
     private void post(int id,Notification notice){post(id,()->notice);}
     private void post(int id,java.util.function.Supplier<Notification> build){notices.offer(id,build);drainNotices();}
@@ -3721,6 +3782,8 @@ public final class ScooterService extends Service {
             Object key=id==71?noticeKey(notice):null;
             long now=SystemClock.elapsedRealtime();
             sent=key==null||noticeRepeat.due(key,showsPostTime(notice),now,this::connectionNoticeShowing);
+            // A ride's notice the owner swiped away isn't put back while that ride records (LiveNotices.Dismissal).
+            if(id==71&&noticeHeld)sent=false;
             // A skipped notice is the one showing, so the live card's baseline is what it carries either way.
             if(sent)getSystemService(NotificationManager.class).notify(id,notice);if(id==71)chargeLiveReposts.posted(chargeLiveBuilt,SystemClock.elapsedRealtime());
             if(sent&&key!=null)noticeRepeat.posted(key,now);}}
