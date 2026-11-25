@@ -37,6 +37,8 @@ public final class RecordingRulesTest {
         unmeasuredDistance();
         coveredRides();
         keepGrid();
+        roundSevenCoverage();
+        heldForUndo();
         savedPhoneTrack();
         exemptionInTheJournal();
         discardNotedFirst();
@@ -559,6 +561,274 @@ public final class RecordingRulesTest {
         } finally { remove(dir); }
     }
 
+    /** One recording tick: the speed as last pushed at pushAt (null for none), a flat odometer when odometer is set, battery values fresh. */
+    private static void tick(RideStore rides, long u, Double kmh, long pushAt, Double odometer) throws IOException {
+        Map<String, RideStore.Sample> v = new LinkedHashMap<>();
+        if (kmh != null) v.put("speed_kmh", new RideStore.Sample(kmh, pushAt));
+        if (odometer != null) v.put("odometer_km", new RideStore.Sample(odometer, u));
+        v.put("voltage_v", new RideStore.Sample(50, u)); v.put("current_a", new RideStore.Sample(0.1, u)); v.put("battery_percent", new RideStore.Sample(60, u));
+        rides.sample(WALL0 + u, u, v);
+    }
+    /**
+     * The switch-off as the service records it: 10 s of readings with no new push (the last speed, pushed at lastPush, goes
+     * stale), then the off verdict's GAP marked as the switch-off (ScooterService's tick) and its 10 s grace in heartbeats.
+     * Returns the stop time.
+     */
+    private static long switchOff(RideStore rides, long from, double kmh, long lastPush) throws IOException {
+        for (long u = from; u < from + 10_000; u += 1000) tick(rides, u, kmh, lastPush, 100.0);
+        rides.markGap(WALL0 + from + 10_000, from + 10_000, "Scooter switched off");
+        rides.markGapSwitchedOff();
+        for (long u = from + 11_000; u <= from + 20_000; u += 1000) rides.heartbeat(WALL0 + u, u);
+        return from + 20_000;
+    }
+    /**
+     * Still at 0 km/h with a push just before every tick, except one push stall of 3.5 s: the last push before it is 100 ms
+     * before stallAt and the next 3.4 s after, so the tick at stallAt + 3 s holds a speed 3.1 s old (stale) and the next one is
+     * a skipped interval.
+     */
+    private static void stillWithStall(RideStore rides, long from, long to, long stallAt) throws IOException {
+        for (long u = from; u <= to; u += 1000) {
+            long push = u < stallAt ? u : u < stallAt + 3_400 ? stallAt - 100 : u - 600;
+            tick(rides, u, 0.0, push, 100.0);
+        }
+    }
+
+    /**
+     * #643 round 7 (F02 + F03, release-gated, one fix; F04 and F05): a link gap counts from its GAP row, whether or not a
+     * speed reading came after the reconnect, the switch-off verdict's own drop excepted; the integrator's own skips (a late
+     * push or tick) count only inside the window; the window's last speed is timed when it was measured; a phone track
+     * whose last fixes never flushed can't delete a ride. Every stop goes through RideStore.stop with its end's real wait.
+     */
+    private static void roundSevenCoverage() throws IOException {
+        File dir = Files.createTempDirectory("volt-round-7").toFile();
+        try {
+            File ridesDir = new File(dir, "rides");
+            RideStore rides = new RideStore(ridesDir);
+            String off = RideStore.switchedOffStopReason(RideStore.STOP_AUTO_QUIET);
+            long t = 10_000;
+            // F03, the seat's StallProbe: a 4 s jostle, then the ten-minute no-motion wait with one 3.5 s push stall mid-wait.
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            stillWithStall(rides, t + 5_000, t + 605_000, t + 300_000);
+            stop(rides, t + 605_000, RideStore.STOP_AUTO_NO_MOTION, 0.0);
+            check(rides.lastStopDiscarded(), "jostle + no-motion, one 3.5 s push stall mid-wait: not kept (the stall is outside the window)");
+            // The same stall's samples really are skipped: a hand stop counts it (the window is the whole recording).
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            stillWithStall(rides, t, t + 30_000, t + 15_000);
+            stop(rides, t + 30_000, "", null);
+            check(!rides.lastStopDiscarded(), "a hand stop with the same push stall inside its window: not covered, kept (30 s)");
+            // StallProbe's other case: one tick 3.2 s late in the wait.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            for (long u = t + 5_000; u <= t + 300_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            for (long u = t + 303_200; u <= t + 605_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 605_000, RideStore.STOP_AUTO_NO_MOTION, 0.0);
+            check(rides.lastStopDiscarded(), "jostle + no-motion, one tick 3.2 s late: not kept");
+            // The judge's trigger: Record tapped while parked (no movement at all), one push 3.5 s late in the wait.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            stillWithStall(rides, t, t + 600_000, t + 300_000);
+            stop(rides, t + 600_000, RideStore.STOP_AUTO_NO_MOTION, 0.0);
+            check(rides.lastStopDiscarded(), "Record tapped while parked, one push 3.5 s late, the no-motion end: not kept");
+            // And a jostle, a stall while still, then the switch-off.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            stillWithStall(rides, t + 5_000, t + 40_000, t + 20_000);
+            stop(rides, switchOff(rides, t + 41_000, 0.0, t + 40_000), off, 0.0);
+            check(rides.lastStopDiscarded(), "jostle, a push stall while still, then switched off: not kept");
+            // The parked accidental recording, no stall: still not kept, by either end.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 600_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 600_000, RideStore.STOP_AUTO_NO_MOTION, 0.0);
+            check(rides.lastStopDiscarded(), "the parked accidental recording, the no-motion end: not kept");
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, switchOff(rides, t + 26_000, 0.0, t + 25_000), off, 0.0);
+            check(rides.lastStopDiscarded(), "the parked accidental recording, then switched off (the verdict's gap): not kept");
+
+            // A switch-off with no other gap stays covered: a 4 s jostle is not kept even with a 450 m track (a covered ride
+            // under 20 s shown goes whatever the phone says), and a covered 25 s ride is kept.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            stop(rides, switchOff(rides, t + 5_000, 3.0, t + 4_000), off, 0.45);
+            check(rides.lastStopDiscarded(), "a 4 s jostle, then switched off with its verdict's gap: covered, not kept even with 450 m");
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 25_000; u += 1000) sample(rides, u, 15.0, 100.0 + (u - t) / 3.6e9 * 15_000);
+            stop(rides, switchOff(rides, t + 26_000, 15.0, t + 25_000), off, null);
+            check(!rides.lastStopDiscarded(), "a covered 25 s ride at 15 km/h, then switched off: kept");
+
+            // F02: 8 s at 15 km/h, Bluetooth lost, back with battery readings but no speed frame, then the switch-off: the
+            // reconnected gap hides what happened, so the ride isn't covered and its 450 m track keeps it.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 8_000; u += 1000) sample(rides, u, 15.0, 100.0);
+            rides.markGap(WALL0 + t + 9_000, t + 9_000, "Bluetooth disconnected");
+            for (long u = t + 10_000; u < t + 100_000; u += 1000) rides.heartbeat(WALL0 + u, u);
+            for (long u = t + 100_000; u <= t + 101_000; u += 1000) sample(rides, u, null, null);
+            rides.markGap(WALL0 + t + 102_000, t + 102_000, "Scooter switched off");
+            rides.markGapSwitchedOff();
+            for (long u = t + 103_000; u <= t + 112_000; u += 1000) rides.heartbeat(WALL0 + u, u);
+            RideStore.Summary noSpeed = stop(rides, t + 112_000, off, 0.45);
+            check(!rides.lastStopDiscarded() && noSpeed.shownElapsedMs < RideStore.MIN_KEEP_MS,
+                    "a reconnect with no speed frame, then the switch-off, 450 m track: not covered, kept (shown " + noSpeed.shownElapsedMs + " ms)");
+            // The same with nothing at all after the reconnect (no push before the off verdict): the Bluetooth gap is still open
+            // at the stop, and it isn't the verdict's own, so it counts.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 8_000; u += 1000) sample(rides, u, 15.0, 100.0);
+            rides.markGap(WALL0 + t + 9_000, t + 9_000, "Bluetooth disconnected");
+            for (long u = t + 10_000; u <= t + 120_000; u += 1000) rides.heartbeat(WALL0 + u, u);
+            stop(rides, t + 120_000, off, 0.45);
+            check(!rides.lastStopDiscarded(), "Bluetooth lost, back with no push, then the off verdict, 450 m track: not covered, kept");
+            // GapThenOff: 8 s at 15 km/h, the gap, back stopped (speed 0 for 30 s), then the switch-off: still kept.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 8_000; u += 1000) sample(rides, u, 15.0, 100.0);
+            rides.markGap(WALL0 + t + 9_000, t + 9_000, "Bluetooth disconnected");
+            for (long u = t + 10_000; u < t + 100_000; u += 1000) rides.heartbeat(WALL0 + u, u);
+            for (long u = t + 100_000; u <= t + 130_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, switchOff(rides, t + 131_000, 0.0, t + 130_000), off, 0.45);
+            check(!rides.lastStopDiscarded(), "GapThenOff: 8 s at 15 km/h, a gap, back stopped, switched off, 450 m track: kept");
+            // A process restart mid-ride is a gap too, though the integrator now only counts its own skips in the window.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 8_000; u += 1000) sample(rides, u, 15.0, 100.0);
+            rides = new RideStore(ridesDir);
+            for (long u = t + 20_000; u <= t + 50_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, switchOff(rides, t + 51_000, 0.0, t + 50_000), off, 0.45);
+            check(!rides.lastStopDiscarded(), "8 s at 15 km/h, a process restart, then still and switched off, 450 m track: kept");
+            // Switched off and on again while parked: the verdict's gap reconnected, so it counts like any other (kept).
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 4_000; u += 1000) sample(rides, u, 3.0, 100.0);
+            switchOff(rides, t + 5_000, 3.0, t + 4_000);
+            for (long u = t + 30_000; u <= t + 630_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 630_000, RideStore.STOP_AUTO_NO_MOTION, null);
+            check(!rides.lastStopDiscarded(), "switched off and on again, then the no-motion end: the gap reconnected, not covered, kept");
+
+            // F04: a zero-speed push at 19 s, then battery readings only (the snapshots reuse it to 22 s), a hand stop at 25 s:
+            // the reading was measured at 19 s, 6 s before the stop, so the ride isn't covered and its 25 s keep it.
+            for (long stopAt : new long[]{25_000, 22_000}) {
+                t += 2_000_000;
+                rides.start(PROFILE, "", WALL0 + t, t);
+                for (long u = t; u <= t + 19_000; u += 1000) sample(rides, u, 0.0, 100.0);
+                for (long u = t + 20_000; u <= t + stopAt; u += 1000) tick(rides, u, 0.0, t + 19_000, 100.0);
+                stop(rides, t + stopAt, "", null);
+                check(rides.lastStopDiscarded() == (stopAt == 22_000), "speed last measured at 19 s, a hand stop at " + stopAt / 1000 + " s: "
+                        + (stopAt == 22_000 ? "covered (3 s), 0 m, not kept" : "not covered (6 s), kept"));
+            }
+
+            // F05: the phone's track unknown (its last fixes never flushed) can't delete a ride on the track test.
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            sample(rides, t, 0.0, 100.0);
+            stop(rides, t + 12_000, "", RideStore.PHONE_TRACK_UNKNOWN);
+            check(!rides.lastStopDiscarded(), "not covered, 12 s, the phone's track unknown: kept");
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 30_000; u += 1000) sample(rides, u, 0.0, 100.0);
+            stop(rides, t + 30_000, "", RideStore.PHONE_TRACK_UNKNOWN);
+            check(!rides.lastStopDiscarded(), "covered, 30 s and 0 m, the phone's track unknown: kept");
+            t += 2_000_000;
+            rides.start(PROFILE, "", WALL0 + t, t);
+            for (long u = t; u <= t + 6_000; u += 1000) sample(rides, u, 8.0, 100.0);
+            stop(rides, t + 6_000, "", RideStore.PHONE_TRACK_UNKNOWN);
+            check(rides.lastStopDiscarded(), "covered and 6 s shown, the phone's track unknown: still not kept (the duration test)");
+        } finally { remove(dir); }
+    }
+
+    private static byte[] bytes(File f) throws IOException { return Files.readAllBytes(f.toPath()); }
+    /** A short ride with phone files, discarded through RideStore.stop into the hold; returns its id. */
+    private static String discardWithPhone(RideStore rides, RideHold hold, PhoneRideStore phone, long t) throws IOException {
+        rides.start(PROFILE, "", WALL0 + t, t);
+        String id = rides.activeId();
+        phone.start(id, WALL0 + t, t); phone.appendBatch(id, "FIX,1,2\n", "1,2,3\n"); phone.stop(id, WALL0 + t + 6_000, t + 6_000);
+        for (long u = t; u <= t + 5_000; u += 1000) sample(rides, u, 8.0, 100.0);
+        stop(rides, t + 6_000, "", null);
+        check(rides.lastStopDiscarded() && !rides.journal(id).exists() && hold.holds(id), "a 6 s ride is discarded into the hold, not deleted");
+        // The service's discardPhoneRide, once the recorder is done.
+        check(hold.add(id, phone.rawCsv(id), phone.motionCsv(id)) && !phone.rawCsv(id).exists() && !phone.motionCsv(id).exists(), "its phone files join it");
+        return id;
+    }
+
+    /**
+     * The owner's Undo (Nov 24 2026): a discarded ride is held a day (RideHold), its journal and phone files byte for byte,
+     * outside the ride list, and Undo brings it back as if kept; a process death in between loses nothing; after the day it
+     * is gone, and Undo then changes nothing; two discards back to back both stay restorable.
+     */
+    private static void heldForUndo() throws IOException {
+        File dir = Files.createTempDirectory("volt-held").toFile();
+        try {
+            File ridesDir = new File(dir, "rides"), heldDir = new File(dir, "rides_held");
+            RideStore rides = new RideStore(ridesDir);
+            RideHold hold = new RideHold(heldDir);
+            rides.holdDiscards(hold);
+            PhoneRideStore phone = new PhoneRideStore(new File(dir, "phone-rides"));
+            long t = 10_000;
+            String id = discardWithPhone(rides, hold, phone, t);
+            File heldEntry = new File(heldDir, id);
+            byte[] journal = bytes(new File(heldEntry, id + ".csv")), raw = bytes(new File(heldEntry, id + "-phone.csv")), motion = bytes(new File(heldEntry, id + "-motion.csv"));
+            check(rides.list().isEmpty() && rides.get(id) == null, "a held ride isn't in the ride list");
+            // A process death: a new store and hold on the same folders still have it.
+            rides = new RideStore(ridesDir); hold = new RideHold(heldDir); rides.holdDiscards(hold);
+            check(hold.holds(id) && rides.list().isEmpty(), "held on disk: a process death keeps it, still out of the list");
+            check(hold.purge(WALL0 + t + 6_000 + RideHold.KEEP_MS - 60_000).isEmpty(), "inside the day nothing is purged");
+            check(rides.restoreHeld(id, phone.rawCsv(id), phone.motionCsv(id)), "Undo restores it");
+            check(java.util.Arrays.equals(bytes(rides.journal(id)), journal) && java.util.Arrays.equals(bytes(phone.rawCsv(id)), raw)
+                    && java.util.Arrays.equals(bytes(phone.motionCsv(id)), motion), "byte for byte: the journal and both phone files");
+            check(!hold.holds(id) && !heldEntry.exists(), "nothing left in the hold");
+            RideStore.Summary back = rides.get(id);
+            check(back != null && rides.list().size() == 1 && rides.list().get(0).id.equals(id) && back.shownElapsedMs == 6_000, "the ride lists as a kept one, its summary as recorded");
+            check(phone.load(id) != null, "its phone track reads again");
+            check(!rides.restoreHeld(id, phone.rawCsv(id), phone.motionCsv(id)) && rides.list().size() == 1, "a second Undo changes nothing");
+            // A reload agrees.
+            RideStore reloaded = new RideStore(ridesDir);
+            check(reloaded.list().size() == 1 && reloaded.get(id).shownElapsedMs == 6_000, "a reload lists it too");
+
+            // Two discards back to back: both held, either restorable.
+            t += 1_000_000;
+            String first = discardWithPhone(rides, hold, phone, t);
+            t += 100_000;
+            String second = discardWithPhone(rides, hold, phone, t);
+            check(hold.holds(first) && hold.holds(second), "two discards back to back: both held");
+            check(rides.restoreHeld(first, phone.rawCsv(first), phone.motionCsv(first)) && hold.holds(second), "the older one restores, the newer stays held");
+            check(rides.restoreHeld(second, phone.rawCsv(second), phone.motionCsv(second)) && rides.list().size() == 3, "and the newer one too");
+
+            // After the day: purged, and Undo then changes nothing.
+            t += 1_000_000;
+            String old = discardWithPhone(rides, hold, phone, t);
+            long heldAt = WALL0 + t + 6_000;
+            check(hold.purge(heldAt + RideHold.KEEP_MS - 1_000).isEmpty() && hold.holds(old), "a second under the day: still held");
+            check(hold.purge(heldAt + RideHold.KEEP_MS + 1_000).contains(old) && !hold.holds(old) && !new File(heldDir, old).exists(), "past the day: purged, files and all");
+            check(!rides.restoreHeld(old, phone.rawCsv(old), phone.motionCsv(old)) && !rides.journal(old).exists() && !phone.rawCsv(old).exists()
+                    && rides.list().size() == 3, "Undo after the purge does nothing (no file, no list change)");
+            // A clock set back a day and more: the stamp is in the future, so it goes too.
+            t += 1_000_000;
+            String future = discardWithPhone(rides, hold, phone, t);
+            check(hold.purge(WALL0 + t - RideHold.KEEP_MS - 60_000).contains(future), "a stamp more than a day ahead (clock set back) is purged");
+            // A held ride whose place is taken is left held.
+            t += 1_000_000;
+            String taken = discardWithPhone(rides, hold, phone, t);
+            Files.write(phone.rawCsv(taken).toPath(), new byte[]{1});
+            check(!rides.restoreHeld(taken, phone.rawCsv(taken), phone.motionCsv(taken)) && hold.holds(taken) && !rides.journal(taken).exists(),
+                    "a target already there: nothing moves, the ride stays held");
+            // Without a hold (the store as tests and old callers use it) a discard still deletes at once.
+            RideStore plain = new RideStore(new File(dir, "plain"));
+            plain.start(PROFILE, "", WALL0, 0);
+            String gone = plain.activeId();
+            for (long u = 0; u <= 5_000; u += 1000) sample(plain, u, 8.0, 100.0);
+            plain.stop(WALL0 + 6_000, 6_000, "", true);
+            check(plain.lastStopDiscarded() && !plain.journal(gone).exists() && !plain.restoreHeld(gone), "no hold: deleted, nothing to restore");
+        } finally { remove(dir); }
+    }
+
     /**
      * #643 round 3: the phone's evidence is its saved journal, read at the stop (PhoneRideStore.load's own filter: moving
      * steps, speeds no less sure than 1.5 m/s), so a ride recovered after a restart counts its whole track.
@@ -745,6 +1015,47 @@ public final class RecordingRulesTest {
                 "riding off after Volt's own pause ends the holds (round 2 F01)");
         check(src.contains("stopRide(RideStore.STOP_CHARGING)"), "the charge end saves with its own code");
         check(src.contains("private static final AutoStartPolicy AUTO_START=new AutoStartPolicy();"), "one hold for the process, so a new service keeps it");
+        check(stop.contains("if(discarded)offerUndo(stopping);") && stop.indexOf("offerUndo(") == stop.lastIndexOf("offerUndo(")
+                && stop.indexOf("purgeHeldRides();") > stop.indexOf("offerUndo(stopping);") && src.contains("finishPhoneDiscards();purgeHeldRides();"),
+                "a discarded ride is offered back once from the one stop path; held rides past the day go after each stop and at start");
+        int u = src.indexOf("private void offerUndo(String id){");
+        String offer = src.substring(u, src.indexOf("\n    }", u));
+        check(offer.contains("undoOfferedAt=SystemClock.elapsedRealtime();undoOfferOnScreen=visible;") && offer.contains("if(visible)return;")
+                && offer.contains("openVolt().putExtra(UNDO_RIDE_ID,id)")
+                && offer.contains("LiveNotices.channel(true,false,channelAllowed(LiveNotices.QUIET_CHANNEL))") && offer.contains(".setTimeoutAfter(UNDO_NOTICE_MS)")
+                && offer.contains("post(UNDO_NOTICE,") && offer.contains("cancelNotice(UNDO_NOTICE);")
+                && !offer.contains("Vibrat") && !offer.contains("setSound") && !offer.contains("Toast"),
+                "on screen the bar, out of sight one silent notice on the quiet channel (Low where it is off) that times out; a newer one replaces it");
+        check(src.contains("static final long UNDO_NOTICE_MS=10*60_000L;") && RideHold.KEEP_MS == 24L * 3_600_000, "the notice goes after 10 minutes, the ride after a day");
+        // #651 F04-F06: the notice's body hands its ride to the bar, an offer made out of sight is live while its notice is,
+        // the bar retires the notice, and the notice's Undo always takes the notice away.
+        int live = src.indexOf("public String undoOffer(){");
+        check(src.substring(live, src.indexOf("\n    }", live)).contains("undoOfferOnScreen||SystemClock.elapsedRealtime()-undoOfferedAt<=UNDO_NOTICE_MS?undoOffer:null;"),
+                "an offer made out of sight stays live for the notice's 10 minutes, so Volt coming on screen shows it");
+        int b = src.indexOf("public boolean undoOfferOnScreen(String id){");
+        String toBar = src.substring(b, src.indexOf("\n    }", b));
+        check(toBar.contains("!rideHold.holds(id))return false;") && toBar.contains("cancelNotice(UNDO_NOTICE);return true;"), "the bar takes over from the notice: one Undo at a time");
+        check(src.contains("else if(UNDO_SHORT_RIDE.equals(action)){cancelNotice(UNDO_NOTICE);undoShortRide(intent.getStringExtra(UNDO_RIDE_ID));}"),
+                "the notice's Undo takes the notice away whatever this service's offer says (F06)");
+        String activity = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/MainActivity.java")), StandardCharsets.UTF_8);
+        int m = activity.indexOf("private void maybeShowUndoBar(){");
+        String show = activity.substring(m, activity.indexOf("\n    }", m));
+        check(show.contains("opened.getStringExtra(ScooterService.UNDO_RIDE_ID)") && show.contains("scooterService.undoOfferOnScreen(tapped)")
+                && show.contains("riding!=null") && activity.contains("try{resume();}finally{checkHeld--;}\n        // A short ride's Undo still live")
+                && activity.contains("scooterService.visible(resumed);maybeShowUndoBar();"),
+                "Volt coming on screen shows a live offer or the tapped notice's ride; at the top in riding mode (F09)");
+        int d = src.indexOf("private void discardPhoneRide(String id){");
+        String phoneGo = src.substring(d, src.indexOf("\n    }", d));
+        check(phoneGo.contains("undoneRides.remove(id))return;") && phoneGo.indexOf("rideHold.add(id,") < phoneGo.indexOf("phoneRides.delete(id)"),
+                "a discarded ride's phone files join it in holding, and an Undo that came first leaves them in place");
+        check(src.contains("rideHold=new RideHold(new File(getCacheDir(),\"rides_held\"));rides.holdDiscards(rideHold);"),
+                "held rides live in the app's cache, outside every backup and export");
+        check(phoneKm.contains("phoneRecorder.active()&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS)&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))return RideStore.PHONE_TRACK_UNKNOWN;"),
+                "both flush waits timed out: the track is unknown and keeps the ride (round 7 F05)");
+        int g = src.indexOf("rides.markGap(wall, mono, ble.scooterOff() ? \"Scooter switched off\" : \"Bluetooth disconnected\");");
+        check(g > 0 && src.indexOf("if (ble.scooterOff()) rides.markGapSwitchedOff();", g) > g
+                && src.indexOf("if (ble.scooterOff()) rides.markGapSwitchedOff();", g) < src.indexOf("gapMarked = true;", g),
+                "the off verdict's own gap is marked as the end cause's, right after it (round 7 F02)");
         int n = src.indexOf("private void autoStopNoMotion(RideAutoStopPolicy policy){");
         check(src.substring(n, src.indexOf("\n    }", n)).contains("if(rides.lastStopDiscarded())return;"), "no 'saved automatically' notice for a discarded ride");
     }

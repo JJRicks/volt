@@ -182,6 +182,11 @@ public final class ScooterService extends Service {
     static final String CHARGE_LIVE_CHIP="charge_live_chip";
     /** The ride notice's delete intent: the owner swiped it away (LiveNotices.Dismissal). */
     static final String RIDE_NOTICE_DISMISSED="ride_notice_dismissed";
+    /** The short-ride notice's Undo (offerUndo), with the held ride's id in UNDO_RIDE_ID. */
+    static final String UNDO_SHORT_RIDE="undo_short_ride",UNDO_RIDE_ID="ride_id";
+    private static final int UNDO_NOTICE=81;
+    /** A notice with Undo goes away by itself after 10 minutes; the ride stays restorable for RideHold.KEEP_MS. */
+    static final long UNDO_NOTICE_MS=10*60_000L;
     static final String CHARGE_NOTICE_DISMISSED="charge_notice_dismissed";
     /**
      * The card's Stops, one per scooter whose charge it was pressed for, kept on this device so a recreated service
@@ -251,6 +256,8 @@ public final class ScooterService extends Service {
             // Only a ride that may still be recording is read now; warmRides() reads the rest after the connection starts.
             rides = new RideStore(new File(getFilesDir(), "rides"), true, new File(getNoBackupFilesDir(), "rides-index"));
             autoEnds.reconcile(rides.automaticStopsAtLoad());
+            // A ride the short-ride rule discards is held a day for Undo (RideHold), in the app's cache, outside every backup and export.
+            rideHold=new RideHold(new File(getCacheDir(),"rides_held"));rides.holdDiscards(rideHold);
         }catch(IOException e){rides=null;}
         history=new TelemetryHistory(this);ensureDisplayCache();
         try { chargeStore=new ChargeSessionStore(new File(getFilesDir(),"charge-recordings"),ChargeAutoRecordPolicy.RULES);refreshChargeCurves(); }
@@ -259,7 +266,7 @@ public final class ScooterService extends Service {
         try{
             phoneRides = new PhoneRideStore(new File(getFilesDir(), "phone-rides"));
         }catch(IOException ignored){}
-        finishPhoneDiscards();
+        finishPhoneDiscards();purgeHeldRides();
         // The charging wait a previous service saw (RideChargeRule.WAIT_KEY): a restart inside it still waits.
         rideCharge.restoreWait(settings.getString(RideChargeRule.WAIT_KEY,null),bootCount(),SystemClock.elapsedRealtime());
         chargeWaitSaved=-1; // saved again at the first look, as this service sees it
@@ -354,12 +361,16 @@ public final class ScooterService extends Service {
         boolean stopAction="STOP_RECORDING".equals(action)||"STOP_CHARGE_RECORDING".equals(action)||"DISCONNECT".equals(action)
                 ||"STOP_CHARGE_ALARM".equals(action)||"DISMISS_CHARGE_ALERT".equals(action)||"STOP_ALERT_WATCH".equals(action);
         if(STOP_CHARGE_LIVE.equals(action))stopAction=true;
+        // The short-ride notice's Undo: nothing to connect for.
+        if(UNDO_SHORT_RIDE.equals(action))stopAction=true;
         // The owner swiped the ride's notice away: nothing to start or post, and the notice stays away for this ride.
         if(RIDE_NOTICE_DISMISSED.equals(action)&&foregroundStarted){rideNoticeDismissed(true);return isRecording()?START_STICKY:START_NOT_STICKY;}
         // The same for the live charging card: it stays away for the rest of this charge.
         if(CHARGE_NOTICE_DISMISSED.equals(action)&&foregroundStarted){chargeNoticeDismissed(true);return isRecording()?START_STICKY:START_NOT_STICKY;}
         startForegroundNotice(true);applyVisibility(uiVisible,!stopAction);
         if("STOP_RECORDING".equals(action))stopRide();
+        // The notice's Undo: the notice goes whatever this service's offer says (a restarted one has none; #651 F06).
+        else if(UNDO_SHORT_RIDE.equals(action)){cancelNotice(UNDO_NOTICE);undoShortRide(intent.getStringExtra(UNDO_RIDE_ID));}
         else if("STOP_CHARGE_RECORDING".equals(action))stopChargeRecording();
         else if("SCHEDULE_CHARGE_NOW".equals(action))scheduleChargeNow();
         else if("CANCEL_SCHEDULE_TEST".equals(action))cancelScheduleTest();
@@ -2771,6 +2782,10 @@ public final class ScooterService extends Service {
         boolean discarded=rides.lastStopDiscarded();
         // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved). A discarded one has none.
         if(!discarded)RideAutoExportFolder.queue(settings,stopping);
+        // Too short to keep: held a day (RideHold) and said once, with Undo, on screen or not, so a ride that ends by itself
+        // isn't silently gone; older held rides past the day go.
+        if(discarded)offerUndo(stopping);
+        purgeHeldRides();
         // Counted kept or not: a riding mode open for it closes either way.
         if(stopped!=null&&stopped.endedByItself())autoEnds.stopped(stopping);
         // Noted before its journal went (RideStore.stop's discarding); a note that couldn't be saved, or a journal that couldn't be
@@ -2817,8 +2832,9 @@ public final class ScooterService extends Service {
     private Double phoneSavedKm(String id){
         if(id==null||phoneRides==null)return null;
         // The recorder writes every second; flush what it holds now, so the last fixes count too (#643 round 4, F06).
-        // Once more if the first didn't run in time (#643 round 6, F06).
-        if(phoneRecorder!=null&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS);
+        // Once more if the first didn't run in time (#643 round 6, F06). Neither ran: the track's last fixes are unknown, so
+        // it can't be evidence for a discard (#643 round 7, F05).
+        if(phoneRecorder!=null&&phoneRecorder.active()&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS)&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))return RideStore.PHONE_TRACK_UNKNOWN;
         try{PhoneRideStore.Track track=phoneRides.load(id);return track==null||track.distanceMeters==null?null:track.distanceMeters/1000.0;}
         catch(IOException|RuntimeException unreadable){return null;}
     }
@@ -3037,10 +3053,88 @@ public final class ScooterService extends Service {
         // drops the foreground and stops itself before the copy starts.
         else{discardPhoneRide(discard);rideFullySaved();}
         phoneLocationForeground=false;}
-    /** Removes a discarded ride's phone GPS and motion files (none for null). A failure leaves them, as unlinked files. */
+    /**
+     * Moves a discarded ride's phone GPS and motion files to its held entry (RideHold), or removes them when the ride isn't held
+     * (none for null). Not for a ride Undo brought back first (its files stay in place). A failure leaves them, as unlinked
+     * files, noted for the next start.
+     */
     private void discardPhoneRide(String id){
-        if(id==null||phoneRides==null)return;
-        try{phoneRides.delete(id);pendingPhoneDiscard(id,false);}catch(IOException|RuntimeException ignored){/* left pending for the next start */}
+        if(id==null||phoneRides==null||undoneRides.remove(id))return;
+        try{
+            if(rideHold!=null&&rideHold.holds(id)&&!rideHold.add(id,phoneRides.rawCsv(id),phoneRides.motionCsv(id)))return;
+            phoneRides.delete(id);pendingPhoneDiscard(id,false);
+        }catch(IOException|RuntimeException ignored){/* left pending for the next start */}
+    }
+    /** Rides Undo brought back in this process while their phone recorder may still be finishing (discardPhoneRide skips them). */
+    private final java.util.Set<String> undoneRides=new java.util.HashSet<>();
+    /** Where discarded rides wait for Undo (RideHold); null without ride storage. */
+    private RideHold rideHold;
+    /** Held rides past RideHold.KEEP_MS go: at service start and after each stop. */
+    private void purgeHeldRides(){if(rideHold!=null)rideHold.purge(System.currentTimeMillis());}
+    /**
+     * The ride the last short-ride message offers to bring back (offerUndo), when it was offered (elapsed ms), and whether as
+     * the on-screen bar (else the notice, live for UNDO_NOTICE_MS).
+     */
+    private String undoOffer;private long undoOfferedAt=-1;private boolean undoOfferOnScreen;
+    /**
+     * Says a discarded ride wasn't saved, with Undo: on screen the activity's bar (undoOffer, about 8 s), out of sight a silent
+     * notice on the quiet Rides and charging channel (the Low connection channel where that one is off; #645), gone after 10
+     * minutes. Both channels are silent (no sound, no vibration). One message per discard: a newer one replaces the older, whose ride stays held.
+     */
+    private void offerUndo(String id){
+        if(id==null)return;
+        undoOffer=id;undoOfferedAt=SystemClock.elapsedRealtime();undoOfferOnScreen=visible;
+        cancelNotice(UNDO_NOTICE);
+        if(visible)return;
+        try{
+            notification();// Ensures the channels exist.
+            Intent undo=new Intent(this,ScooterService.class).setAction(UNDO_SHORT_RIDE).putExtra(UNDO_RIDE_ID,id);
+            PendingIntent undoIntent=PendingIntent.getService(this,UNDO_NOTICE,undo,PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            // Its body opens Volt with the ride's id, so Volt shows the bar for it, even after a process death (#651 F04).
+            PendingIntent open=PendingIntent.getActivity(this,UNDO_NOTICE,openVolt().putExtra(UNDO_RIDE_ID,id),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            Notification.Builder builder=new Notification.Builder(this,LiveNotices.channel(true,false,channelAllowed(LiveNotices.QUIET_CHANNEL))).setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(T.serviceRideNotSavedShort()).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
+                    .setTimeoutAfter(UNDO_NOTICE_MS).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE)
+                    .addAction(new Notification.Action.Builder(null,T.dashboardUndo(),undoIntent).build());
+            post(UNDO_NOTICE,builder.build());
+        }catch(RuntimeException unavailable){}
+    }
+    /**
+     * The ride the last message still offers to bring back, or null: not undone or replaced, and, made out of sight, inside
+     * the notice's 10 minutes. Volt coming on screen shows the bar for it (#651 F04, F05).
+     */
+    public String undoOffer(){
+        if(undoOffer==null)return null;
+        return undoOfferOnScreen||SystemClock.elapsedRealtime()-undoOfferedAt<=UNDO_NOTICE_MS?undoOffer:null;
+    }
+    /** When that offer was made, or handed to the bar (SystemClock.elapsedRealtime), -1 for none. */
+    public long undoOfferedAt(){return undoOffer()==null?-1:undoOfferedAt;}
+    /**
+     * Volt shows the bar for this held ride (its own offer, or the one a tapped notice names): from now on the bar is its one
+     * Undo, so the notice goes, and an offer made out of sight starts the bar's time now. False when the ride isn't held.
+     */
+    public boolean undoOfferOnScreen(String id){
+        if(destroyed||rideHold==null||!rideHold.holds(id))return false;
+        if(!id.equals(undoOffer)||!undoOfferOnScreen){undoOffer=id;undoOfferedAt=SystemClock.elapsedRealtime();undoOfferOnScreen=true;}
+        cancelNotice(UNDO_NOTICE);return true;
+    }
+    /**
+     * Undo (the bar's button or the notice's action): brings a held ride back as if it had been kept, its phone files with it,
+     * and takes its message away. A ride no longer held (past the day, or already back) changes nothing. Main thread.
+     */
+    public boolean undoShortRide(String id){
+        if(!RideHold.validId(id))return false;
+        if(id.equals(undoOffer)){undoOffer=null;undoOfferedAt=-1;undoOfferOnScreen=false;cancelNotice(UNDO_NOTICE);}
+        if(destroyed||rides==null||rideHold==null||!rideHold.holds(id))return false;
+        boolean back=rides.restoreHeld(id,phoneRides==null?new File[0]:new File[]{phoneRides.rawCsv(id),phoneRides.motionCsv(id)});
+        if(!back)return false;
+        // Its phone files a still-finishing recorder writes stay where they are (discardPhoneRide), and the note goes.
+        if(phoneSaving())undoneRides.add(id);
+        pendingPhoneDiscard(id,false);
+        // As a kept ride: its automatic copy, once its phone journal is complete.
+        RideAutoExportFolder.queue(settings,id);
+        if(!phoneSaving())rideFullySaved();
+        changed();return true;
     }
     /**
      * Notes (or forgets) a discarded ride whose phone files are still to go, committed so a process death can't lose it.
@@ -3137,6 +3231,8 @@ public final class ScooterService extends Service {
                                     if (!gapMarked) {
                                         // A switch-off only with the off verdict; a reconnect's first-push wait continues the drop's gap.
                                         rides.markGap(wall, mono, ble.scooterOff() ? "Scooter switched off" : "Bluetooth disconnected");
+                                        // The verdict's own drop never breaks the ride's coverage; a Bluetooth loss does (RideStore.covered).
+                                        if (ble.scooterOff()) rides.markGapSwitchedOff();
                                         gapMarked = true;
                                     }
                                     rides.heartbeat(wall, mono);
