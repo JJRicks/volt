@@ -400,8 +400,17 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
     ride recovered after a restart counts its whole track. If neither of the
     two flush waits runs in time, the track is unknown and can't delete the
     ride: it is treated as 16 m or more.
-  - A deleted ride shows the toast Ride not saved, too short once, on screen
-    or not (a plain text toast: no sound, no vibration).
+  - A discarded ride isn't deleted at once: its journal and phone files move
+    to a holding folder in the app's cache (RideHold; outside Rides, every
+    backup, the app data export and Android's backup), byte for byte, for 24
+    hours, purged at service start and after each stop; Android may clear the
+    cache early when storage runs out. Volt says Ride not saved, too short once
+    with Undo: on screen a bar (ShortRideUndoBar, about 8 s, longer where
+    Android's accessibility timeout asks), out of sight a silent notice on the
+    Rides and charging channel (the connection channel where that one is off)
+    that times out after 10 minutes. Undo moves the files back and saves the
+    ride as a kept one; a newer discard replaces the message, and every held
+    ride stays restorable for its day.
   - Phone files still to delete are noted (ride_discard_pending, this phone
     only) before the journal is deleted, and finished at the next service
     start after a process death; only a ride whose journal is gone loses them.
