@@ -108,6 +108,17 @@ public final class LiveUpdatesTest {
         check(!d.holds(true), "so the next ride's notice shows again");
         d.dismissed();
         check(!d.holds(false), "a notice that isn't a ride's is never held back");
+        // #644 F08: after a swipe, a recording error or a sensor warning (not the ride clock's Live Update) always posts,
+        // and the hold is over: the clock's Live Update that follows posts too.
+        d.dismissed();
+        check(d.holds(true), "swiped: the ride clock's Live Update is held");
+        check(!d.holds(false) && !d.active(), "a recording error or a sensor warning posts and ends the hold");
+        check(!d.holds(true), "the ride clock that follows the error posts again");
+        // #644 F06: opening Volt shows the notice again (startForeground); from then on its updates post.
+        d.dismissed();
+        check(d.holds(true), "swiped again: held");
+        d.reshown();
+        check(!d.active() && !d.holds(true) && !d.holds(true), "reshown by the foreground start: every later update posts");
     }
 
     private static void backup() throws Exception {

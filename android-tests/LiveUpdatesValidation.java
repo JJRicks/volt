@@ -132,6 +132,9 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         dumpsys("ride");
         holdFor("ride");
         dismissRide();
+        reopenAfterSwipe();
+        dismissRide();
+        errorAfterSwipe();
         main(() -> service.stopRide());
         await(() -> connection() != null && !rideNotice(), 20 * S, "Ending the dismissed ride posted no notice: " + describe());
         require(!onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), "Ending the ride clears the dismissal");
@@ -142,6 +145,46 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         quiet("ride ended");
     }
 
+    /** The synthetic odometer, km: each ride() moves it on, so the distance only grows. */
+    private double odometerKm = 101;
+    /** Main thread: count more 1 Hz samples of riding from now, the odometer 100 m further each. */
+    private void ride(long now, long wall, int count) {
+        // Samples run on from the last one (an earlier call may have written a little ahead of now), never back in time.
+        long from = Math.max(now, lastSampleMono + S);
+        wall += from - now;
+        try { for (int i = 0; i < count; i++) service.rides.sample(wall + i * S, from + i * S, values(18, 69, odometerKm += 0.1, from + i * S)); }
+        catch (IOException e) { throw new IllegalStateException(e); }
+        lastSampleMono = from + (count - 1) * S;
+    }
+    private long lastSampleMono;
+    /**
+     * #644 F06: after a swipe, opening Volt shows the ride's notice again (the foreground start), and from then on it
+     * updates: leaving Volt and riding on moves its distance.
+     */
+    private void reopenAfterSwipe() throws Exception {
+        ensureFront();
+        await(() -> rideNotice() && !onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), 10 * S,
+                "Opening Volt didn't show the swiped ride's notice again: " + describe());
+        leave();
+        String before = text();
+        main(() -> { ride(SystemClock.elapsedRealtime(), System.currentTimeMillis(), 20); invoke(service, "updateNotification", new Class<?>[]{}); });
+        await(() -> rideNotice() && text() != null && !text().equals(before), 15 * S, "After opening Volt, the ride's notice never updated: still " + before);
+        require(promoted(), "Still a Live Update after opening Volt");
+        log("ride: reopened after the swipe, the distance moves on: " + before + " -> " + text());
+    }
+    /**
+     * #644 F08: after a swipe, a recording error is not the ride clock's Live Update: it posts at once (plain) and ends
+     * the hold; once the error clears, the ride's Live Update posts again.
+     */
+    private void errorAfterSwipe() throws Exception {
+        main(() -> { set(service, "recordingError", "Synthetic recording error"); invoke(service, "updateNotification", new Class<?>[]{}); });
+        await(() -> "Recording needs attention".equals(title()), 15 * S, "The recording error never posted after the swipe: " + describe());
+        require(!promoted() && !onMain(() -> ((LiveNotices.Dismissal) field(service, "rideDismissal")).active()), "The error is plain and ended the hold: " + describe());
+        log("ride: error after the swipe posted: " + describe());
+        main(() -> { set(service, "recordingError", null); invoke(service, "updateNotification", new Class<?>[]{}); });
+        await(() -> rideNotice() && promoted(), 20 * S, "The ride's Live Update didn't come back after the error cleared: " + describe());
+        log("ride: error cleared, the Live Update is back: " + describe());
+    }
     /** A recording in the service's own RideStore, a minute old, its odometer moved; the service then works as for any ride. */
     private long startRide(String label) {
         final long[] wall = {0};
@@ -217,8 +260,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         // A change that reposts a ride's notice (more distance), then the tick: the notice stays away.
         main(() -> {
             long now = SystemClock.elapsedRealtime(), wall = System.currentTimeMillis();
-            try { for (int i = 0; i < 30; i++) service.rides.sample(wall + i * S, now + i * S, values(18, 69, 101 + i / 10.0, now + i * S)); }
-            catch (IOException e) { throw new IllegalStateException(e); }
+            ride(now, wall, 30);
             invoke(service, "updateNotification", new Class<?>[]{});
         });
         SystemClock.sleep(12 * S);

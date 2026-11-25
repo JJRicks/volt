@@ -3592,6 +3592,8 @@ public final class ScooterService extends Service {
         if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
         chargeLiveReposts.posted(chargeLiveBuilt, SystemClock.elapsedRealtime());
+        // startForeground shows the notice again (opening Volt does this), so a swiped ride's hold ends here (#644 F06).
+        rideDismissal.reshown();noticeHeld = false;
         noticeRepeat.posted(noticeKey(notice),SystemClock.elapsedRealtime());
         liveUpdatePosted();
         foregroundStarted = true; foregroundType = type;
@@ -3661,7 +3663,8 @@ public final class ScooterService extends Service {
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
                                 : ble.linked() ? connectedText() : ble.displayMessage();
-        if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
+        boolean sensorWarning = isRecording() && phoneStatus().startsWith("Phone sensor storage");
+        if (sensorWarning) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();
         }
@@ -3698,12 +3701,14 @@ public final class ScooterService extends Service {
         // A recording ride's notice (its clock, error or sensor warning, with Stop recording): the swipe that dismisses it is heard.
         boolean rideNotice = isRecording() && !isChargeRecording() && !phoneSaving();
         noticeBuiltRide = rideNotice;
-        noticeHeld = rideDismissal.holds(rideNotice);
         if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
         // Android 16 and later: the ride's notice asks to be a Live Update, its chip the ride clock (LiveNotices.promoteRide).
-        boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0;
-        if (live == null && LiveNotices.promoteRide(Build.VERSION.SDK_INT, liveUpdateRequestAvailable(), liveUpdateAllowed(), rideClock))
-            promoteRide(builder);
+        // A recording error or a phone sensor warning is not one: it is the plain notice, and it always posts.
+        boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0 && !sensorWarning;
+        boolean ridePromoted = live == null && LiveNotices.promoteRide(Build.VERSION.SDK_INT, liveUpdateRequestAvailable(), liveUpdateAllowed(), rideClock)
+                && promoteRide(builder);
+        // Only the ride clock's Live Update can be held back after a swipe; any other notice posts and ends the hold (#644 F08).
+        noticeHeld = rideDismissal.holds(ridePromoted);
         if (live != null) chargeLiveCard(builder, live, liveWords, isChargeRecording() && !liveStopped ? chargeCaptureStatus() : null);
         boolean immediate = Build.VERSION.SDK_INT >= 31 && keepsWorking();
         if(immediate)
