@@ -2766,6 +2766,9 @@ public final class ScooterService extends Service {
         boolean discarded=rides.lastStopDiscarded();
         // Saved: the ride waits for its automatic copy until its phone journal is complete (rideFullySaved). A discarded one has none.
         if(!discarded)RideAutoExportFolder.queue(settings,stopping);
+        // Too short to keep: say so once, on screen or not (a plain text toast; no sound, no vibration), so a ride that
+        // ends by itself isn't silently gone.
+        if(discarded)android.widget.Toast.makeText(this,T.serviceRideNotSavedShort(),android.widget.Toast.LENGTH_SHORT).show();
         // Counted kept or not: a riding mode open for it closes either way.
         if(stopped!=null&&stopped.endedByItself())autoEnds.stopped(stopping);
         // Noted before its journal went (RideStore.stop's discarding); a note that couldn't be saved, or a journal that couldn't be
@@ -2812,8 +2815,9 @@ public final class ScooterService extends Service {
     private Double phoneSavedKm(String id){
         if(id==null||phoneRides==null)return null;
         // The recorder writes every second; flush what it holds now, so the last fixes count too (#643 round 4, F06).
-        // Once more if the first didn't run in time (#643 round 6, F06).
-        if(phoneRecorder!=null&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS);
+        // Once more if the first didn't run in time (#643 round 6, F06). Neither ran: the track's last fixes are unknown, so
+        // it can't be evidence for a discard (#643 round 7, F05).
+        if(phoneRecorder!=null&&phoneRecorder.active()&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS)&&!phoneRecorder.flushAndWait(PHONE_FLUSH_WAIT_MS))return RideStore.PHONE_TRACK_UNKNOWN;
         try{PhoneRideStore.Track track=phoneRides.load(id);return track==null||track.distanceMeters==null?null:track.distanceMeters/1000.0;}
         catch(IOException|RuntimeException unreadable){return null;}
     }
@@ -3132,6 +3136,8 @@ public final class ScooterService extends Service {
                                     if (!gapMarked) {
                                         // A switch-off only with the off verdict; a reconnect's first-push wait continues the drop's gap.
                                         rides.markGap(wall, mono, ble.scooterOff() ? "Scooter switched off" : "Bluetooth disconnected");
+                                        // The verdict's own drop never breaks the ride's coverage; a Bluetooth loss does (RideStore.covered).
+                                        if (ble.scooterOff()) rides.markGapSwitchedOff();
                                         gapMarked = true;
                                     }
                                     rides.heartbeat(wall, mono);

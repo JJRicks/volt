@@ -336,6 +336,11 @@ public final class RideStore {
      * @param heldKm the window's two end intervals at the first and last speed reading held (km; measuredKm)
      * @param phoneKm the phone track's distance in km, or null for none; may be null itself
      */
+    /**
+     * The phone's answer when its track couldn't be read in full (the recorder's last fixes never flushed): no evidence for
+     * a discard, so the track test keeps the ride (#643 round 7, F05). The covered rule's own duration test still applies.
+     */
+    public static final Double PHONE_TRACK_UNKNOWN = Double.POSITIVE_INFINITY;
     public static boolean kept(Summary s, boolean covered, int odometerReadings, double heldKm, java.util.function.Supplier<Double> phoneKm) {
         if (covered) {
             if (s.shownElapsedMs < MIN_KEEP_MS) return false;
@@ -385,15 +390,20 @@ public final class RideStore {
      *       stop and a charge there is no wait: the stop itself is the end, so that reading must still be fresh at the
      *       stop. For the no-motion end and the switch-off it is the last speed reading at or before the ride's last
      *       movement, or the last of all with no movement; the verdict's battery polls never extend it.</li>
-     *   <li>A link gap that reconnected anywhere before the end cause, after the last movement too, leaves it uncovered (#643
-     *       round 6, F03): a gap can hide motion. A gap breaks the integrator's anchor, so the first speed reading after it
-     *       is a skipped interval; the end cause's own final drop (the switch-off the verdict judges) has no speed reading
-     *       after it, so it never counts. skipped is the whole recording's, not the window's.</li>
+     *   <li>A link gap anywhere in the recording, after the last movement too, leaves it uncovered (#643 round 6, F03): a gap
+     *       can hide motion. It counts from its GAP row (markGap; a process restart or a clock jump counts too), not from
+     *       the next speed reading, so a reconnect with no speed reading yet counts as well (round 7, F02). The end cause's
+     *       own final drop, the switch-off the verdict judges ({@link #markGapSwitchedOff}), never counts; any other gap
+     *       still open at the stop does. Only a gap after the first speed reading counts: one before it is the start's.</li>
+     *   <li>An interval the integrator skipped (a speed reading it couldn't join to the one before: a push or a tick more
+     *       than 3 s late) counts only inside the window (round 7, F03). For the no-motion end and the switch-off that is
+     *       up to the last movement, and with no movement none counts: the whole recording is then the verdict's wait,
+     *       which a late push doesn't break, and its measured distance and the phone's track decide.</li>
      * </ul>
      *
      * @param firstSpeed ride time (Summary.elapsedMs's clock) at the first sample with a fresh speed, -1 for none
-     * @param windowEnd ride time at the window's last speed sample, -1 for none
-     * @param skipped the integrator skipped an interval anywhere in the recording (a speed reading it couldn't join to the one before)
+     * @param windowEnd ride time the window's last speed reading was measured at, -1 for none
+     * @param skipped a link gap anywhere in the recording, or an interval the integrator skipped inside the window
      */
     static boolean covered(EndKind end, long stopElapsed, long firstSpeed, long windowEnd, boolean skipped) {
         if (end == EndKind.QUIET || firstSpeed < 0 || firstSpeed > MAX_SENSOR_AGE_MS || windowEnd < firstSpeed || skipped) return false;
@@ -666,6 +676,12 @@ public final class RideStore {
         append(file(active.id), row("GAP", wallMillis, monotonicMillis, "", "", "", "", "", "", "", "", "", trim(reason, 500)));
         active.gap(wallMillis, monotonicMillis);
     }
+    /**
+     * The open gap is the switch-off the off verdict judges (the scooter still answering, its pushes stopped): the end
+     * cause's own drop, which never breaks coverage while nothing follows it ({@link #covered}). Call right after the
+     * verdict's markGap; any reading after it makes it an ordinary reconnected gap.
+     */
+    public synchronized void markGapSwitchedOff() { if (active != null && active.gapOpen) active.openGapSwitchedOff = true; }
 
     /** Advance missing exposure during one ongoing gap without inventing samples or new gaps. */
     public synchronized void heartbeat(long wallMillis, long monotonicMillis) throws IOException {
@@ -706,7 +722,9 @@ public final class RideStore {
         Summary result = new Summary(active);
         EndKind end = endKind(result);
         boolean atMotion = end == EndKind.AFTER_WAIT && active.motionElapsed >= 0;
-        boolean covered = covered(end, active.elapsed, active.firstSpeed, atMotion ? active.speedAtMotion : active.lastSpeed, active.speedSkipped);
+        // The window's last speed reading, timed when it was measured (round 7, F04), and what breaks it (round 7, F02 and F03).
+        boolean skipped = active.linkGap() || (end != EndKind.AFTER_WAIT ? active.speedSkipped : atMotion && active.skippedAtMotion);
+        boolean covered = covered(end, active.elapsed, active.firstSpeed, atMotion ? active.speedAtMotion : active.lastSpeedMeasured, skipped);
         // The window's end intervals at the first and last speed held (measuredKm): the tail only up to a rider's stop or a charge.
         double heldKm = active.firstSpeed < 0 ? 0 : (active.firstSpeedKmh * active.firstSpeed
                 + (end == EndKind.AT_STOP ? active.lastSpeedKmh * Math.max(0, active.elapsed - active.lastSpeed) : 0)) / 3_600_000.0;
@@ -1087,7 +1105,15 @@ public final class RideStore {
          *  the last motion. */
         int odoReadings; long firstSpeed = -1, lastSpeed = -1, speedAtMotion = -1;
         double firstSpeedKmh, lastSpeedKmh;
-        boolean speedSkipped;
+        boolean speedSkipped, skippedAtMotion;
+        /** The last speed reading's ride time when it was measured (its sample's age taken off; #643 round 7, F04), -1 for none. */
+        long lastSpeedMeasured = -1;
+        /** Coverage's link gaps (covered): a gap after the first speed reading still open (and whether it is the switch-off
+         *  verdict's, markGapSwitchedOff), and whether one was followed by a reading. Active rides only. */
+        boolean gapOpen, openGapSwitchedOff, gapReconnected;
+        boolean linkGap() { return gapReconnected || gapOpen && !openGapSwitchedOff; }
+        /** A gap begins: it counts once a speed reading has opened the window. */
+        void gapBegins() { if (firstSpeed >= 0 && !gapOpen) { gapOpen = true; openGapSwitchedOff = false; } }
         String stopReason = "";
         /** The last committed sample with any fresh scooter reading; elapsed -1 until one arrives. */
         long readingWall, readingMono, readingElapsed = -1, readingGaps;
@@ -1118,20 +1144,22 @@ public final class RideStore {
             startWall = lastWall = wall; lastMono = startMono = mono;
         }
         void breakAnchor() { previousPower = null; previousSpeed = null; }
-        void recover() { recovered = true; gaps++; breakAnchor(); }
+        void recover() { recovered = true; gaps++; breakAnchor(); gapBegins(); }
         long advance(long wall, long mono) {
             long dt = mono >= lastMono ? mono - lastMono : 0;
-            if (mono < lastMono) { clockDiscontinuities++; gaps++; breakAnchor(); }
+            if (mono < lastMono) { clockDiscontinuities++; gaps++; breakAnchor(); gapBegins(); }
             // On a reboot use wall time only for the missing coverage, never for energy.
             if (mono < lastMono && wall > lastWall) dt = wall - lastWall;
             elapsed += dt; lastWall = wall; lastMono = mono; return dt;
         }
-        void gap(long wall, long mono) { advance(wall, mono); gaps++; breakAnchor(); }
+        void gap(long wall, long mono) { advance(wall, mono); gaps++; breakAnchor(); gapBegins(); }
         void heartbeat(long wall, long mono) { advance(wall, mono); breakAnchor(); }
         void stop(long wall, long mono) { advance(wall, mono); stopped = true; breakAnchor(); }
         void accept(long wall, long mono, Map<String, Sample> m) {
             long previousMono = lastMono;
             long dt = advance(wall, mono);
+            // A reading after a gap: it reconnected (covered).
+            if (gapOpen) { gapReconnected = true; gapOpen = false; openGapSwitchedOff = false; }
             boolean sameClock = mono >= previousMono;
             Double voltage = number(m, "voltage_v", mono), current = number(m, "current_a", mono);
             if (voltage != null && (voltage <= 0 || voltage > 200)) voltage = null;
@@ -1205,6 +1233,7 @@ public final class RideStore {
                 if (firstSpeed < 0) { firstSpeed = elapsed; firstSpeedKmh = speed; }
                 else if (!(shortInterval && previousSpeed != null)) speedSkipped = true;
                 lastSpeed = elapsed; lastSpeedKmh = speed;
+                lastSpeedMeasured = Math.max(firstSpeed, elapsed - (mono - m.get(SPEED_KEY).updatedMonoMs));
             }
             if (dt > MAX_INTEGRATION_INTERVAL_MS && samples > 0) gaps++;
             previousPower = power; previousSpeed = speed; samples++;
@@ -1214,7 +1243,7 @@ public final class RideStore {
                     || temperature != null || chargingState != null) {
                 readingWall = wall; readingMono = mono; readingElapsed = elapsed; readingGaps = gaps;
             }
-            if (moved) { motionWall = wall; motionElapsed = elapsed; motionGaps = gaps; speedAtMotion = lastSpeed; }
+            if (moved) { motionWall = wall; motionElapsed = elapsed; motionGaps = gaps; speedAtMotion = lastSpeedMeasured; skippedAtMotion = speedSkipped; }
             Point point = new Point(wall, mono, elapsed, (int)Math.min(Integer.MAX_VALUE, gaps), voltage, power, speed, soc, odo, chargingState, speedMs);
             lastPoint = point;
             if (rangeInspector != null) rangeInspector.accept(point);
