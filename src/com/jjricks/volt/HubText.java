@@ -417,11 +417,18 @@ public final class HubText {
      * less than a minute", then riding mode's REC pill's "Recording for 14 minutes" (whole minutes, past an hour too),
      * with the link's problem after it in the pill's words.
      */
-    public static String recordingTimeSpoken(long elapsedMs, RidingFocus.Link link, boolean off) {
+    public static String recordingTimeSpoken(long elapsedMs, RidingFocus.Link link, boolean off) { return recordingTimeSpoken(elapsedMs, link, off, null); }
+
+    /**
+     * As above, while the service has paused saving the ride: paused is its words (ScooterService.recordingError, as the
+     * Ride page's live card shows them), said after the time in place of a link problem; null while it saves.
+     */
+    public static String recordingTimeSpoken(long elapsedMs, RidingFocus.Link link, boolean off, CharSequence paused) {
         long minutes = Math.max(0, elapsedMs) / 60_000;
         String time = minutes < 1 ? T.hubRecordingSpokenUnderMinute() : T.ridingStatusRecordingSpokenMinutes(minutes, minutes);
         Msg problem = recordingProblem(link, off);
-        return problem == null ? time : T.ridingReadingSpoken(time, problem.render());
+        CharSequence said = paused != null && paused.length() > 0 ? paused : problem == null ? null : problem.render();
+        return said == null ? time : T.ridingReadingSpoken(time, said);
     }
 
     /**
@@ -430,7 +437,12 @@ public final class HubText {
      * are left out; readings alternate name and value.
      */
     public static Msg recordingSpoken(long elapsedMs, RidingFocus.Link link, boolean off, CharSequence... readings) {
-        String text = recordingTimeSpoken(elapsedMs, link, off);
+        return recordingSpoken(elapsedMs, link, off, null, readings);
+    }
+
+    /** As above, with saving paused (recordingTimeSpoken's paused: the service's words, null while it saves). */
+    public static Msg recordingSpoken(long elapsedMs, RidingFocus.Link link, boolean off, CharSequence paused, CharSequence[] readings) {
+        String text = recordingTimeSpoken(elapsedMs, link, off, paused);
         for (int i = 0; i + 1 < readings.length; i += 2)
             if (readings[i + 1] != null && readings[i + 1].length() > 0)
                 text = T.hubRecordingSpokenNext(text, T.ridingReadingSpoken(readings[i], readings[i + 1]));

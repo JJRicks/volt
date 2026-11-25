@@ -29,6 +29,9 @@ public final class RecordingFitTest {
         rangeFigure();
         readings();
         longName();
+        pausedLook();
+        speedNow();
+        buttonParts();
         System.out.println("RecordingFitTest: " + checks + " checks");
     }
 
@@ -282,6 +285,52 @@ public final class RecordingFitTest {
     private static String describe(RecordingFit.Layout l) {
         return "{head " + l.head + ", time " + l.clock + " (" + l.clockSize + "), ribbon " + l.ribbon + "+" + l.ribbonGap
                 + ", gap " + l.gap + ", readings " + l.stats + ", button " + l.button + ", under " + l.bottom + ", gaps +" + l.spread + ", total " + l.total() + "}";
+    }
+
+    /**
+     * Saving paused (ScooterService.recordingError, storage full): the moment takes the problem look, as for a lost
+     * link, so its dot stops pulsing; every way in and out (a good link, a lost one, switched off, paused cleared).
+     */
+    private static void pausedLook() {
+        RidingFocus.Link good = RidingFocus.Link.CONNECTED, lost = RidingFocus.Link.NOT_CONNECTED, back = RidingFocus.Link.RECONNECTING;
+        check(RecordingFit.look(878_400L, good, false, false) == RecordingPill.Look.RECORDING, "a good link, saving: the pulsing Recording");
+        check(RecordingFit.look(878_400L, good, false, true) == RecordingPill.Look.RECORDING_PROBLEM, "storage full with a good link: the problem look");
+        check(RecordingFit.look(0, good, false, true) == RecordingPill.Look.RECORDING_PROBLEM, "paused in the first second");
+        check(RecordingFit.look(878_400L, lost, false, true) == RecordingPill.Look.RECORDING_PROBLEM
+                && RecordingFit.look(878_400L, back, false, true) == RecordingPill.Look.RECORDING_PROBLEM
+                && RecordingFit.look(878_400L, good, true, true) == RecordingPill.Look.RECORDING_PROBLEM, "paused with a link problem or switched off: still the problem look");
+        check(RecordingFit.look(878_400L, lost, false, false) == RecordingPill.Look.RECORDING_PROBLEM
+                && RecordingFit.look(878_400L, good, true, false) == RecordingPill.Look.RECORDING_PROBLEM, "not paused: the link's own look, as before");
+        check(!RecordingPill.pulses(RecordingFit.look(878_400L, good, false, true), true), "paused: the dot does not pulse");
+        check(RecordingPill.pulses(RecordingFit.look(878_400L, good, false, false), true), "cleared (a new ride, or the save retried): it pulses again");
+    }
+
+    /** The ribbon's speed now: only a reading riding mode would still show (6 s), never one up to 15 s old, never paused. */
+    private static void speedNow() {
+        long now = 1_700_000_000_000L, gone = RidingValues.SPEED_GONE_MS;
+        check(gone == 6000, "riding mode's speed is gone after 6 s");
+        check(RecordingFit.speedNowShown(true, now - 1000, now, true, false), "a reading 1 s old: now");
+        check(RecordingFit.speedNowShown(true, now - gone, now, true, false), "at riding mode's limit: still now");
+        check(!RecordingFit.speedNowShown(true, now - gone - 1, now, true, false), "just past it: gone");
+        check(!RecordingFit.speedNowShown(true, now - 14_000, now, true, false), "14 s old, still live by the 15 s freshness: not now");
+        check(!RecordingFit.speedNowShown(false, now - 1000, now, true, false), "a last-seen reading: not now");
+        check(!RecordingFit.speedNowShown(true, now - 1000, now, false, false), "a lost link or a scooter off: not now");
+        check(!RecordingFit.speedNowShown(true, now - 1000, now, true, true), "saving paused: not now");
+        check(!RecordingFit.speedNowShown(true, 0, now, true, false), "no time for the reading: not now");
+        check(RecordingFit.speedNowShown(true, now + 500, now, true, false) && !RecordingFit.speedNowShown(true, now + 60_000, now, true, false),
+                "a moment ahead (clock jitter) is now; a minute ahead (the clock moved back) is not");
+    }
+
+    /** The button's gauge and chevron give way only when they no longer fit: each part's width counted once. */
+    private static void buttonParts() {
+        float icon = 20, gap = 10, chevron = 18, words = 130;
+        float all = words + icon + gap + gap + chevron;
+        check(RecordingFit.buttonParts(words, all, icon, gap, chevron) == 2, "exactly room for all: the gauge and the chevron (the old count took 20 dp more)");
+        check(RecordingFit.buttonParts(words, all + 19, icon, gap, chevron) == 2, "19 dp spare: all of it, where the old count dropped the chevron");
+        check(RecordingFit.buttonParts(words, all - 1, icon, gap, chevron) == 1, "1 dp short of the chevron: the gauge alone");
+        check(RecordingFit.buttonParts(words, words + icon + gap, icon, gap, chevron) == 1, "exactly room for the gauge");
+        check(RecordingFit.buttonParts(words, words + icon + gap - 1, icon, gap, chevron) == 0, "short of the gauge: the words alone");
+        check(RecordingFit.buttonParts(words, words - 10, icon, gap, chevron) == 0, "not even the words: the words alone (then an ellipsis)");
     }
 
     private static void check(boolean condition, String message) {

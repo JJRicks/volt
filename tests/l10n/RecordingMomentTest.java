@@ -110,6 +110,19 @@ public final class RecordingMomentTest {
                 HubText.recordingSpoken(878_400L, RidingFocus.Link.NOT_CONNECTED, false).render(), "not connected");
         equal("Recording for 14 minutes, Scooter off. Opens the Ride page.",
                 HubText.recordingSpoken(878_400L, RidingFocus.Link.CONNECTED, true).render(), "switched off");
+        // Saving paused (ScooterService.recordingError, storage full): the service's words after the time, as the Ride
+        // page's live card shows them, in place of a link problem; the readings as before.
+        String paused = "Paused: storage full";
+        equal("Recording for 14 minutes, Paused: storage full", HubText.recordingTimeSpoken(878_400L, RidingFocus.Link.CONNECTED, false, paused), "saving paused");
+        equal("Recording for 14 minutes, Paused: storage full", HubText.recordingTimeSpoken(878_400L, RidingFocus.Link.NOT_CONNECTED, true, paused),
+                "paused, said in place of a link problem");
+        equal("Recording for 14 minutes, Not connected", HubText.recordingTimeSpoken(878_400L, RidingFocus.Link.NOT_CONNECTED, false, null), "not paused: the link's words");
+        equal("Recording for 14 minutes", HubText.recordingTimeSpoken(878_400L, RidingFocus.Link.CONNECTED, false, ""), "empty words: not paused");
+        equal("Recording for 14 minutes, Paused: storage full. Trip, 2.5 mi. Battery, 73%. Opens the Ride page.",
+                HubText.recordingSpoken(878_400L, RidingFocus.Link.CONNECTED, false, paused, new CharSequence[] {"Trip", "2.5 mi", "Battery", "73%", "Range (est.)", null}).render(),
+                "the whole moment, paused");
+        equal(HubText.recordingSpoken(878_400L, RidingFocus.Link.CONNECTED, false, "Trip", "2.5 mi").render(),
+                HubText.recordingSpoken(878_400L, RidingFocus.Link.CONNECTED, false, null, new CharSequence[] {"Trip", "2.5 mi"}).render(), "not paused: as before");
     }
 
     private static void equal(String expected, CharSequence actual, String message) {

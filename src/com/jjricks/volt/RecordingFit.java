@@ -362,6 +362,37 @@ final class RecordingFit {
     /** See {@link #untilNextSecond}. */
     static final long TICK_SLACK_MS = 15;
 
+    /**
+     * The look the moment's dot and head row take (riding mode's REC pill's, RecordingPill.look), and the problem look
+     * too while the service has paused saving the ride (ScooterService.recordingError: storage full): a healthy, pulsing
+     * Recording over a ride that is not being saved would hide it. elapsedMs is the recording's time.
+     */
+    static RecordingPill.Look look(long elapsedMs, RidingFocus.Link link, boolean off, boolean paused) {
+        RecordingPill.Look look = RecordingPill.look(elapsedMs, link, null, false, off);
+        return paused && look == RecordingPill.Look.RECORDING ? RecordingPill.Look.RECORDING_PROBLEM : look;
+    }
+
+    /**
+     * Whether the ribbon's speed now shows: a live reading (TelemetryHistory.Reading.live) taken no more than riding
+     * mode's {@link RidingValues#SPEED_GONE_MS} ago (capturedWallMs, the reading's own time, against wallNowMs), the link
+     * good and the scooter on, and the ride being saved (not paused). The reading's 15 s freshness alone would label a
+     * speed up to 15 s old as now; a reading from the future by more than that (a clock moved back) is not now either.
+     */
+    static boolean speedNowShown(boolean live, long capturedWallMs, long wallNowMs, boolean linkGood, boolean paused) {
+        long age = wallNowMs - capturedWallMs;
+        return live && linkGood && !paused && capturedWallMs > 0 && age <= RidingValues.SPEED_GONE_MS && age >= -RidingValues.SPEED_GONE_MS;
+    }
+
+    /**
+     * The Open riding mode button's parts that fit beside its words (px): 2 the gauge and the chevron, 1 the gauge alone,
+     * 0 the words alone. room is the button's inner width (its width less its padding); the gauge takes icon plus gap
+     * before the words, the chevron gap plus chevron after them. Each part is counted once.
+     */
+    static int buttonParts(float words, float room, float icon, float gap, float chevron) {
+        if (words + icon + gap + gap + chevron <= room) return 2;
+        return words + icon + gap <= room ? 1 : 0;
+    }
+
     /** The number of trace buckets for a ribbon width (px) at a density (px per dp): about one per TRACE_STEP_DP. */
     static int columns(int widthPx, float density) {
         float dp = density > 0 ? widthPx / density : widthPx;

@@ -386,7 +386,8 @@ final class CleanHomeScreen implements AppScreen {
 
     /**
      * Binds the recording moment to the active ride: its summary, the link as riding mode's REC pill reads it
-     * (RidingFocus.link with RidingScreen.reconnecting, RidingFocus.showsOff), the readings the parked card shows
+     * (RidingFocus.link with RidingScreen.reconnecting, RidingFocus.showsOff), whether saving is paused
+     * (ScooterService.recordingError, whose words the Ride page's live card shows too), the readings the parked card shows
      * (ScooterService.dashboardReadings, so the range follows the range source as that card's does) and the units; then
      * asks for the speed ribbon's points.
      */
@@ -397,7 +398,8 @@ final class CleanHomeScreen implements AppScreen {
         boolean ready = ble != null && ble.ready();
         RidingFocus.Link link = RidingFocus.link(ready, RidingScreen.reconnecting(ble, ready));
         boolean off = RidingFocus.showsOff(link, ble != null && ble.scooterOffShown());
-        recording.bind(active, link, off, service.dashboardReadings(), preferences.getString("units", "mi"), now);
+        // Paused: the service stopped saving the ride (storage full); its words, as the Ride page's live card shows them.
+        recording.bind(active, link, off, service.recordingError(), service.dashboardReadings(), preferences.getString("units", "mi"), now);
         loadTrend(service, active, now);
     }
 

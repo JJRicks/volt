@@ -42,7 +42,10 @@ import java.util.List;
  * <p>A tap anywhere else opens the Ride page, where the live recording card and its End button are: this moment adds no
  * way to end a ride (RideRecordTile). With the link lost, reconnecting or the scooter switched off, the head row says so
  * in riding mode's REC pill's words (RecordingPill's RECORDING_PROBLEM look: the dot hollow and still, the words in
- * orange in place of the start time) and the scooter's readings show as last seen (Ui.dim), as elsewhere.
+ * orange in place of the start time) and the scooter's readings show as last seen (Ui.dim), as elsewhere. While the
+ * service has paused saving the ride (a full storage: ScooterService.recordingError), the head row takes the same look
+ * with the service's own words for it (as the Ride page's live card shows them), and the speed now goes: the ride is not
+ * being saved.
  *
  * <p>It fills the top area's fixed height, so the Lock bar never moves: RecordingFit.layout shares it out (the room
  * under the button goes first, then the ribbon shrinks and goes, then the time gets smaller), "Started" drops where the
@@ -222,8 +225,10 @@ final class RecordingView extends LinearLayout {
      */
     private void fitButton(int width) {
         float words = buttonLabel.getPaint().measureText(String.valueOf(buttonLabel.getText()));
-        float room = width - button.getPaddingLeft() - button.getPaddingRight() - ui.dp(20);
-        boolean chevron = words + ui.dp(20 + 10 + 10 + 18) <= room, icon = chevron || words + ui.dp(20 + 10) <= room;
+        float room = width - button.getPaddingLeft() - button.getPaddingRight();
+        // Each part counted once (RecordingFit.buttonParts): the gauge's 20 dp and its 10 dp gap, the chevron's 10 and 18.
+        int parts = RecordingFit.buttonParts(words, room, ui.dp(20), ui.dp(10), ui.dp(18));
+        boolean chevron = parts == 2, icon = parts >= 1;
         if ((buttonChevron.getVisibility() == VISIBLE) != chevron) buttonChevron.setVisibility(chevron ? VISIBLE : GONE);
         if ((buttonIcon.getVisibility() == VISIBLE) != icon) buttonIcon.setVisibility(icon ? VISIBLE : GONE);
         LinearLayout.LayoutParams size = (LinearLayout.LayoutParams) buttonLabel.getLayoutParams();
@@ -261,24 +266,26 @@ final class RecordingView extends LinearLayout {
     /**
      * Shows the recording now: its summary (its start, time and distance), the link (RidingFocus.Link, off for a scooter
      * switched off but answering), the readings the parked card shows (ScooterService.dashboardReadings: battery_percent
-     * and remaining_range_km, which follows the range source) and the speed reading, in the "units" preference. Cheap to
-     * call on every refresh.
+     * and remaining_range_km, which follows the range source) and the speed reading, in the "units" preference; paused is
+     * the service's words while it has stopped saving the ride (ScooterService.recordingError), null while it saves.
+     * Cheap to call on every refresh.
      */
-    void bind(RideStore.Summary summary, RidingFocus.Link link, boolean off, java.util.Map<String, TelemetryHistory.Reading> readings,
-              String units, long wallNow) {
+    void bind(RideStore.Summary summary, RidingFocus.Link link, boolean off, String paused,
+              java.util.Map<String, TelemetryHistory.Reading> readings, String units, long wallNow) {
         active = summary;
         endedWall = -1;
         this.link = link == null ? RidingFocus.Link.NOT_CONNECTED : link;
         this.off = off;
+        if (paused != null && paused.isEmpty()) paused = null;
         long elapsed = RecordingFit.elapsedMs(summary, wallNow);
-        RecordingPill.Look next = RecordingPill.look(elapsed, this.link, null, false, off);
+        RecordingPill.Look next = RecordingFit.look(elapsed, this.link, off, paused != null);
         if (next != look) { look = next; showLook(); }
-        Msg problem = look == RecordingPill.Look.RECORDING_PROBLEM ? HubText.recordingProblem(this.link, off) : null;
-        problemText = problem == null ? null : problem.render();
+        Msg problem = look == RecordingPill.Look.RECORDING_PROBLEM && paused == null ? HubText.recordingProblem(this.link, off) : null;
+        problemText = paused != null ? paused : problem == null ? null : problem.render();
         side.setTextColor(problemText != null ? ui.orange : ui.muted);
         CharSequence started = summary == null ? "" : HubText.recordingStarted(DisplayTime.clock(getContext(), settings, summary.startWallMs)).render();
         // The head row is fitted again only when its words change (fitHead), not on every second's refresh.
-        if (!TextUtils.equals(started, startedText) || !TextUtils.equals(problem == null ? null : problemText, headProblem)) {
+        if (!TextUtils.equals(started, startedText) || !TextUtils.equals(problemText, headProblem)) {
             startedText = started;
             headProblem = problemText;
             requestLayout();
@@ -302,19 +309,22 @@ final class RecordingView extends LinearLayout {
         stats.set(1, percent, null, battery != null && battery.live);
         stats.set(2, rangeShown, rangeShort, range != null && range.live);
 
-        // The speed now, beside the ribbon's label, in the primary unit (both units do not fit a label's room).
+        // The speed now, beside the ribbon's label, in the primary unit (both units do not fit a label's room): only a
+        // reading riding mode would still show (RecordingFit.speedNowShown), never while saving is paused.
         TelemetryHistory.Reading speed = readings == null ? null : readings.get("speed_kmh");
-        boolean speedLive = speed != null && speed.live && speed.number != null && this.link == RidingFocus.Link.CONNECTED && !off;
+        boolean speedLive = speed != null && speed.number != null
+                && RecordingFit.speedNowShown(speed.live, speed.capturedWallMs, wallNow, this.link == RidingFocus.Link.CONNECTED && !off, paused != null);
         Formatted now = speedLive ? DisplayUnits.speedQuantity(speed.number, "dual".equals(units) ? "mi" : units) : null;
         ribbon.now(now == null ? null : HubText.recordingSpeedNow(now).render());
 
         // One description, set again only when its words change, never a live region: the time by the minute
-        // (HubText.recordingTimeSpoken) and the readings; the ribbon and its speed are decorative and not spoken.
+        // (HubText.recordingTimeSpoken) with any problem (saving paused first), and the readings; the ribbon and its speed
+        // are decorative and not spoken (the speed changes too often for a description read once).
         Msg rangeSpoken = HubText.recordingRangeSpoken(rangeKm, rangeText, units);
-        String spoken = HubText.recordingSpoken(elapsed, this.link, off,
+        String spoken = HubText.recordingSpoken(elapsed, this.link, off, paused, new CharSequence[] {
                 HubText.recordingTrip().render(), trip == null ? null : trip.toString(),
                 HubText.recordingBattery().render(), percent == null ? null : percent.toString(),
-                HubText.recordingRange(true).render(), rangeSpoken == null ? null : rangeSpoken.render()).render();
+                HubText.recordingRange(true).render(), rangeSpoken == null ? null : rangeSpoken.render()}).render();
         if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
     }
 
@@ -593,7 +603,8 @@ final class RecordingView extends LinearLayout {
      * colour in either theme): a 1.8 dp line in the text colour with round joins over a faint fill to the bottom, broken
      * where readings stop, stopped stretches on the baseline, a 10 dp accent dot ringed in the panel's colour at its end
      * while the speed is live, "Speed, this ride" at the top left and the speed now at the top right. Decorative for
-     * accessibility: its speed now is in the moment's description. With no reading yet, the label and a faint baseline.
+     * accessibility: the moment's description does not read its speed (it changes too often for a description read
+     * once); riding mode, a tap away, speaks it. With no reading yet, the label and a faint baseline.
      */
     private final class Ribbon extends FrameLayout {
         private final TextView name, now;
