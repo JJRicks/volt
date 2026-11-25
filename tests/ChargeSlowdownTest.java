@@ -222,13 +222,13 @@ public final class ChargeSlowdownTest {
         public double warm(Sim s) { return s.temp < 15 ? .15 : .3; }
     };
 
-    /** 3. Cold start at 58% and 13 C: shown cold from 40 s until 60 s after the current is back; no jump at 15 C. */
+    /** 3. Cold start at 58% and 13 C: shown cold from 90 s (after any soft start) until 60 s after the current is back; no jump at 15 C. */
     private static void coldStart() {
         Sim sim = new Sim(58, 13).run(COLD, 101);
         check(sim.complete > 0, "The cold charge completes");
         Watch w = new Watch(sim.samples);
         int first = w.firstShown();
-        check(first >= 0 && sim.samples.get(first).t - T0 == 40_000, "Cold start shows slowed at 40 s (start and hold): " + first);
+        check(first >= 0 && sim.samples.get(first).t - T0 == ChargeSlowdown.SOFT_START_MS, "Cold start shows slowed at 90 s (below 35 C, after the soft start): " + first);
         check(w.shows() == 1, "Cold start shows once");
         int recovered = -1, cleared = -1;
         for (int i = first; i < sim.samples.size(); i++) {
@@ -236,8 +236,9 @@ public final class ChargeSlowdownTest {
             if (recovered < 0 && s.amps >= .95 * ChargeSlowdown.expectedAmps(s.soc)) recovered = i;
             if (cleared < 0 && !w.states.get(i).slowed) cleared = i;
         }
+        // It recovers through the 80% step (8.5 A, then 8.0 A expected): no jump, so the 60 s clear.
         check(recovered > 0 && cleared > 0 && sim.samples.get(cleared).t - sim.samples.get(recovered).t == MIN,
-                "Cold start clears 60 s after the current is back");
+                "Cold start clears 60 s after the current is back (through the 80% step, not a jump)");
         for (int i = first; i < cleared; i++) check(w.states.get(i).cause == ChargeSlowdown.Cause.COLD, "Cold start is named cold while shown");
         check(w.states.get(cleared).coldTail && w.states.get(w.states.size() - 1).coldTail, "The cold stretch is remembered to the end of the charge");
         Estimates e = new Estimates(sim.samples, w);
@@ -280,12 +281,12 @@ public final class ChargeSlowdownTest {
         return out;
     }
 
-    /** 4. The owner's example: 430 W (8.74 A at 49.2 V) at 19 C and 40%: shown, cold, at 40 s. */
+    /** 4. The owner's example: 430 W (8.74 A at 49.2 V) at 19 C and 40%: shown, cold, at 90 s. */
     private static void ownerExample() {
         List<Sample> samples = steady(40, 49.2, 8.74, 19d, 3 * MIN);
         Watch w = new Watch(samples);
-        check(!w.states.get(3).slowed && w.states.get(4).slowed, "The owner's example shows after 20 s of start and 20 s of hold");
-        check(w.states.get(4).cause == ChargeSlowdown.Cause.COLD && w.states.get(4).batteryTempC == 19, "It is named cold, with the temperature");
+        check(!w.states.get(8).slowed && w.states.get(9).slowed, "The owner's example shows at 90 s (below 35 C: after the soft start)");
+        check(w.states.get(9).cause == ChargeSlowdown.Cause.COLD && w.states.get(9).batteryTempC == 19, "It is named cold, with the temperature");
         Estimates e = new Estimates(samples, w);
         planningAtLeastShown(e, "Owner's example");
         ChargingEstimate.Result r = e.v10.get(15);
@@ -337,7 +338,7 @@ public final class ChargeSlowdownTest {
         check(sim.samples.get(first).t - drop == 20_000 && w.states.get(first).cause == ChargeSlowdown.Cause.PLAIN, "Shown plain 20 s into the drop");
         int cleared = first;
         while (w.states.get(cleared).slowed) cleared++;
-        check(sim.samples.get(cleared).t - back == MIN, "Cleared 60 s after the current is back");
+        check(sim.samples.get(cleared).t == back, "Cleared at once on the jump from 7 A back to the full current");
         Estimates e = new Estimates(sim.samples, w);
         planningAtLeastShown(e, "Mid-band");
         check(e.v10.get(first).remainingMinutesToFull > e.v9.get(first - 7).remainingMinutesToFull - 2, "Slowed, the time allows for the lower current");
@@ -668,11 +669,11 @@ public final class ChargeSlowdownTest {
     }
 
     /**
-     * 14. The owner's after-ride charge with no charger known: "Charging slowed · battery hot" from 40 s (20 s after
-     * charging began, then 20 s below 1.6 A, far under the standard charger's level), to the unplug. After the replug,
-     * 1.98 A with no charger known is the standard charger's level: not slowed. The second replug's 1.28 A lasts 18 s,
-     * under the 20 s start. With the fast charger chosen 1.98 A is slowed too, 40 s after its replug. Before 2.0.6 it
-     * never showed (no charger known; 38 C to name heat).
+     * 14. The owner's after-ride charge with no charger known: "Charging slowed · battery hot" from 40 s (36 C: 20 s
+     * after charging began, then 20 s below 1.6 A, far under the standard charger's level), to the unplug. After the
+     * replug, 1.98 A with no charger known is the standard charger's level: not slowed. The second replug's 1.28 A lasts
+     * 18 s. With the fast charger chosen 1.98 A is slowed too, at 34 C from 90 s after its replug (a soft start could
+     * not be told from it sooner). Before 2.0.6 it never showed (no charger known; 38 C to name heat).
      */
     private static void afterRide() {
         List<Reading> r = afterRideTimeline();
@@ -687,7 +688,7 @@ public final class ChargeSlowdownTest {
         List<ChargeSlowdown.State> fast = watch(r, FAST);
         check(!fast.get(at(r, 38_000)).slowed && fast.get(at(r, 40_000)).slowed, "Fast charger chosen: slowed at 40 s");
         check(!fast.get(at(r, 262_000)).slowed, "Unplugged: not slowed");
-        check(!fast.get(at(r, 306_000)).slowed && fast.get(at(r, 308_000)).slowed, "Fast charger chosen: 1.98 A slowed 40 s after the replug");
+        check(!fast.get(at(r, 356_000)).slowed && fast.get(at(r, 358_000)).slowed, "Fast charger chosen: 1.98 A at 34 C slowed 90 s after the replug");
         for (int i = at(r, 408_000); i < r.size(); i++) check(!fast.get(i).slowed, "After the second replug: 18 s at 1.28 A, then full current, reading " + i);
     }
 
@@ -697,8 +698,9 @@ public final class ChargeSlowdownTest {
      */
     private static void anyCharger() {
         for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, STOCK, FAST}) {
-            check(new Watch(steady(40, 48.9, 1.5, 25d, MIN), UT5, charger, 100d).ever(), "1.5 A shows within a minute on " + charger);
-            check(new Watch(steady(40, 48.9, 1.28, 25d, MIN), UT5, charger, 100d).ever(), "1.28 A (about 63 W) shows on " + charger);
+            Watch slow = new Watch(steady(40, 48.9, 1.5, 25d, 2 * MIN), UT5, charger, 100d);
+            check(slow.firstShown() == 9, "1.5 A at 25 C shows at 90 s on " + charger + ": " + slow.firstShown());
+            check(new Watch(steady(40, 48.9, 1.28, 36d, MIN), UT5, charger, 100d).firstShown() == 4, "1.28 A (about 63 W) at 36 C shows at 40 s on " + charger);
             check(!new Watch(steady(40, 48.9, 1.5, 25d, MIN), 1234, charger, 100d).ever(), "Another model never shows, on " + charger);
             check(!new Watch(steady(40, 48.9, 1.5, 25d, MIN), UT5, 25, charger, 100d).ever(), "Another pack never shows, on " + charger);
         }
@@ -716,20 +718,45 @@ public final class ChargeSlowdownTest {
         check(!new Watch(steady(95, 54.30, 1.2, 25d, 3 * MIN), UT5, FAST, 100d).ever(), "The fast charger's finish never shows");
         // Near the charge limit nothing shows on any charger.
         check(!new Watch(steady(78, 51.5, 1.0, 25d, 3 * MIN), UT5, null, 80d).ever(), "Within 2% of the limit never shows");
-        // A plugged-in fast charger's soft start (about 1.3 A for a minute or so) reads as slowed from 40 s: the rider sees
-        // about 65 W from a 500 W charger. It clears 60 s after the full current, as every slowdown does.
-        List<Sample> soft = steady(40, 48.9, 1.28, 25d, 70_000);
-        for (Sample s : steady(40, 49.9, 10.05, 25d, 2 * MIN)) soft.add(new Sample(s.t + 80_000, s.soc, s.volts, s.amps, s.temp));
-        Watch start = new Watch(soft, UT5, null, 100d);
-        check(start.firstShown() == 4 && start.states.get(4).cause == ChargeSlowdown.Cause.PLAIN, "A soft start shows plain at 40 s: " + start.firstShown());
-        int cleared = 4;
-        while (start.states.get(cleared).slowed) cleared++;
-        check(soft.get(cleared).t - T0 == 80_000 + MIN, "It clears 60 s after the full current: " + (soft.get(cleared).t - T0));
+        // The fast charger's soft start (about 1.3 A; the owner's held up to 55 s) is not a slowdown below 35 C: nothing
+        // shows before 90 s, on any charger setting, also cold (8 C) or with no temperature.
+        for (Double temp : new Double[]{25d, 8d, null, 34d})
+            for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, FAST}) {
+                List<Sample> soft = steady(40, 48.9, 1.28, temp, 80_000);
+                for (Sample s : steady(40, 49.9, 10.05, temp, 2 * MIN)) soft.add(new Sample(s.t + 90_000, s.soc, s.volts, s.amps, s.temp));
+                check(!new Watch(soft, UT5, charger, 100d).ever(), "An 80 s soft start at " + temp + " C on " + charger + " shows nothing");
+            }
+        // At 35 C or more it shows at 40 s (heat explains a low current), and the jump to the full current clears it at once.
+        List<Sample> hot = steady(40, 48.9, 1.28, 36d, 70_000);
+        for (Sample s : steady(40, 49.9, 10.05, 36d, 2 * MIN)) hot.add(new Sample(s.t + 80_000, s.soc, s.volts, s.amps, s.temp));
+        for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, FAST}) {
+            Watch start = new Watch(hot, UT5, charger, 100d);
+            check(start.firstShown() == 4 && start.states.get(4).cause == ChargeSlowdown.Cause.HOT, "Hot: shown at 40 s on " + charger + ": " + start.firstShown());
+            int cleared = 4;
+            while (start.states.get(cleared).slowed) cleared++;
+            check(hot.get(cleared).t - T0 == 80_000, "Hot: cleared at once by the jump to 10 A on " + charger + ": " + (hot.get(cleared).t - T0));
+        }
+        // On the standard charger the jump is to its own level; a creep back (1.5 to 1.75 A) still takes 60 s.
+        List<Sample> stock = steady(40, 48.9, 1.0, 36d, MIN);
+        for (Sample s : steady(40, 49.0, 2.2, 36d, MIN)) stock.add(new Sample(s.t + 70_000, s.soc, s.volts, s.amps, s.temp));
+        Watch std = new Watch(stock, UT5, STOCK, 100d);
+        check(std.ever() && !std.states.get(7).slowed && std.states.get(6).slowed, "Standard charger: the jump to 2.2 A clears at once");
+        List<Sample> creep = steady(40, 48.9, 1.0, 36d, MIN);
+        for (Sample s : steady(40, 49.0, 1.75, 36d, 2 * MIN)) creep.add(new Sample(s.t + 70_000, s.soc, s.volts, s.amps, s.temp));
+        for (ChargeSessionStore.Charger charger : new ChargeSessionStore.Charger[]{null, STOCK}) {
+            Watch c = new Watch(creep, UT5, charger, 100d);
+            int back = 7, gone = back;
+            while (c.states.get(gone).slowed) gone++;
+            check(c.states.get(back).slowed && creep.get(gone).t - creep.get(back).t == MIN, "A creep back to 1.75 A clears after 60 s on " + charger);
+        }
+        // Fast charger: a creep across the band (8.9 to 9.6 A) is no jump; 8 to 10 A in one reading is.
+        check(!ChargeSlowdown.jumped(FAST, 9.3, 9.6, 10.05) && ChargeSlowdown.jumped(FAST, 8.0, 10.05, 10.05) && ChargeSlowdown.jumped(null, 1.28, 10.05, 10.05)
+                && !ChargeSlowdown.jumped(null, 1.28, 1.98, 10.05) && !ChargeSlowdown.jumped(FAST, Double.NaN, 10.05, 10.05), "What a jump is");
         // A charger chosen or detected changes the level at once, without a new start window: no charger known at 1.8 A
         // (not slowed), then the fast charger detected shows 20 s later; it unknown again for a moment keeps it shown.
         ChargeSlowdown o = new ChargeSlowdown();
         long t = T0;
-        for (; t <= T0 + MIN; t += STEP) o.observe(P, UT5, (Double) RATED, null, true, 40d, 49.0, -1.8, 25d, 100d, t);
+        for (; t <= T0 + 2 * MIN; t += STEP) o.observe(P, UT5, (Double) RATED, null, true, 40d, 49.0, -1.8, 25d, 100d, t);
         check(!o.state(P, t - STEP).slowed, "1.8 A with no charger known: not slowed");
         for (long end = t + 20_000; t <= end; t += STEP) o.observe(P, UT5, (Double) RATED, FAST, true, 40d, 49.0, -1.8, 25d, 100d, t);
         check(o.state(P, t - STEP).slowed, "The fast charger detected: slowed 20 s later");
@@ -738,24 +765,30 @@ public final class ChargeSlowdownTest {
     }
 
     /**
-     * 16. An unplug and replug starts the charge again (as before 2.0.6): the 20 s start and 20 s below follow the
-     * replug. Readings every 15 s (Home out of sight) still show it, at the first reading from 40 s with 20 s below.
+     * 16. An unplug and replug starts the charge again (as before 2.0.6): the start and the hold follow the replug.
+     * Readings every 15 s (Home out of sight) still show it: hot at the first reading from 40 s with 20 s below; below
+     * 35 C at the first from 90 s.
      */
     private static void replugAndSlowReadings() {
         List<Reading> r = new ArrayList<>();
-        hold(r, 0, 30_000, true, 40, 48.9, 1.0, 25d);
-        hold(r, 30_000, 8_000, false, 40, 48.9, .05, 25d);
-        hold(r, 38_000, 60_000, true, 40, 48.9, 1.0, 25d);
+        hold(r, 0, 30_000, true, 40, 48.9, 1.0, 36d);
+        hold(r, 30_000, 8_000, false, 40, 48.9, .05, 36d);
+        hold(r, 38_000, 60_000, true, 40, 48.9, 1.0, 36d);
         List<ChargeSlowdown.State> s = watch(r, null);
         check(!s.get(at(r, 76_000)).slowed && s.get(at(r, 78_000)).slowed, "A replug restarts the clock: slowed 40 s after it");
         ChargeSlowdown slow = new ChargeSlowdown();
         long t = T0;
-        for (; t <= T0 + 30_000; t += 15_000) slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, t);
+        for (; t <= T0 + 30_000; t += 15_000) slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 36d, 100d, t);
         check(!slow.state(P, t - 15_000).slowed, "15 s readings: not at 30 s");
-        slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, t);
+        slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 36d, 100d, t);
         check(!slow.state(P, t).slowed, "15 s readings: not at 45 s (20 s start, 15 s below)");
-        slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, t + 15_000);
-        check(slow.state(P, t + 15_000).slowed, "15 s readings: shown at 60 s");
+        slow.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 36d, 100d, t + 15_000);
+        check(slow.state(P, t + 15_000).slowed, "15 s readings: shown at 60 s when hot");
+        ChargeSlowdown warm = new ChargeSlowdown();
+        for (t = T0; t <= T0 + 75_000; t += 15_000) warm.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, t);
+        check(!warm.state(P, T0 + 75_000).slowed, "15 s readings at 25 C: not at 75 s");
+        warm.observe(P, UT5, (Double) RATED, null, true, 40d, 48.9, -1.0, 25d, 100d, T0 + 90_000);
+        check(warm.state(P, T0 + 90_000).slowed, "15 s readings at 25 C: shown at 90 s");
     }
 
     private static ChargeSlowdown slowedNow() {
