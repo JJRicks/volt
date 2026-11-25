@@ -59,3 +59,4 @@
 {"calls":1,"chunk":0,"draft":"openai","keys":14,"model":"gpt-6.1-terra","model_reported":"gpt-6.1-terra","provider":"openai","received":14,"stage":"draft","top_up":true,"when":"2026-11-25T05:17:37Z"}
 {"chunk":0,"draft":"google","keys":14,"model":"gemini-3.8-flash","provider":"google","stage":"api-call","step":"draft","usage":{"candidatesTokenCount":467,"promptTokenCount":13387,"thoughtsTokenCount":10364,"totalTokenCount":24218},"when":"2026-11-25T05:19:00Z"}
 {"calls":1,"chunk":0,"draft":"google","keys":14,"model":"gemini-3.8-flash","model_reported":"gemini-3.8-flash","provider":"google","received":14,"stage":"draft","top_up":true,"when":"2026-11-25T05:19:00Z"}
+{"chunks":1,"draft":"claude-opus","keys":14,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"c1978f06ab29","stage":"import-chunks","when":"2026-11-25T05:35:50Z"}

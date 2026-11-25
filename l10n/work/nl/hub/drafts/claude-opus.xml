@@ -115,6 +115,20 @@
     <string name="hub_list_separator" volt:src="17fa93aa43e4818263fea1e38df93c71bc52ecfa">", "</string>
     <string name="hub_qa_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Instellingen zoeken</string>
     <string name="hub_qa_search_settings_short" volt:src="3f3dacec55518e55832c230ba1007f8e0ae1fc27">Zoeken</string>
+    <string name="hub_recording_started" volt:src="c90e2ff4b76f6579ec02ada0c8ec0e532ff6a62f">Gestart: %1$s</string>
+    <string name="hub_recording_speed" volt:src="37dfd34a6f6c2e26a0eb06efee5eb51b7ba02fd6">Snelheid van deze rit</string>
+    <string name="hub_recording_speed_short" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Snelheid</string>
+    <string name="hub_recording_range" volt:src="e035744dcbe17ac57b2f0283930e5dacb2955b12">Geschat bereik</string>
+    <string name="hub_recording_range_short" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Bereik</string>
+    <string name="hub_recording_speed_now" volt:src="24714a05cd504f1a0914e9c79572d389ff95fa82">Nu: %1$s</string>
+    <string name="hub_recording_spoken_under_minute" volt:src="eb10a53b46f74881d3ac6c3be375938719680d4c">Minder dan een minuut bezig met opnemen</string>
+    <string name="hub_recording_spoken_next" volt:src="7de70eaff3962a1ffb6faac108e77ec4797ce542">%1$s. %2$s</string>
+    <string name="hub_recording_description" volt:src="7075e9647c1abbb827f99d0d5ca9159159b7f2c8">%1$s. Dit opent de pagina ‘Rijden’.</string>
+    <string name="hub_recording_paused_storage" volt:src="e98db2fba3c245ef2622860c9692efae932cfa03">Opslaan gepauzeerd: opslag vol</string>
+    <string name="hub_recording_paused_storage_short" volt:src="7fb4b8e1a5c643f0abab48f594470ce9c49bb11b">Opslag vol</string>
+    <string name="hub_recording_save_failed" volt:src="bb03aa47eac52a99920d9629cfc1f1ca9e58916f">Opslag vol: maak ruimte vrij, dan ‘Opslaan opnieuw proberen’</string>
+    <string name="hub_recording_save_failed_short" volt:src="d909598b3c0ff81655f69f000ac3e92672b1b853">Rit niet opgeslagen</string>
+    <string name="hub_moment_recording" volt:src="58debfba4284260fc9b51c484a3ab565b5e7aab0">Rit tonen tijdens het opnemen</string>
     <string name="hub_just_back_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Accu</string>
     <string name="hub_just_back_time_seconds" volt:src="50f369a58a796cbe5e0fddd6cbc43dc05caa82c9">%1$s s</string>
     <string name="hub_just_back_time_minutes" volt:src="527c09cc01b303ca9b4a2b459fcec9501e2b81a0">%1$s min</string>
