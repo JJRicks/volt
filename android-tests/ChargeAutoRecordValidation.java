@@ -472,6 +472,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
      * stopped by hand or ended by a charge: no journal, no phone sensor files, no auto-save entry.
      */
     private void rideRules() throws Exception {
+        discardShortRides();
         main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).putBoolean(RideAutoExport.ON, true).commit());
         ensureFront();
         // 1. A kept ride (35 s at 12 km/h, about 117 m), then plugged in.
@@ -519,7 +520,9 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         await(() -> { main(() -> { link.motion(2); link.status(); }); SystemClock.sleep(300); return onMain(() -> service.isRecording()); }, 30 * S,
                 "Record rides automatically never started again after the charger settled off");
         log("unplugged: 2 km/h started a ride again " + (SystemClock.elapsedRealtime() - unplugged) + " ms after the unplug (30 s wait)");
-        main(() -> { service.stopRide(); set(field(service, "autoStart"), "recordHeld", false); settings().edit().putBoolean(KEY, true).commit(); });
+        main(() -> service.stopRide());
+        release();
+        main(() -> settings().edit().putBoolean(KEY, true).commit());
         await(() -> onMain(() -> !service.phoneSaving()), 10 * S, "That ride never finished saving");
 
         // 3. A 6 s ride stopped by hand is not kept, nor its phone files or an auto-save entry.
@@ -528,7 +531,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         main(() -> service.stopRide());
         await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "The short ride never finished saving");
         shortGone(handShort, before, "stopped by hand after 6 s");
-        main(() -> set(field(service, "autoStart"), "recordHeld", false));
+        release();
 
         // 4. An 8 s ride ended by a plug-in is not kept either, and the charge recording still starts.
         String plugShort = autoRide(8);
@@ -542,6 +545,15 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         unplugAndSettle();
         main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).putBoolean(RideAutoExport.ON, false).remove(RideAutoExport.PENDING).commit());
         for (File file : saved()) file.delete();
+    }
+    /** Ends the hand stop's hold once no fresh motion is left, so no ride starts on the last moving sample. */
+    private void release() {
+        main(() -> link.motion(0));
+        SystemClock.sleep(AutoStartPolicy.SPEED_FRESH_MS + 500);
+        require(onMain(() -> !service.isRecording()), "A ride started while held");
+        main(() -> set(field(service, "autoStart"), "recordHeld", false));
+        SystemClock.sleep(S);
+        require(onMain(() -> !service.isRecording()), "A ride started without fresh motion after the hold ended");
     }
     /** Starts an automatic ride with motion at 12 km/h and keeps it moving for seconds; returns its id. */
     private String autoRide(int seconds) {

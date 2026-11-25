@@ -60,6 +60,15 @@ public final class RideStore {
     public static final double MIN_KEEP_KM = 0.01 * KM_PER_MILE;
     /** A ride shorter than this (by its shown duration) is not kept either. */
     public static final long MIN_KEEP_MS = 20_000;
+    /**
+     * A hold for emulator validations only, like EndlessMotion's: their synthetic rides last seconds, and most of them
+     * check what a saved ride does. False in the app, always: nothing in the app sets it and it has no setter; the
+     * validations' shared base class (android-tests/ValidationInstrumentation) sets it by reflection in the test
+     * process, and a validation that checks the keep rule turns it off again.
+     */
+    private static volatile boolean keepsShortForValidation;
+    /** Whether the service's stops discard a ride that is not {@link #kept} (true outside validations). */
+    static boolean discardsShort() { return !keepsShortForValidation; }
     private static final int MAX_STOP_DETAILS = 80;
     private static final int MAX_METRICS = 160;
     private static final String HEADER = "schema_version,event,recorded_utc,wall_ms,monotonic_ms,frame,key,numeric,text,unit,source_command,sensor_updated_monotonic_ms,sensor_age_ms,current_direction,details\n";

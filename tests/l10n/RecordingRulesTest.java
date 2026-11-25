@@ -215,7 +215,8 @@ public final class RecordingRulesTest {
         String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8).replace("\r", "");
         int a = src.indexOf("private boolean stopRide(String reason){"); check(a >= 0, "stopRide found");
         String stop = src.substring(a, src.indexOf("\n    /**", a));
-        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,true)"), "every stop, the rider's and the automatic ones, discards a short ride");
+        check(stop.contains("rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort())") && RideStore.discardsShort(),
+                "every stop, the rider's and the automatic ones, discards a short ride (the validations' hold is off in the app)");
         check(stop.contains("if(!discarded)RideAutoExportFolder.queue(settings,stopping);"), "a discarded ride is never copied out (ride auto-export)");
         check(stop.contains("phoneDiscard=discarded?stopping:null;stopPhoneRecording();"), "its phone GPS files go once saved");
         int changed = src.indexOf("private void changed(){");

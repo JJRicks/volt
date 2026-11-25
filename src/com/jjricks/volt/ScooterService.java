@@ -2641,7 +2641,7 @@ public final class ScooterService extends Service {
         // rides.stop clears the active id: keep it for the automatic copy.
         String stopping=rides.activeId();RideStore.Summary stopped;
         // Too short to keep (RideStore.kept: under 0.01 mi or 20 s), whatever ended it: removed at once, no summary row.
-        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,true);invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
+        try{stopped=rides.stop(System.currentTimeMillis(),SystemClock.elapsedRealtime(),reason,RideStore.discardsShort());invalidateCapacityEstimate();recordingError=null;}catch(IOException e){
             recordingError =
                     "Storage full · free space, then Retry save";
             android.widget.Toast.makeText(this,recordingError,android.widget.Toast.LENGTH_LONG).show();updateNotification();changed();return false;}
