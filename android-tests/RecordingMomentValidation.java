@@ -53,13 +53,18 @@ import java.util.function.BooleanSupplier;
  * card's range line is read under each range source, then a recording shows the same figure in its Range cell under
  * each source (last seen, the link lost), as Not connected in the head row.
  *
+ * <p>-e mode problem, on the simulator, in any shipped language (-e language, the app's own per-app language; it checks
+ * no English): the head row's warnings whole on screen by the narrow-label ladder (no ellipsis, inside the row, clear of
+ * "Recording"), each through the app's own path: the scooter switched off, the link lost and both paused states.
+ *
  * <p>Pictures named by -e size_label. Sends no scooter command.
  */
 public final class RecordingMomentValidation extends ValidationInstrumentation {
     private MainActivity activity;
     private ScooterService service;
     private Bundle args;
-    private String size = "size", units = "mi", profile;
+    private String size = "size", units = "mi", profile, language = "";
+    private boolean languageSet, heldOff;
     private int assertions;
     private final ArrayList<String> checks = new ArrayList<>(), screenshots = new ArrayList<>();
     /** The mock-up's sample: 14:38 recorded, 2.5 mi (4.02 km), 73%, about 23 mi (37.2 km) left, 16.8 mph (27.04 km/h). */
@@ -82,22 +87,28 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             size = args.getString("size_label", "size");
             units = args.getString("units", "mi");
             String mode = args.getString("mode", "sim");
-            require(mode.equals("sim") || mode.equals("range"), "Unknown -e mode " + mode + " (sim or range)");
+            require(mode.equals("sim") || mode.equals("range") || mode.equals("problem"), "Unknown -e mode " + mode + " (sim, range or problem)");
+            language = args.getString("language", "");
+            require(language.isEmpty() || mode.equals("problem"), "-e language goes with -e mode problem (the other modes check English words)");
             require(settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", false)
                     .putBoolean("developer_options", true).putBoolean("auto_record_rides", false).putBoolean("riding_auto_open", false)
                     .putString("theme", args.getString("theme", "dark")).putString("units", units)
                     .putFloat("text_scale", Float.parseFloat(args.getString("text_scale", "1")))
                     .putString("home_style", "clean").putBoolean("home_style_chosen", true).putString("home_style_origin", "install")
                     .commit(), "Could not seed preferences");
-            if (mode.equals("sim")) {
+            if (!mode.equals("range")) {
                 main(() -> {
                     ScooterProfiles profiles = new ScooterProfiles(getTargetContext());
                     ScooterProfiles.Profile p = profiles.create("Synthetic UT5 MAX", "000000000001", 0); p.serial = "Q2345ZZ9ES7777777";
                     profiles.update(p); profiles.select(p.id); profile = p.id; OnboardingScreen.markDone(getTargetContext());
                 });
+                if (!language.isEmpty()) { setLocale(language); languageSet = true; }
                 launch();
+                if (!language.isEmpty()) main(() -> require(activity.getResources().getConfiguration().getLocales().get(0).getLanguage()
+                        .equals(Locale.forLanguageTag(language).getLanguage()), "The app is not in " + language));
                 simulate();
-                sim();
+                if (mode.equals("sim")) sim();
+                else problems();
             } else {
                 seedRangeHistory();
                 launch();
@@ -112,11 +123,13 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         } finally {
             result.putInt("assertions", assertions); result.putStringArrayList("checks", checks); result.putStringArrayList("screenshots", screenshots);
             result.putBoolean("physical_device_tested", false); result.putInt("scooter_mutations", 0);
+            if (heldOff) try { holdOff(false); } catch (Throwable ignored) {}
             if (activity != null) try { main(() -> {
                 if (service != null && service.isRecording()) service.rides.stop(System.currentTimeMillis(), SystemClock.elapsedRealtime());
                 if (service != null && service.simulating()) service.setSimulation(false);
                 activity.finish(); ScooterService.setUiVisible(false);
                 getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) {}
+            if (languageSet) try { setLocale(""); } catch (Throwable ignored) {}
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
         }
     }
@@ -160,6 +173,7 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         await(() -> { activity.redraw(); return "Reconnecting…".contentEquals(side().getText()) || "Not connected".contentEquals(side().getText()); }, 10000,
                 "The head row does not say the link is lost: \"" + onMain(() -> side().getText()) + "\"");
         require(onMain(() -> field(view(), "look")) == RecordingPill.Look.RECORDING_PROBLEM, "The dot does not take the problem look");
+        requireHeadWhole("the link lost");
         // The header's status line may change with the link (as it always has); the top area keeps its height and the
         // Lock bar its place under it.
         requireAreaKept(parked, "the link problem");
@@ -173,8 +187,23 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         // battery card or other moment in between (HomeMoment.holdRecording).
         main(() -> service.stopRide());
         List<Integer> seen = new ArrayList<>();
-        await(() -> { activity.redraw(); int m = moment(); if (seen.isEmpty() || seen.get(seen.size() - 1) != m) seen.add(m); return m == HomeMoment.JUST_BACK && !service.isRecording(); },
+        // While the moment holds the stopped ride for the hand-off it reads as stopped: "Ride saved", the dot still, no speed now.
+        List<String> held = new ArrayList<>();
+        String savedWord = HubText.recordingSaved().render();
+        await(() -> {
+            activity.redraw(); int m = moment(); if (seen.isEmpty() || seen.get(seen.size() - 1) != m) seen.add(m);
+            if (m == HomeMoment.RECORDING && !service.isRecording()) {
+                RecordingView v = view();
+                String state = field(v, "look") + " \"" + ((TextView) field(v, "label")).getText() + "\" now " + field(field(v, "ribbon"), "nowShown")
+                        + " pulse " + (field(v, "pulse") != null) + " \"" + v.getContentDescription() + "\"";
+                if (held.isEmpty() || !held.get(held.size() - 1).equals(state)) held.add(state);
+            }
+            return m == HomeMoment.JUST_BACK && !service.isRecording(); },
                 15000, "Clean Home does not show Just back after the recording stopped (moments " + seen + ")");
+        for (String state : held)
+            require(state.startsWith(RecordingPill.Look.SAVED + " \"" + savedWord + "\" now false pulse false")
+                    && state.contains(HubText.recordingSavedSpoken().render()), "During the hand-off the moment still reads as recording: " + state);
+        checks.add(size + ": the hand-off hold: " + (held.isEmpty() ? "not seen (Just back came first)" : held.size() + " state(s), each \"" + savedWord + "\", the dot still, no speed now"));
         require(seen.size() <= 2 && seen.get(seen.size() - 1) == HomeMoment.JUST_BACK && (seen.size() == 1 || seen.get(0) == HomeMoment.RECORDING),
                 "The recording did not hand over straight to Just back: moments " + seen);
         checks.add(size + ": stopped, the moments went " + seen + " (recording, then Just back, nothing between)");
@@ -235,24 +264,98 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             require(field(moment, "look") == RecordingPill.Look.RECORDING_PROBLEM, "Paused, the dot does not take the problem look");
             require(field(moment, "pulse") == null, "Paused, the dot still pulses");
             require(words.isShown() && words.getCurrentTextColor() == ((Ui) field(moment, "ui")).orange, "Paused, the words are not shown in orange");
-            // What fits on screen, not only the text: one line, no ellipsis, the words' width inside the view, the view inside
-            // the head row and clear of "Recording" where it shows.
-            require(words.getLayout() != null && words.getLineCount() == 1 && words.getLayout().getEllipsisCount(0) == 0,
-                    "Paused, the words are cut: \"" + seen[0] + "\"");
-            require(words.getPaint().measureText(seen[0]) <= words.getWidth() - words.getPaddingLeft() - words.getPaddingRight() + 1,
-                    "Paused, the words \"" + seen[0] + "\" are wider than their view (" + words.getWidth() + " px)");
-            Rect row = windowRect(field(moment, "head")), side = windowRect(words);
-            require(row.contains(side), "Paused, the words " + side + " run out of the head row " + row);
-            if (label.isShown()) require(windowRect(label).right <= side.left, "Paused, the words overlap \"Recording\"");
             require(!(Boolean) field(field(moment, "ribbon"), "nowShown"), "Paused, the ribbon still shows a speed now");
             require(String.valueOf(moment.getContentDescription()).contains(full), "Paused, the description does not say so: " + moment.getContentDescription());
             require(!String.valueOf(moment.getContentDescription()).contains(serviceWords) && !seen[0].contains(serviceWords),
                     "Paused, Home shows or reads the service's own error text");
         });
+        requireHeadWhole("saving paused (" + pause + ")");
         requireAreaKept(parked, "saving paused (" + pause + ")");
         requireFits();
         shot(shotName);
         checks.add(size + ": saving paused (" + pause + "): \"" + seen[0] + "\" " + seen[1] + ", whole, in orange; the dot hollow and still, no speed now, spoken");
+    }
+
+    /**
+     * The head row's words at its end whole on screen, not only as text (the narrow-label ladder, RecordingFit.headLadder):
+     * one line, no ellipsis, the words' width inside their view, the view inside the head row and clear of "Recording"
+     * where it shows.
+     */
+    private void requireHeadWhole(String what) {
+        main(() -> {
+            RecordingView moment = view();
+            TextView words = side(), label = (TextView) field(moment, "label");
+            String shown = words.getText().toString();
+            require(words.isShown() && !shown.isEmpty(), what + ": no words at the head row's end");
+            require(words.getLayout() != null && words.getLineCount() == 1 && words.getLayout().getEllipsisCount(0) == 0,
+                    what + ": the words are cut: \"" + shown + "\"");
+            require(words.getPaint().measureText(shown) <= words.getWidth() - words.getPaddingLeft() - words.getPaddingRight() + 1,
+                    what + ": the words \"" + shown + "\" are wider than their view (" + words.getWidth() + " px)");
+            Rect row = windowRect(field(moment, "head")), side = windowRect(words);
+            require(row.contains(side), what + ": the words " + side + " run out of the head row " + row);
+            if (label.isShown()) require(windowRect(label).right <= side.left, what + ": the words overlap \"" + label.getText() + "\"");
+            checks.add(size + (language.isEmpty() ? "" : " " + language) + ": " + what + ": \"" + shown + "\" whole, "
+                    + (label.isShown() ? "beside \"" + label.getText() + "\"" : "beside the dot alone"));
+        });
+    }
+
+    // ===== -e mode problem: the head row's warnings whole, in any language (-e language) =====
+
+    /**
+     * The mock-up's recording, then each warning the head row can show, through the app's own paths: the scooter switched
+     * off (ScooterPowerState's hook, as ScooterOffValidation's), the link lost (the simulator's dropout), and both paused
+     * states; each whole on screen by the ladder, pictured. Checks no English, so it runs in any shipped language.
+     */
+    private void problems() throws Exception {
+        hold("battery_percent", "73 %", 73);
+        hold("remaining_range_km", RANGE_KM + " km", RANGE_KM);
+        hold("odometer_km", ODOMETER_KM + " km", ODOMETER_KM);
+        hold("speed_kmh", SPEED_KMH + " km/h", SPEED_KMH);
+        main(() -> { service.ble.tickSimulation(); activity.redraw(); });
+        await(() -> moment() == HomeMoment.PARKED, 10000, "Clean Home is not parked before the recording");
+        settle();
+        int[] parked = place();
+        showRecording(seedRecording(ELAPSED_MS, true));
+        requireFits();
+        shot("problem-recording");
+
+        holdOff(true);
+        String off = HubText.recordingProblem(RidingFocus.Link.CONNECTED, true).render(), offShort = HubText.recordingProblemShort(RidingFocus.Link.CONNECTED, true).render();
+        await(() -> { activity.redraw(); String shown = side().getText().toString(); return shown.equals(off) || shown.equals(offShort); }, 10000,
+                "The head row does not say the scooter is off: \"" + onMain(() -> side().getText()) + "\"");
+        settle();
+        requireHeadWhole("scooter off");
+        requireAreaKept(parked, "scooter off");
+        requireFits();
+        shot("problem-off");
+        holdOff(false);
+
+        main(() -> service.ble.setSimulationScript(ScooterSimulation.DROPOUT));
+        String reconnecting = HubText.recordingProblem(RidingFocus.Link.RECONNECTING, false).render(), lost = HubText.recordingProblem(RidingFocus.Link.NOT_CONNECTED, false).render();
+        await(() -> { activity.redraw(); String shown = side().getText().toString(); return shown.equals(reconnecting) || shown.equals(lost); }, 10000,
+                "The head row does not say the link is lost: \"" + onMain(() -> side().getText()) + "\"");
+        settle();
+        requireHeadWhole("the link lost");
+        requireFits();
+        shot("problem-link");
+        main(() -> { service.ble.setSimulationScript(""); service.ble.tickSimulation(); activity.redraw(); });
+        await(() -> service.ble.ready(), 10000, "The simulated scooter did not come back");
+
+        storagePaused(parked);
+    }
+
+    /** The scooter switched off but answering, through the app's own hook (ScooterPowerState.heldOff), or back on. */
+    private void holdOff(boolean off) throws Exception {
+        Field field = Class.forName("com.jjricks.volt.ScooterPowerState").getDeclaredField("heldOff");
+        field.setAccessible(true); field.setBoolean(null, off);
+        heldOff = off;
+        if (activity != null) main(() -> { service.ble.refresh(false); activity.redraw(); });
+    }
+
+    private void setLocale(String tag) {
+        android.app.LocaleManager manager = getTargetContext().getSystemService(android.app.LocaleManager.class);
+        manager.setApplicationLocales(tag.isEmpty() ? android.os.LocaleList.getEmptyLocaleList() : android.os.LocaleList.forLanguageTags(tag));
+        SystemClock.sleep(500); waitForIdleSync();
     }
 
     /** Opens riding mode with the button (the Ride quick action's way) and comes back with Back. */
@@ -305,6 +408,12 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         requireRange(scooterLine);
         await(() -> { activity.redraw(); return side().getText().length() > 0 && !side().getText().toString().startsWith("Started"); }, 10000,
                 "The head row does not say the link is lost: \"" + onMain(() -> side().getText()) + "\"");
+        // The link is lost: the dimmed battery and range are said as last seen (Home's cards' words).
+        main(() -> {
+            String spoken = String.valueOf(view().getContentDescription());
+            require(spoken.contains(HubText.recordingBattery().render() + ", ") && spoken.contains(", last seen "), "The last-seen readings are spoken as current: " + spoken);
+            checks.add(size + ": spoken while the link is lost: \"" + spoken + "\"");
+        });
         shot("range-scooter");
         String scooterCell = onMain(() -> text(stat(2)));
         main(() -> service.useLearnedRange(true));
@@ -430,7 +539,7 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             if (ribbon.isShown()) require(top.contains(windowRect(ribbon)) && ribbon.getHeight() >= dp(RecordingFit.MIN_RIBBON_DP) - 1,
                     "The ribbon " + windowRect(ribbon) + " is not whole in the area or under its least height");
             TextView label = (TextView) field(moment, "label");
-            // While saving is paused, "Recording" may give way to the paused words (RecordingFit.pausedHead) on a narrow row.
+            // While saving is paused, "Recording" may give way to the paused words (RecordingFit.headLadder) on a narrow row.
             if (field(moment, "pause") == RecordingFit.Pause.NONE || label.isShown()) require(label.isShown() && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0
                     && label.getPaint().measureText(label.getText().toString()) <= label.getWidth() + 1, "\"Recording\" is not whole");
             TextView clock = (TextView) field(moment, "clock");

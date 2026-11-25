@@ -45,7 +45,7 @@ import java.util.List;
  * orange in place of the start time) and the scooter's readings show as last seen (Ui.dim), as elsewhere. While the
  * service has paused saving the ride (a full storage: ScooterService.recordingPause), the head row takes the same look
  * with its own words for it (HubText.recordingPaused), whole: full, then short, then without "Recording" beside the dot
- * (RecordingFit.pausedHead), never cut; and the speed now goes: the ride is not being saved.
+ * (RecordingFit.headLadder), never cut; and the speed now goes: the ride is not being saved.
  *
  * <p>It fills the top area's fixed height, so the Lock bar never moves: RecordingFit.layout shares it out (the room
  * under the button goes first, then the ribbon shrinks and goes, then the time gets smaller), "Started" drops where the
@@ -78,6 +78,10 @@ final class RecordingView extends LinearLayout {
     /** Why saving is paused (NONE while it saves), and its words, full and short, while it is. */
     private RecordingFit.Pause pause = RecordingFit.Pause.NONE;
     private Msg pausedFull, pausedShort;
+    /** The link problem's words, full and short (HubText.recordingProblem and recordingProblemShort), or null. */
+    private Msg problemFull, problemShort;
+    /** Whether the moment holds a ride that just stopped (ended), until the next bind. */
+    private boolean saved;
     private ValueAnimator pulse;
     private final Runnable tick = this::tick;
 
@@ -249,18 +253,21 @@ final class RecordingView extends LinearLayout {
     }
 
     /**
-     * The head row: a link problem always shows at the end (ellipsized, never at the cost of "Recording"); the start time
-     * only where it fits whole beside "Recording" (RecordingFit.startedFits), else it drops.
+     * The head row: saving paused or a link problem shows its words at the end, whole, by the narrow-label ladder
+     * (RecordingFit.headLadder: full, then short, then "Recording" gives way to the dot alone); the start time only where
+     * it fits whole beside "Recording" (RecordingFit.startedFits), else it drops.
      */
     private void fitHead(int width) {
         float recording = ui.dp(RecordingFit.DOT_DP + 8) + label.getPaint().measureText(String.valueOf(label.getText()));
         int gap = ui.dp(12);
-        if (pause != RecordingFit.Pause.NONE && pausedFull != null && pausedShort != null) {
-            // Paused: its words whole, by the ladder (RecordingFit.pausedHead), "Recording" giving way before the words do.
+        boolean isPaused = pause != RecordingFit.Pause.NONE && pausedFull != null && pausedShort != null;
+        Msg fullWords = isPaused ? pausedFull : saved ? null : problemFull, shortWords = isPaused ? pausedShort : saved ? null : problemShort;
+        if (fullWords != null && shortWords != null) {
+            // Its words whole, by the ladder, "Recording" giving way before the words do.
             TextPaint words = side.getPaint();
             float dot = ui.dp(RecordingFit.DOT_DP), slack = ui.dp(2);
-            String full = pausedFull.render(), shorter = pausedShort.render();
-            int step = RecordingFit.pausedHead(dot, recording - dot, gap, words.measureText(full) + slack, words.measureText(shorter) + slack, width);
+            String full = fullWords.render(), shorter = shortWords.render();
+            int step = RecordingFit.headLadder(dot, recording - dot, gap, words.measureText(full) + slack, words.measureText(shorter) + slack, width);
             boolean withLabel = step < 2;
             CharSequence shown = step == 0 || step == 2 ? full : shorter;
             if (!TextUtils.equals(side.getText(), shown)) side.setText(shown);
@@ -270,9 +277,8 @@ final class RecordingView extends LinearLayout {
             return;
         }
         if (label.getVisibility() != VISIBLE) label.setVisibility(VISIBLE);
-        CharSequence want = problemText != null ? problemText : startedText;
-        boolean show = problemText != null
-                || RecordingFit.startedFits(recording, side.getPaint().measureText(String.valueOf(startedText)), gap, width);
+        CharSequence want = startedText;
+        boolean show = RecordingFit.startedFits(recording, side.getPaint().measureText(String.valueOf(startedText)), gap, width);
         CharSequence shown = show ? want : "";
         if (!TextUtils.equals(side.getText(), shown)) side.setText(shown);
         side.setVisibility(show && want.length() > 0 ? VISIBLE : GONE);
@@ -291,6 +297,12 @@ final class RecordingView extends LinearLayout {
               String units, long wallNow) {
         active = summary;
         endedWall = -1;
+        if (saved) {
+            // A new recording after one held for the hand-off: "Recording" again (the look follows below).
+            saved = false;
+            label.setText(HubText.recordingLabel().render());
+            requestLayout();
+        }
         this.link = link == null ? RidingFocus.Link.NOT_CONNECTED : link;
         this.off = off;
         boolean isPaused = pause != RecordingFit.Pause.NONE;
@@ -298,6 +310,8 @@ final class RecordingView extends LinearLayout {
         RecordingPill.Look next = RecordingFit.look(elapsed, this.link, off, isPaused);
         if (next != look) { look = next; showLook(); }
         Msg problem = look == RecordingPill.Look.RECORDING_PROBLEM && !isPaused ? HubText.recordingProblem(this.link, off) : null;
+        problemFull = problem;
+        problemShort = problem == null ? null : HubText.recordingProblemShort(this.link, off);
         problemText = isPaused && pausedFull != null ? pausedFull.render() : problem == null ? null : problem.render();
         side.setTextColor(problemText != null ? ui.orange : ui.muted);
         CharSequence started = summary == null ? "" : HubText.recordingStarted(DisplayTime.clock(getContext(), settings, summary.startWallMs)).render();
@@ -338,11 +352,18 @@ final class RecordingView extends LinearLayout {
         // (HubText.recordingTimeSpoken) with any problem (saving paused first), and the readings; the ribbon and its speed
         // are decorative and not spoken (the speed changes too often for a description read once).
         Msg rangeSpoken = HubText.recordingRangeSpoken(rangeKm, rangeText, units);
-        String spoken = HubText.recordingSpokenPaused(elapsed, this.link, off, pause,
+        // A reading shown dimmed (not live) is said with its last-seen time, as Home's cards say one.
+        String spoken = HubText.recordingSpokenSeen(elapsed, this.link, off, pause, new CharSequence[] {null, seen(battery, wallNow), seen(range, wallNow)},
                 HubText.recordingTrip().render(), trip == null ? null : trip.toString(),
                 HubText.recordingBattery().render(), percent == null ? null : percent.toString(),
                 HubText.recordingRange(true).render(), rangeSpoken == null ? null : rangeSpoken.render()).render();
         if (!spoken.contentEquals(getContentDescription() == null ? "" : getContentDescription())) setContentDescription(spoken);
+    }
+
+    /** A reading's last-seen time in Home's cards' words (DisplayTime.recent), or null while it is live or absent. */
+    private String seen(TelemetryHistory.Reading reading, long wallNow) {
+        if (reading == null || reading.live || reading.value == null || reading.capturedWallMs <= 0) return null;
+        return DisplayTime.recent(getContext(), settings, reading.capturedWallMs, wallNow);
     }
 
     /**
@@ -370,11 +391,23 @@ final class RecordingView extends LinearLayout {
     /**
      * The ride stopped (stopWallMs, RideStore.lastStopWallMs) while it shows, for the moment Clean reads the ride just
      * saved (HomeMoment.holdRecording): the time shows the ride's time at its stop (RecordingFit.shownElapsedMs), not the
-     * moment Home next looked. The next bind starts it again.
+     * moment Home next looked. It reads as the stopped ride it is, not a recording: "Ride saved" in place of
+     * "Recording", the dot solid and still (RecordingPill's SAVED look), no speed now, and the description says so. The
+     * next bind starts it again.
      */
     void ended(long stopWallMs) {
         endedWall = stopWallMs;
         updateClock(System.currentTimeMillis());
+        if (saved) return;
+        saved = true;
+        label.setText(HubText.recordingSaved().render());
+        if (look != RecordingPill.Look.SAVED) { look = RecordingPill.Look.SAVED; showLook(); }
+        problemText = null;
+        headProblem = null;
+        side.setTextColor(ui.muted);
+        ribbon.now(null);
+        setContentDescription(HubText.recordingSavedSpoken().render());
+        requestLayout();
     }
 
     /** The ride shown, or null before the first bind. */

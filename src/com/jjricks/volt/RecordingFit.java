@@ -370,14 +370,15 @@ final class RecordingFit {
     enum Pause { NONE, STORAGE_FULL, SAVE_FAILED }
 
     /**
-     * The head row while saving is paused, by the narrow-label ladder (owner: full, then short, never a mid-word cut or
-     * tiny text): which of the paused words show and whether "Recording" stays beside the dot. dot is the dot's width,
+     * The head row's words at its end while saving is paused or the link has a problem, by the narrow-label ladder
+     * (owner: full, then short, never a mid-word cut or tiny text): which rung shows and whether "Recording" stays
+     * beside the dot. dot is the dot's width,
      * label the room "Recording" takes with its gap after the dot, gap the room between the two sides, full and shorter
      * the two rungs' widths, width the row's (all px). Returns 0: "Recording" and the full words; 1: "Recording" and the
      * short words; 2: the dot and the full words, "Recording" given way (the words say what is recording); 3: the dot and
      * the short words; 4: even those don't fit (only far beyond the sweep's sizes): the short words, ellipsized.
      */
-    static int pausedHead(float dot, float label, float gap, float full, float shorter, float width) {
+    static int headLadder(float dot, float label, float gap, float full, float shorter, float width) {
         if (dot + label + gap + full <= width) return 0;
         if (dot + label + gap + shorter <= width) return 1;
         if (dot + gap + full <= width) return 2;

@@ -5,7 +5,7 @@ import java.util.Locale;
 /**
  * Clean Home's Ride clock: the follow-up rules to the recording moment (#638/#639 review). While the service has paused
  * saving the ride (ScooterService.recordingPause) the moment takes the problem look and shows Home's own words for it,
- * full and short by the narrow-label ladder (RecordingFit.pausedHead), never the service's English literal, and its
+ * full and short by the narrow-label ladder (RecordingFit.headLadder), never the service's English literal, and its
  * description says the full words after the time; the ribbon's speed now follows riding mode's 6 s; the Open riding mode
  * button counts each part's width once.
  */
@@ -20,9 +20,12 @@ public final class RecordingClockTest {
             pausedLook();
             speedNow();
             buttonParts();
-            pausedHead();
+            headLadder();
             words();
             spoken();
+            problemRungs();
+            lastSeen();
+            saved();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
@@ -80,14 +83,14 @@ public final class RecordingClockTest {
      * The paused words by the narrow-label ladder: full beside "Recording", then short, then "Recording" gives way to the
      * dot alone with the full words, then the short ones; an ellipsis only where even those don't fit. Widths in px.
      */
-    private static void pausedHead() {
+    private static void headLadder() {
         float dot = 9, label = 90, gap = 12, full = 150, shorter = 90;
-        check(RecordingFit.pausedHead(dot, label, gap, full, shorter, dot + label + gap + full) == 0, "room for all: Recording and the full words");
-        check(RecordingFit.pausedHead(dot, label, gap, full, shorter, dot + label + gap + full - 1) == 1, "1 px short: Recording and the short words");
-        check(RecordingFit.pausedHead(dot, label, gap, full, shorter, dot + label + gap + shorter) == 1, "exactly room for the short words beside Recording");
-        check(RecordingFit.pausedHead(dot, label, gap, full, shorter, dot + label + gap + shorter - 1) == 2, "short of that: the dot and the full words");
-        check(RecordingFit.pausedHead(dot, label, gap, 300, shorter, dot + label + gap + shorter - 1) == 3, "long full words: the dot and the short words");
-        check(RecordingFit.pausedHead(dot, label, gap, full, shorter, dot + gap + shorter - 1) == 4, "not even the short words: the last resort");
+        check(RecordingFit.headLadder(dot, label, gap, full, shorter, dot + label + gap + full) == 0, "room for all: Recording and the full words");
+        check(RecordingFit.headLadder(dot, label, gap, full, shorter, dot + label + gap + full - 1) == 1, "1 px short: Recording and the short words");
+        check(RecordingFit.headLadder(dot, label, gap, full, shorter, dot + label + gap + shorter) == 1, "exactly room for the short words beside Recording");
+        check(RecordingFit.headLadder(dot, label, gap, full, shorter, dot + label + gap + shorter - 1) == 2, "short of that: the dot and the full words");
+        check(RecordingFit.headLadder(dot, label, gap, 300, shorter, dot + label + gap + shorter - 1) == 3, "long full words: the dot and the short words");
+        check(RecordingFit.headLadder(dot, label, gap, full, shorter, dot + gap + shorter - 1) == 4, "not even the short words: the last resort");
     }
 
     /** Home's own words for each paused state, full and short. */
@@ -116,6 +119,40 @@ public final class RecordingClockTest {
                 "not paused: exactly as before");
         equal(HubText.recordingSpoken(878_400L, RidingFocus.Link.CONNECTED, false).render(),
                 HubText.recordingSpokenPaused(878_400L, RidingFocus.Link.CONNECTED, false, null), "null: not paused");
+    }
+
+    /** The link problem's rungs for the head row's ladder: Scooter off shortens to Off; the others are their own shortest. */
+    private static void problemRungs() {
+        equal("Scooter off", HubText.recordingProblem(RidingFocus.Link.CONNECTED, true), "switched off, full");
+        equal("Off", HubText.recordingProblemShort(RidingFocus.Link.CONNECTED, true), "switched off, short: riding mode's Off");
+        equal("Reconnecting…", HubText.recordingProblemShort(RidingFocus.Link.RECONNECTING, false), "reconnecting has no shorter rung");
+        equal("Not connected", HubText.recordingProblemShort(RidingFocus.Link.NOT_CONNECTED, false), "not connected is already the compact rung");
+        check(HubText.recordingProblemShort(RidingFocus.Link.CONNECTED, false) == null, "a good link: no words");
+        // The ladder never falls to an ellipsis while the dot and the short words fit (widths in px).
+        check(RecordingFit.headLadder(9, 100, 12, 200, 30, 9 + 12 + 30) == 3, "Off alone beside the dot on the narrowest row");
+    }
+
+    /** A reading shown dimmed is said with its last-seen time, as Home's cards say one; a live one is not. */
+    private static void lastSeen() {
+        equal("Recording for 14 minutes, Not connected. Trip, 2.5 mi. Battery, 73%, last seen 9:41 PM. Range (est.), about 23 mi, last seen 9:41 PM. Opens the Ride page.",
+                HubText.recordingSpokenSeen(878_400L, RidingFocus.Link.NOT_CONNECTED, false, RecordingFit.Pause.NONE,
+                        new CharSequence[] {null, "9:41 PM", "9:41 PM"}, "Trip", "2.5 mi", "Battery", "73%", "Range (est.)", "about 23 mi"),
+                "the link lost: battery and range as last seen");
+        equal(HubText.recordingSpokenPaused(878_400L, RidingFocus.Link.CONNECTED, false, RecordingFit.Pause.NONE, "Trip", "2.5 mi", "Battery", "73%").render(),
+                HubText.recordingSpokenSeen(878_400L, RidingFocus.Link.CONNECTED, false, RecordingFit.Pause.NONE, new CharSequence[] {null, ""},
+                        "Trip", "2.5 mi", "Battery", "73%"), "all live (null or empty): as before");
+        equal("Recording for 14 minutes, Paused: storage full. Battery, 73%, last seen 9:41 PM. Opens the Ride page.",
+                HubText.recordingSpokenSeen(878_400L, RidingFocus.Link.CONNECTED, false, RecordingFit.Pause.STORAGE_FULL,
+                        new CharSequence[] {null, "9:41 PM"}, "Trip", null, "Battery", "73%"), "paused, a reading with no value left out, a last-seen one");
+        equal("Recording for 14 minutes. Trip, 2.5 mi. Opens the Ride page.",
+                HubText.recordingSpokenSeen(878_400L, RidingFocus.Link.CONNECTED, false, null, null, "Trip", "2.5 mi"), "no seen list: all live");
+    }
+
+    /** The hand-off hold: the stopped ride reads as saved, not as recording. */
+    private static void saved() {
+        equal("Ride saved", HubText.recordingSaved(), "the head row's word, riding mode's");
+        equal("Ride saved. Opens the Ride page.", HubText.recordingSavedSpoken(), "the description while held");
+        check(!RecordingPill.pulses(RecordingPill.Look.SAVED, true), "the saved dot holds still");
     }
 
     private static void equal(String expected, Object actual, String message) {

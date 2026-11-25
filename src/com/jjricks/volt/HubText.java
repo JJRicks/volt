@@ -390,7 +390,7 @@ public final class HubText {
 
     /**
      * The head row's words while saving is paused (RecordingFit.Pause), full or short (the narrow-label ladder,
-     * RecordingFit.pausedHead), in place of the start time or a link problem; null while it saves.
+     * RecordingFit.headLadder), in place of the start time or a link problem; null while it saves.
      */
     public static Msg recordingPaused(RecordingFit.Pause pause, boolean full) {
         if (pause == RecordingFit.Pause.STORAGE_FULL) return full ? M.hubRecordingPausedStorage() : M.hubRecordingPausedStorageShort();
@@ -403,14 +403,45 @@ public final class HubText {
      * time in place of any link problem, which matters less while nothing is being saved.
      */
     public static Msg recordingSpokenPaused(long elapsedMs, RidingFocus.Link link, boolean off, RecordingFit.Pause pause, CharSequence... readings) {
+        return recordingSpokenSeen(elapsedMs, link, off, pause, new CharSequence[0], readings);
+    }
+
+    /**
+     * As recordingSpokenPaused, with each reading's last-seen time where it isn't live (seen[k] for the k-th name and
+     * value pair; null or missing while live), said as Home's cards say one: "Battery, 73%, last seen 9:41 PM", so a
+     * screen reader never hears a dimmed reading as current.
+     */
+    public static Msg recordingSpokenSeen(long elapsedMs, RidingFocus.Link link, boolean off, RecordingFit.Pause pause,
+                                          CharSequence[] seen, CharSequence... readings) {
         Msg paused = recordingPaused(pause, true);
-        if (paused == null) return recordingSpoken(elapsedMs, link, off, readings);
-        String text = T.ridingReadingSpoken(recordingTimeSpoken(elapsedMs, RidingFocus.Link.CONNECTED, false), paused.render());
-        for (int i = 0; i + 1 < readings.length; i += 2)
-            if (readings[i + 1] != null && readings[i + 1].length() > 0)
-                text = T.hubRecordingSpokenNext(text, T.ridingReadingSpoken(readings[i], readings[i + 1]));
+        String text = paused == null ? recordingTimeSpoken(elapsedMs, link, off)
+                : T.ridingReadingSpoken(recordingTimeSpoken(elapsedMs, RidingFocus.Link.CONNECTED, false), paused.render());
+        for (int i = 0; i + 1 < readings.length; i += 2) {
+            if (readings[i + 1] == null || readings[i + 1].length() == 0) continue;
+            CharSequence when = seen != null && i / 2 < seen.length ? seen[i / 2] : null;
+            text = T.hubRecordingSpokenNext(text, when == null || when.length() == 0 ? T.ridingReadingSpoken(readings[i], readings[i + 1])
+                    : T.dashboardReadingSeen(readings[i], readings[i + 1], when));
+        }
         return M.hubRecordingDescription(text);
     }
+
+    /**
+     * The link problem's short rung for the head row's ladder (RecordingFit.headLadder): the scooter switched off says
+     * Off, as riding mode's REC pill shortens it (RecordingPill.offRungs); Reconnecting… and Not connected are already
+     * their shortest. Null while the link is fine.
+     */
+    public static Msg recordingProblemShort(RidingFocus.Link link, boolean off) {
+        return off ? M.commonOff() : recordingProblem(link, off);
+    }
+
+    /**
+     * The head row's word for the moment Home holds a ride that just stopped until Just back shows it (HomeMoment
+     * holdRecording): riding mode's own "Ride saved", in place of "Recording".
+     */
+    public static Msg recordingSaved() { return M.ridingStatusRideSaved(); }
+
+    /** The moment's description while it holds a ride that just stopped: "Ride saved. Opens the Ride page." */
+    public static Msg recordingSavedSpoken() { return M.hubRecordingDescription(T.ridingStatusRideSaved()); }
 
     /**
      * The range reading as the recording's Range cell shows it: the parked card's own figure (RangeFigure, which its
