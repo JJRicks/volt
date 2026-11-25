@@ -657,9 +657,8 @@ public final class ScooterService extends Service {
         ChargeSessionStore.Frame frame=chargeFrame(SystemClock.elapsedRealtime(),System.currentTimeMillis());
         if(!frame.usable())return M.serviceChargeWaitReadings();
         if(frame.soc.value>=100)return M.serviceChargeBatteryFull();
-        NotificationManager manager=getSystemService(NotificationManager.class);
-        NotificationChannel channel=manager.getNotificationChannel("scooter");
-        if(!manager.areNotificationsEnabled()||channel!=null&&channel.getImportance()==NotificationManager.IMPORTANCE_NONE)
+        // The recording's notice is the live card, on the channel it will post on (#645 F03).
+        if(!liveNoticeAllowed())
             return M.serviceChargeAllowNotifications();
         return null;
     }
@@ -1425,6 +1424,19 @@ public final class ScooterService extends Service {
     private void cancelScheduleTestNotice(){cancelNotice(SCHEDULE_TEST_NOTICE);}
     private void endChargeMeasureWork(){if(destroyed)return;applyWorkPolicy(false);updateNotification();changed();}
     private boolean notificationsAllowed(){return channelAllowed("scooter");}
+    /**
+     * The live card's and a ride's notice's channel is open (LiveNotices.cardCanShow): the quiet Rides and charging
+     * channel while it exists and is open, else the connection channel. A missing connection channel counts as open (as
+     * channelAllowed), a missing quiet one as closed: the notice can't post on a channel that doesn't exist.
+     */
+    private boolean liveNoticeAllowed(){
+        NotificationManager manager=getSystemService(NotificationManager.class);
+        NotificationChannel quiet=manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+        NotificationChannel scooter=manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
+        return LiveNotices.cardCanShow(manager.areNotificationsEnabled(),
+                quiet!=null&&quiet.getImportance()!=NotificationManager.IMPORTANCE_NONE,
+                scooter==null||scooter.getImportance()!=NotificationManager.IMPORTANCE_NONE);
+    }
     private boolean channelAllowed(String id){
         NotificationManager manager=getSystemService(NotificationManager.class);NotificationChannel channel=manager.getNotificationChannel(id);
         return manager.areNotificationsEnabled()&&(channel==null||channel.getImportance()!=NotificationManager.IMPORTANCE_NONE);
@@ -1618,9 +1630,9 @@ public final class ScooterService extends Service {
         updateNotification();changed();
     }
     /** The card can show: app notifications on and the connection channel not blocked. */
-    public boolean chargeLiveAllowed(){return notificationsAllowed();}
+    public boolean chargeLiveAllowed(){return liveNoticeAllowed();}
     /** Live charging holds the connection now. Without the connection notice nothing holds: the owner would have no Stop. */
-    private boolean chargeLiveHold(){return !destroyed&&!simulating()&&chargeLive.active()&&notificationsAllowed();}
+    private boolean chargeLiveHold(){return !destroyed&&!simulating()&&chargeLive.active()&&liveNoticeAllowed();}
     /** The battery reads Volt already makes, as the hold sees them: fresh and from the selected scooter, else null. */
     private ChargeLiveHold.Facts chargeLiveFacts(){
         ScooterProfiles.Profile profile=profiles==null?null:profiles.active(),bound=ble==null?null:ble.profile();

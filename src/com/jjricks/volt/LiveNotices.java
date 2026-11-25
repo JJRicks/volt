@@ -34,6 +34,16 @@ public final class LiveNotices {
     }
 
     /**
+     * Whether the live card (and a ride's notice) can show, the gate for the live charging hold, its Battery row and
+     * sheet warning and a charge recording's start (#645 F03): app notifications on, and the channel the notice will
+     * post on (channel()) open. That is the quiet channel when it is open, else the connection channel, so turning off
+     * only "Scooter connection & recording" leaves the card showing on "Rides and charging".
+     */
+    public static boolean cardCanShow(boolean appEnabled, boolean quietOpen, boolean scooterOpen) {
+        return appEnabled && (QUIET_CHANNEL.equals(channel(false, true, quietOpen)) ? quietOpen : scooterOpen);
+    }
+
+    /**
      * Whether the ride's notice asks Android to promote it: Android 16 or later with a promotion request and Live
      * Updates allowed for Volt (as the live card, ChargeLiveUpdate.promote), and the notice shows the ride's running
      * clock, which is the chip (a phone sensor warning keeps it). A notice with a recording error in place of the clock
