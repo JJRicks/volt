@@ -86,6 +86,11 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
     private int motionCount;
     private double motionPeak;
 
+    /** The track's GPS distance as it records (PhoneRideStore.MovingDistance), for the short-ride rule. */
+    private final PhoneRideStore.MovingDistance gpsDistance = new PhoneRideStore.MovingDistance();
+    /** Metres of GPS track so far, or null for none: RideStore.kept's phone distance. */
+    public Double gpsDistanceMeters() { return gpsDistance.meters(); }
+
     public PhoneRideRecorder(Context context, PhoneRideStore store) {
         this.context = context.getApplicationContext();
         this.store = store;
@@ -396,6 +401,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                         speedAccuracy,
                         altitude,
                         vertical));
+        gpsDistance.fix(mono, location.getLatitude(), location.getLongitude(), location.getAccuracy(), speed);
         lastAccuracy = new GpsAccuracy.Fix(mono, location.getAccuracy());
         lastFixMs = mono;
         gpsStatus = GPS_RECORDING;

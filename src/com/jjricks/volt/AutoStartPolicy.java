@@ -17,11 +17,12 @@ package com.jjricks.volt;
  *   a new recording.
  * - Backing out of riding mode holds auto ride mode.
  * - Those two holds last until the riding session really ends ({@link #observeLink}): the scooter is
- *   switched off (ScooterPowerState), or no link for {@link #SESSION_END_MS}, or the rider's own
- *   Disconnect. Volt's own reconnects are not an end: the background pause and the reconnect when Volt
- *   comes back, a connect retry or timeout, or any drop shorter than that (owner, Nov 24 2026: a
- *   reconnect 5 s after a background pause cleared a hand stop, and rolling the scooter indoors started
- *   a ride that then blocked the charge recording).
+ *   switched off (ScooterPowerState), the link lost for real for {@link #SESSION_END_MS}, Volt's own
+ *   background pause lasting {@link #OWN_PAUSE_END_MS}, or the rider's own Disconnect. Volt's own
+ *   reconnects are not an end: a shorter background pause and the reconnect when Volt comes back, a
+ *   connect retry or timeout, or any shorter drop (owner, Nov 24 2026: a reconnect 5 s after a background
+ *   pause cleared a hand stop, and rolling the scooter indoors started a ride that then blocked the charge
+ *   recording).
  * - A failed automatic start holds auto-record until the next connection, Volt's own included, so a
  *   full disk is not retried on every speed sample.
  * - The automatic open of riding mode holds auto ride mode until the next connection, Volt's own
@@ -54,13 +55,24 @@ final class AutoStartPolicy {
     static final long SPEED_FRESH_MS = 3000;
 
     /**
-     * No link for this long ends the riding session, so the hand-stop and back-out holds end with it. Longer than any of
-     * Volt's own reconnects (the background pause and its reconnect take seconds; one connect timeout and retry under
-     * 20 s), and the same two minutes after which an automatic charge recording counts a charge as over
-     * (ChargeAutoRecordPolicy.CHARGE_OFF_END_MS). A scooter out of reach for longer was put away or ridden off by
-     * someone else; one switched off says so at once (observeLink's switchedOff).
+     * A real loss this long ends the riding session, so the hand-stop and back-out holds end with it: no link while Volt
+     * is trying to have one (on screen, or Stay connected in background on). Longer than any of Volt's own reconnects (a
+     * reconnect after the background pause takes seconds; one connect timeout and retry under 20 s), and the same two
+     * minutes after which an automatic charge recording counts a charge as over (ChargeAutoRecordPolicy.CHARGE_OFF_END_MS).
+     * A scooter out of reach for longer was put away or ridden off; one switched off says so at once (switchedOff).
      */
     static final long SESSION_END_MS = 2 * 60_000L;
+    /**
+     * Volt's own background pause this long ends the session too. While Volt has closed the link itself (out of sight,
+     * Stay connected in background off) it can't tell whether the scooter is still there, so the pause counts for
+     * nothing toward SESSION_END_MS: a hand stop, a few minutes with the phone in a pocket and reopening Volt keep the
+     * hold. But a pause of half an hour is a scooter parked and left: one switched off by hand or left to switch itself
+     * off isn't seen doing so through a closed link, and holding back a real ride later is worse, now that a stray short
+     * one isn't kept (RideStore.kept). The scooter reports nothing that resets only at power-on: its trip distance and
+     * time read 0 within minutes of a ride with no power cycle known (they may reset on a lock or a charge), so they can't
+     * stand in for a switch-off.
+     */
+    static final long OWN_PAUSE_END_MS = 30 * 60_000L;
 
     /** recordHeld: a hand stop; rideModeHeld: a back-out. Both end with the session (sessionEnded). */
     private boolean linked, recordHeld, rideModeHeld;
@@ -69,10 +81,14 @@ final class AutoStartPolicy {
     /** The session ended; the holds clear at the next look with a link up to a scooter that is on. */
     private boolean sessionEnded;
     private int generation;
-    /** The last look with a link up (monotonic ms), -1 before the first. */
-    private long lastLinkedMs = -1;
-    /** The rider's Disconnect count (BleController.intentionalDisconnectSequence) at the last look; -1 before the first. */
-    private long riderDisconnects = -1;
+    /** The last look (monotonic ms), -1 before the first; whether the link was down then and Volt's own pause. */
+    private long lastLookMs = -1;
+    private boolean lastDown, lastOwnPause;
+    /** Since the link went down: time lost for real, and time in Volt's own pause. */
+    private long lostMs, pausedMs;
+    /** The transport whose Disconnect count is riderDisconnects, and that count at the last look. */
+    private Object controller;
+    private long riderDisconnects;
 
     /** True for a current link reporting a speed above zero, received within {@link #SPEED_FRESH_MS}. */
     static boolean moving(boolean connected, int speedRaw, long sampleMs, long nowMs) {
@@ -84,28 +100,41 @@ final class AutoStartPolicy {
      *
      * A new link (including a drop and reconnect too quick to be seen as disconnected in between) ends the failed-start
      * latch and the automatic open's hold. The hand-stop and back-out holds end only with the session: once the scooter
-     * is seen switched off, the link has been gone {@link #SESSION_END_MS} since the last look that had it, or the rider
-     * disconnected; they clear at the first look after that with a link up to a scooter that is on, so a hand stop made
-     * after the switch-off or while out of reach ends there too.
+     * is seen switched off, the link has been lost for real {@link #SESSION_END_MS}, Volt's own pause has lasted
+     * {@link #OWN_PAUSE_END_MS}, or the rider disconnected; they clear at the first look after that with a link up to a
+     * scooter that is on, so a hand stop made after the switch-off or while out of reach ends there too. The time between
+     * two looks counts as the earlier look saw it (a service stopped in the pause sees nothing until Volt opens again).
      *
      * @param generation the transport's connection number, which changes whenever a link is torn down
      * @param nowMs a monotonic clock (elapsed realtime)
      * @param switchedOff the connected scooter is switched off but answering (BleController.scooterOff)
+     * @param controller the transport: its Disconnect count starts again with it (a recreated service)
      * @param riderDisconnects BleController.intentionalDisconnectSequence: the rider's Disconnect (or a scooter switch)
+     * @param ownPause the link is down because Volt paused it out of sight (RidingLink.Now.paused) and Volt is not on screen
      */
-    void observeLink(boolean connected, int generation, long nowMs, boolean switchedOff, long riderDisconnects) {
+    void observeLink(boolean connected, int generation, long nowMs, boolean switchedOff, Object controller, long riderDisconnects,
+            boolean ownPause) {
         boolean newLink = connected && (!linked || generation != this.generation);
         if (newLink) startFailed = autoOpened = false;
-        if (this.riderDisconnects >= 0 && riderDisconnects != this.riderDisconnects) sessionEnded = true;
-        this.riderDisconnects = riderDisconnects;
+        if (controller != this.controller) { this.controller = controller; this.riderDisconnects = riderDisconnects; }
+        else if (riderDisconnects != this.riderDisconnects) { sessionEnded = true; this.riderDisconnects = riderDisconnects; }
         if (connected && switchedOff) sessionEnded = true;
-        // Gone that long: judged while it is gone, and at the reconnect, whatever happened between two looks.
-        if (lastLinkedMs >= 0 && (!connected || newLink) && nowMs - lastLinkedMs >= SESSION_END_MS) sessionEnded = true;
-        if (connected && !switchedOff) {
-            if (sessionEnded) recordHeld = rideModeHeld = false;
-            sessionEnded = false;
+        // The time since the last look, as that look saw the link; a fall seen now counts from now.
+        if (lastLookMs >= 0 && lastDown && nowMs > lastLookMs) {
+            if (lastOwnPause) pausedMs += nowMs - lastLookMs; else lostMs += nowMs - lastLookMs;
         }
-        if (connected) lastLinkedMs = nowMs;
+        if (lostMs >= SESSION_END_MS || pausedMs >= OWN_PAUSE_END_MS) sessionEnded = true;
+        if (connected) {
+            lostMs = pausedMs = 0;
+            if (!switchedOff) {
+                if (sessionEnded) recordHeld = rideModeHeld = false;
+                sessionEnded = false;
+            }
+        }
+        // A fall between two looks with a link at both (a new connection number) is too short to count.
+        lastDown = !connected && (linked || lastDown);
+        lastOwnPause = lastDown && ownPause;
+        lastLookMs = nowMs;
         linked = connected;
         if (connected) this.generation = generation;
     }

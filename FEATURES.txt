@@ -1200,13 +1200,15 @@ way, only while Volt is in front and no dialog or sheet is open; of the
 scooter pages, only over the subject list, Controls, Battery & charging and
 Lights & sound (not their sub-pages, Security or Service). A manual stop or
 backing out holds that switch until the riding session ends: the scooter
-switched off, no link for 2 minutes, or the rider's Disconnect. Volt's own
-reconnects (the background pause and its reconnect, connect retries) don't end
-it. A ride that ends by itself sets no hold. No ride starts by itself while the
+switched off, the link lost for 2 minutes while Volt tries, Volt's own
+background pause lasting 30 minutes, or the rider's Disconnect. Volt's own
+reconnects (a shorter background pause and its reconnect, connect retries) don't
+end it. A ride that ends by itself sets no hold. No ride starts by itself while the
 scooter charges, or within 30 s of its last charging reading, unless it is
 ridden off above about 3 mph. A charge ends a recording ride at once (saved as
 ended by charging) so Record charges automatically and the live charging card
-can take over; a ride started by hand while already charging is exempt. A ride
+can take over, with the link held meanwhile; a ride started by hand while
+already charging is exempt until unplugged or ridden off. A ride
 recording under 20 s or 0.01 mi is not kept, however it ended (2.0.6; earlier
 rides untouched). Emulator-tested.
 

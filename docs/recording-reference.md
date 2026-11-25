@@ -305,23 +305,36 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
 
 - **Hand stop.** A ride stopped by hand holds Record rides automatically, and
   backing out of riding mode holds Open automatically, until the riding session
-  ends: the scooter is seen switched off (ScooterPowerState), no link for 2
-  minutes (AutoStartPolicy.SESSION_END_MS), or the rider's Disconnect. The holds
+  ends: the scooter is seen switched off (ScooterPowerState), the link lost for
+  real for 2 minutes (AutoStartPolicy.SESSION_END_MS: down while Volt is on
+  screen or Stay connected in background is on), Volt's own background pause
+  lasting 30 minutes (OWN_PAUSE_END_MS), or the rider's Disconnect. The holds
   clear at the first look after that with a link up to a scooter that is on.
-  Volt's own reconnects are not an end: the background pause and the reconnect
-  when Volt comes back, connect retries and timeouts, and any shorter drop. Two
-  minutes is longer than any of those (seconds; one connect timeout and retry
-  under 20 s) and matches the time after which an automatic charge recording
-  counts a charge as over. The holds live for the process, so a service that
-  stopped while Volt was out of sight keeps them. A failed automatic start and
-  riding mode's automatic open still hold only until the next connection.
+  Volt's own reconnects are not an end: a shorter background pause and the
+  reconnect when Volt comes back, connect retries and timeouts, and any shorter
+  drop. Two minutes is longer than any of those (seconds; one connect timeout
+  and retry under 20 s) and matches the time after which an automatic charge
+  recording counts a charge as over. Through its own pause Volt can't see the
+  scooter switch off, and the scooter reports nothing that resets only at
+  power-on (its trip distance and time can read 0 minutes after a ride with no
+  power cycle), so half an hour stands for a scooter parked and left. The holds
+  live for the process, so a service that stopped while Volt was out of sight
+  keeps them; a new service's Disconnect count is a new baseline, not a
+  Disconnect. A failed automatic start and riding mode's automatic open still
+  hold only until the next connection.
 - **A charge ends the ride.** A fresh charging reading from the selected scooter
   (ChargeAutoRecordPolicy.liveCharging, at most 5 s old) ends a recording ride
   at once, unless a fresh speed reading is above 4.8 km/h. It is saved with the
   end `automatic_charging` (older builds read it as a rider's stop) and sets no
   hold, so Record charges automatically and the live charging card follow once
-  the ride's files are saved. A ride the rider started by hand while the scooter
-  already charged is exempt. Record rides automatically starts nothing while
+  the ride's files are saved; the link is held for up to a minute meanwhile
+  (out of sight with Stay connected off too). Only a reading taken after the
+  ride started counts. A ride the rider started by hand while the scooter
+  already charged is exempt until a fresh not-charging reading or a fresh speed
+  above 4.8 km/h (with no fresh reading at its start, the first one decides);
+  its journal keeps the standing as a CHARGE row, so a recovered ride keeps it
+  (older builds skip the row). The 30-second wait belongs to the scooter that
+  charged. Record rides automatically starts nothing while
   charging or within 30 seconds of the last charging reading (so an unplug
   and replug starts nothing), unless ridden off above 4.8 km/h. The reverse
   rule is unchanged: a ride started by hand ends an automatic charge recording. They can't loop: that
@@ -329,9 +342,13 @@ Recording rules (AutoStartPolicy, RideChargeRule, RideStore.kept; owner, Nov 24
   end of a ride holds nothing.
 - **Short rides aren't kept.** When a ride ends, by any end, it is deleted with
   its phone GPS and motion files if its shown duration is under 20 s or its
-  distance under 0.01 mi (16.09 m): the larger of the odometer distance and the
-  speed-integrated one (the odometer counts tenths of a km, whole km on older
-  models); with neither known, the duration decides. It leaves no journal, no
+  distance under 0.01 mi (16.09 m): the larger of the odometer distance (two or
+  more readings spanning at least half the ride) and the speed-integrated one
+  (intervals covering at least half of it); the odometer counts tenths of a km,
+  whole km on older models. With neither measured, the duration decides; a
+  phone GPS track of 16 m or more keeps it. Phone files still to delete are
+  noted (ride_discard_pending, this phone only) and finished at the next service
+  start after a process death; only a ride whose journal is gone loses them. It leaves no journal, no
   saved summary, no auto-save copy and no Ride saved automatically notice, and
   the last saved ride stays the one Home and riding mode show. Rides saved before
   this rule are not touched.

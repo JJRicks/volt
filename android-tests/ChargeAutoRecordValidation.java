@@ -54,6 +54,11 @@ import com.jjricks.volt.tests.TextCensus;
  * Only "riderules" (owner, Nov 24 2026): plugging in ends a recording ride at once, and the automatic charge recording and
  * the live card follow; unplugging and replugging starts no ride; a ride under 20 s is not kept (see rideRules).
  *
+ * Only "riderulesaway" (#643 round 1, finding 4): the owner's main case out of sight. Volt in the background with Stay
+ * connected in background off, a ride recording (which keeps the link), then the plug-in: the ride ends, and the link stays
+ * up until the automatic charge recording starts and the live card shows. (The "riderules" run is with Volt on screen and
+ * Stay connected on, as the class's setup leaves it.)
+ *
  * Only "livecard" (owner, Nov 20 2026): a charge recording, by hand or automatic, in front or out of sight, shows the live
  * charging card as the same charge without one does, promoted to a Live Update or not alike; screenshots of the shade.
  *
@@ -106,6 +111,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 else if ("rideaway".equals(args.getString("only", ""))) { main(() -> settings().edit().putBoolean(KEY, true).commit()); rideAwayOutOfSight(); }
                 else if ("livecard".equals(args.getString("only", ""))) liveCardWhileRecording();
                 else if ("riderules".equals(args.getString("only", ""))) rideRules();
+                else if ("riderulesaway".equals(args.getString("only", ""))) rideRulesOutOfSight();
                 else {
                     offByDefault();
                     onScreenSettingThenDetectedAndShortChargeNotKept();
@@ -117,7 +123,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                     rideAwayOutOfSight();
                 }
                 if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))
-                        && !"riderules".equals(args.getString("only", ""))) fullFolderRotates();
+                        && !"riderules".equals(args.getString("only", "")) && !"riderulesaway".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -544,6 +550,37 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         main(() -> service.stopChargeRecording());
         unplugAndSettle();
         main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).putBoolean(RideAutoExport.ON, false).remove(RideAutoExport.PENDING).commit());
+        for (File file : saved()) file.delete();
+    }
+    private void rideRulesOutOfSight() throws Exception {
+        main(() -> settings().edit().putBoolean(KEY, true).putBoolean("auto_record_rides", true).putBoolean("background_connection", false).commit());
+        try {
+            ensureFront();
+            String ride = autoRide(25);
+            leaveVolt();
+            for (int i = 0; i < 14; i++) { main(() -> link.motion(12)); SystemClock.sleep(S); }
+            require(onMain(() -> service.isRecording() && ble.connected() && !service.isVisible()), "Out of sight past the ten-second stop, the ride kept recording and the link");
+            for (int i = 0; i < 4; i++) { main(() -> link.motion(0)); SystemClock.sleep(S); }
+            long plugged = SystemClock.elapsedRealtime();
+            plugIn();
+            await(() -> onMain(() -> !service.isRecording()), 20 * S, "Out of sight, plugging in did not end the ride");
+            RideStore.Summary saved = rideSummary(ride);
+            require(saved != null && saved.chargingStop, "The ride was not saved as ended by charging");
+            log("out of sight, Stay connected off: the plug-in ended the ride in " + (SystemClock.elapsedRealtime() - plugged) + " ms");
+            SystemClock.sleep(12 * S);
+            require(onMain(() -> ble.connected()), "The link was let go with the ride: " + onMainText(() -> ble.state() + " " + ble.message()));
+            awaitOr(() -> onMain(() -> service.isChargeRecording()), StatusCadence.POLL_SLOW_MS + 30 * S, "Out of sight, no automatic charge recording after the charge ended the ride");
+            await(() -> liveCardPosted(), 20 * S, "Out of sight, no live charging card after the charge ended the ride: " + noticeTexts());
+            log("out of sight: charge recording started " + (SystemClock.elapsedRealtime() - plugged) + " ms after the plug-in, link kept; card: " + notice());
+            shade("riderules-away-live-card");
+        } finally {
+            main(() -> settings().edit().putBoolean("background_connection", true).commit());
+            ensureFront();
+        }
+        main(() -> service.stopChargeRecording());
+        if (!onMain(() -> ble.ready())) { main(() -> link.attach()); await(() -> onMain(() -> ble.ready()), 10000, "Synthetic link not ready again"); }
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
         for (File file : saved()) file.delete();
     }
     /** Ends the hand stop's hold once no fresh motion is left, so no ride starts on the last moving sample. */

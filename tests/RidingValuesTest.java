@@ -1583,11 +1583,12 @@ public final class RidingValuesTest {
      * scooter is actually moving. A real drop and reconnect while away closes the old riding mode; the reconnect ends
      * every auto-open hold (unchanged rule), so a moving scooter opens a NEW riding mode from zero.
      */
+    private static final Object BLE_LINK = new Object();
     private static void homeThenAutoOpen() {
         long t = 3_000_000L, back = t + 60_000;
         RidingLink.Log log = upLog();
         AutoStartPolicy policy = new AutoStartPolicy();
-        policy.observeLink(true, 1, t, false, 0);
+        policy.observeLink(true, 1, t, false, BLE_LINK, 0, false);
         policy.rideModeOpened();
         RidingSession old = connectedSession(t);
         trip(old, 10, t);
@@ -1596,9 +1597,9 @@ public final class RidingValuesTest {
         check(near(old.trip().km, 3, 1e-9) && old.maxKmh() == 30, "the old riding mode has distance and Max");
         old.left(log.now(), t + 40_000);
         log.observe(false, false);
-        policy.observeLink(false, 1, t + 40_000, false, 0);
+        policy.observeLink(false, 1, t + 40_000, false, BLE_LINK, 0, false);
         log.observe(true, false);
-        policy.observeLink(true, 2, back - 1000, false, 0);
+        policy.observeLink(true, 2, back - 1000, false, BLE_LINK, 0, false);
         check(old.lostOnReturn(log.now(), false, back), "a real drop and reconnect while away: Home on return");
         boolean clear = AutoStartPolicy.screenClear(true, true, false, false, false, false);
         check(!policy.rideModeHeld(), "the reconnect ended the automatic open's hold, as it always has (any new connection)");
@@ -1627,16 +1628,16 @@ public final class RidingValuesTest {
 
         // A rider's back-out holds until the next real connection (AutoStartPolicy.SESSION_END_MS), even with a Home return in between.
         AutoStartPolicy held = new AutoStartPolicy();
-        held.observeLink(true, 1, t, false, 0);
+        held.observeLink(true, 1, t, false, BLE_LINK, 0, false);
         held.riderLeftRidingMode();
         check(!held.shouldOpenRidingMode(true, true, clear), "a back-out holds auto ride mode");
-        held.observeLink(true, 1, t + 1000, false, 0);
+        held.observeLink(true, 1, t + 1000, false, BLE_LINK, 0, false);
         check(held.rideModeHeld(), "the same link doesn't end it");
-        held.observeLink(false, 1, t + 2000, false, 0);
-        held.observeLink(true, 2, t + 7000, false, 0);
+        held.observeLink(false, 1, t + 2000, false, BLE_LINK, 0, false);
+        held.observeLink(true, 2, t + 7000, false, BLE_LINK, 0, false);
         check(held.rideModeHeld(), "nor does Volt's own quick reconnect");
-        held.observeLink(false, 2, t + 8000, false, 0);
-        held.observeLink(true, 3, t + 8000 + AutoStartPolicy.SESSION_END_MS, false, 0);
+        held.observeLink(false, 2, t + 8000, false, BLE_LINK, 0, false);
+        held.observeLink(true, 3, t + 8000 + AutoStartPolicy.SESSION_END_MS, false, BLE_LINK, 0, false);
         check(held.shouldOpenRidingMode(true, true, clear), "the next real connection does");
         // A Home return from Volt's own pause past the grace has no link: nothing can be moving.
         RidingLink.Log paused = upLog();

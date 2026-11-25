@@ -247,8 +247,8 @@ public final class AutoStartValidation extends ValidationInstrumentation {
     /**
      * The owner's report (Nov 24 2026): a ride stopped by hand, then Volt's own background pause (Stay connected in
      * background off: the ten-second stop closes the link) and the reconnect when Volt comes back. Rolling the scooter
-     * must not start a ride, and riding mode backed out of must not reopen. A link gone for AutoStartPolicy.SESSION_END_MS
-     * is a real end: both start again.
+     * must not start a ride, and riding mode backed out of must not reopen, also after a pause longer than
+     * AutoStartPolicy.SESSION_END_MS. A link lost for real for SESSION_END_MS is a real end: both start again.
      */
     private void ownPauseKeepsHolds() throws Exception {
         stopped(); settle();
@@ -275,12 +275,25 @@ public final class AutoStartValidation extends ValidationInstrumentation {
         require(!recording(), "After Volt's own background pause and reconnect, rolling the scooter started a ride: the hand stop was not held");
         require(!ridingOpen(), "After Volt's own background pause and reconnect, riding mode reopened after a back-out");
         shot("own-pause-reconnect-held");
-        // A real end of the session: no link for SESSION_END_MS.
+        // Volt's own pause again, past SESSION_END_MS: still held (#643 round 1, finding 1: the pause counts toward
+        // AutoStartPolicy.OWN_PAUSE_END_MS, half an hour, which only the unit test waits out).
         goHome();
         awaitFor(() -> !onMain(() -> ble.connected()), 25000, "The second pause never closed the link");
-        long gone = SystemClock.elapsedRealtime();
         SystemClock.sleep(AutoStartPolicy.SESSION_END_MS + 3000);
         returnToVolt();
+        connect();
+        stopped(); settle();
+        for (int i = 0; i < 3; i++) { moving(); settle(); }
+        require(!recording() && !ridingOpen(), "Volt's own pause of over two minutes ended the hold");
+        shot("own-pause-long-pause-held");
+        // A real end of the session: the link lost for real, with Volt on screen, for SESSION_END_MS.
+        stopped(); settle();
+        main(() -> link.callbacks.onConnectionStateChange(link.gatt, 0, BluetoothProfile.STATE_DISCONNECTED));
+        awaitFor(() -> !onMain(() -> ble.connected()), 10000, "The native drop never closed the link");
+        long gone = SystemClock.elapsedRealtime();
+        require(lastLinkEventIsLoss(), "The drop was not logged as a real loss: " + lastLinkEvent());
+        SystemClock.sleep(AutoStartPolicy.SESSION_END_MS + 3000);
+        awaitFor(() -> onMain(() -> ble.state() == BleController.State.DISCONNECTED), 30000, "The link is still trying to reconnect");
         connect();
         stopped(); settle();
         moving(); await(this::recording, "After " + (SystemClock.elapsedRealtime() - gone) / 1000 + " s without a link, moving starts a ride again");
@@ -291,6 +304,13 @@ public final class AutoStartValidation extends ValidationInstrumentation {
         await(() -> !ridingOpen(), "Back out at the end");
         enable(AutoStartPolicy.AUTO_RECORD_KEY, false); enable(AutoStartPolicy.AUTO_RIDE_MODE_KEY, false);
         enable("background_connection", true);
+    }
+    /** Whether a log event after the pauses records the native drop (not Volt's pause or the rider's Disconnect). */
+    private boolean lastLinkEventIsLoss() {
+        final boolean[] out = {false};
+        main(() -> { java.util.List<ConnectionEventLog.Record> events = ble.diagnosticEvents();
+            for (int i = events.size() - 1; i >= 0 && i >= events.size() - 4; i--) if (events.get(i).reason == ConnectionEventLog.Reason.NATIVE_DISCONNECT) out[0] = true; });
+        return out[0];
     }
     /** The newest connection log reason, as Report diagnostics keeps it. */
     private String lastLinkEvent() {

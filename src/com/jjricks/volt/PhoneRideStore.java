@@ -835,6 +835,37 @@ public final class PhoneRideStore {
         return cached;
     }
 
+    /**
+     * The GPS distance of a track as it is recorded, by the rule load() counts a Track's distance with: fixes over 35 m
+     * accuracy or off the globe are skipped, a fix not after the last is skipped, one more than 10 s after it starts a new run, a
+     * jump faster than 25 m/s plus both accuracies is rejected and breaks the run, and a step counts only while either
+     * fix reports a speed of 1 m/s or more. The service asks it at a ride's stop (RideStore.kept), before the journal is
+     * on disk. Pure Java.
+     */
+    static final class MovingDistance {
+        private boolean have, breakNext, moved;
+        private double lat, lon, accuracy, meters;
+        private Double speed;
+        private long mono;
+
+        synchronized void fix(long fixMono, double fixLat, double fixLon, double fixAccuracy, Double fixSpeed) {
+            if (Math.abs(fixLat) > 90 || Math.abs(fixLon) > 180 || fixAccuracy < 0 || fixAccuracy > 35) return;
+            boolean gap = !have || breakNext;
+            breakNext = false;
+            if (have) {
+                long dt = fixMono - mono;
+                double step = distanceMeters(lat, lon, fixLat, fixLon);
+                if (dt <= 0) return;
+                if (dt > 10000) gap = true;
+                if (!gap && step > 25 * (dt / 1000.0) + fixAccuracy + accuracy) { breakNext = true; return; }
+                if (!gap && ((fixSpeed != null && fixSpeed >= 1) || (speed != null && speed >= 1))) { meters += step; moved = true; }
+            }
+            have = true; mono = fixMono; lat = fixLat; lon = fixLon; accuracy = fixAccuracy; speed = fixSpeed;
+        }
+        /** Metres so far, or null while no moving step has counted (no track distance). */
+        synchronized Double meters() { return moved ? meters : null; }
+    }
+
     public static double distanceMeters(double lat1, double lon1, double lat2, double lon2) {
         double a = Math.toRadians(lat2 - lat1),
                 b = Math.toRadians(lon2 - lon1),
