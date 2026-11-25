@@ -354,6 +354,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Trotinete desligada. Fim: %2$s (último movimento).</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Ligação à trotinete e gravação</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Viagens e carregamento</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">A medir a carga para «Carga pronta até»</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

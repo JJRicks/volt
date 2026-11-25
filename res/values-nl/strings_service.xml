@@ -345,6 +345,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Step is uitgezet. Einde: %2$s (laatste beweging).</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Verbinding met de step en opname</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Ritten en opladen</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">Bezig met meten van het laden voor ‘Opgeladen vóór’</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

@@ -345,6 +345,8 @@
     <string name="service_ride_switched_off_label_at">%1$s · Scooter kapatıldı. Bitiş: %2$s (son hareket).</string>
     <!-- src:9ed28b69df55d6e7d17c2f360e1fa332c7f0b660 -->
     <string name="service_channel_scooter">Scooter bağlantısı ve kayıt</string>
+    <!-- src:b95399121d62a78a53fcfdbf664bb41466b22410 -->
+    <string name="service_channel_rides_charging">Sürüşler ve şarj</string>
     <!-- src:fa4c47ae71901acf07ed6478fe95b0e9674b1320 -->
     <string name="service_notice_measuring">“Şarj bitiş hedefi” için şarj ölçülüyor</string>
     <!-- src:1f98e62d63da19bfae15d2aeef40ed62403c5dcf -->

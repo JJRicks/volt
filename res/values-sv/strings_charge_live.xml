@@ -44,6 +44,10 @@
     <string name="charge_live_lock_level">Nivå</string>
     <!-- src:dab03497d1be8687d1fbd8bd76742b79f156a9bb -->
     <string name="charge_live_lock_hidden">Dolt</string>
+    <!-- src:35d2aaca6f7776800f98f33baec162b1761c9f6a -->
+    <string name="charge_live_chip_title">I statusfältet</string>
+    <!-- src:184762aa648be877774e6cb7278167ea0b3c8ba5 -->
+    <string name="charge_live_chip_finish">Sluttid</string>
     <!-- src:2b2ade7cb931bfbb4a23d8345b2cc09b38295330 -->
     <string name="charge_live_when">Medan kortet visas kan andra appar – även den officiella appen – inte ansluta. Tryck på ”Koppla från” på kortet så att de kan ansluta.</string>
     <!-- src:95dbfa498b011dc3178b86c20d483a42c35f4298 -->
