@@ -1101,6 +1101,45 @@ final class Motion {
         if (view.getAlpha() != 1) view.setAlpha(1);
     }
 
+    /**
+     * A floating message arrives (the short-ride bar): it rises dy px into its place and fades in over ENTER_MS, the travel
+     * on STANDARD and the opacity on FADE_IN; with animations off it is simply there. Negative dy comes down from above.
+     * Returns the running motion (null for none), for floatOut to cut short.
+     */
+    static Animator floatIn(View view, float dy) {
+        if (view == null) return null;
+        if (!enabled()) { view.setAlpha(1); view.setTranslationY(0); return null; }
+        view.setAlpha(0); view.setTranslationY(dy);
+        android.animation.ObjectAnimator travel = android.animation.ObjectAnimator.ofFloat(view, View.TRANSLATION_Y, dy, 0);
+        travel.setInterpolator(STANDARD);
+        android.animation.ObjectAnimator fade = android.animation.ObjectAnimator.ofFloat(view, View.ALPHA, 0, 1);
+        fade.setInterpolator(FADE_IN);
+        android.animation.AnimatorSet in = new android.animation.AnimatorSet();
+        in.playTogether(travel, fade); in.setDuration(ENTER_MS);
+        in.start();
+        return in;
+    }
+
+    /**
+     * The message goes: it sinks dy px and fades out over EXIT_MS on FADE_OUT, then {@code gone} runs (removing it); with
+     * animations off, or not attached, {@code gone} runs at once. Negative dy rises away instead. {@code running} (floatIn's)
+     * is cut short first; returns the running motion (null for none).
+     */
+    static Animator floatOut(View view, float dy, Animator running, Runnable gone) {
+        if (running != null) running.cancel();
+        if (view == null || !enabled() || !view.isAttachedToWindow()) { if (gone != null) gone.run(); return null; }
+        android.animation.ObjectAnimator travel = android.animation.ObjectAnimator.ofFloat(view, View.TRANSLATION_Y, view.getTranslationY(), dy);
+        android.animation.ObjectAnimator fade = android.animation.ObjectAnimator.ofFloat(view, View.ALPHA, view.getAlpha(), 0);
+        android.animation.AnimatorSet out = new android.animation.AnimatorSet();
+        out.playTogether(travel, fade); out.setDuration(EXIT_MS); out.setInterpolator(FADE_OUT);
+        out.addListener(new AnimatorListenerAdapter() {
+            private boolean done;
+            @Override public void onAnimationEnd(Animator animation) { if (done) return; done = true; if (gone != null) gone.run(); }
+        });
+        out.start();
+        return out;
+    }
+
     /** Content that finished loading fades up in place rather than snapping in. */
     static void fadeIn(View view) {
         if (!enabled() || view == null) return;

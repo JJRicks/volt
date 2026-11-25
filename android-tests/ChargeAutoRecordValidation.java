@@ -59,6 +59,13 @@ import com.jjricks.volt.tests.TextCensus;
  * up until the automatic charge recording starts and the live card shows. (The "riderules" run is with Volt on screen and
  * Stay connected on, as the class's setup leaves it.)
  *
+ * Only "undoshort" (owner, Nov 24 2026): a short ride's message with Undo. On screen, a 6 s ride stopped by hand is held,
+ * not deleted; the bar shows the words and a whole Undo button (no cut text, no mid-word break) and Undo brings the ride back,
+ * journal and phone files byte for byte, in the ride list again. Out of sight, two short rides ended by plug-ins: one silent
+ * notice with Undo on the quiet channel, the newer replacing the older; its action restores the newer ride and takes the
+ * notice away, and the older one is still restorable. Screenshots of the bar and the shade, named by size, theme and text
+ * scale (-e size_label, -e theme, -e text_scale).
+ *
  * Only "riderulesfull" (#643 round 2, F07): storage full when the plug-in ends a ride (the ride's journal made read-only).
  * The charge-ended stop is tried once, fails with one "Storage full" toast, and the ride keeps recording: no loop of failed
  * writes and toasts while the charging readings keep coming. The rider's Stop (Retry save) then saves it.
@@ -95,7 +102,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
             if (!page) bluetoothOn();
             main(() -> {
                 SharedPreferences.Editor edit = settings().edit().putBoolean("auto_connect", false).putBoolean("background_connection", true);
-                if (page) edit.putString("theme", args.getString("theme", "dark")).putFloat("text_scale", Float.parseFloat(args.getString("text_scale", "1")));
+                if (page || "undoshort".equals(args.getString("only", ""))) edit.putString("theme", args.getString("theme", "dark")).putFloat("text_scale", Float.parseFloat(args.getString("text_scale", "1")));
                 edit.commit();
                 ScooterProfiles profiles = new ScooterProfiles(getTargetContext()); profile = profiles.create("Synthetic auto charge fixture", "000000000000", 0);
                 profile.serial = "Q2538ZZ9US7777777"; profile.mac = "C0:FF:EE:00:25:38"; profiles.update(profile); profiles.select(profile.id);
@@ -117,6 +124,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 else if ("riderules".equals(args.getString("only", ""))) rideRules();
                 else if ("riderulesaway".equals(args.getString("only", ""))) rideRulesOutOfSight();
                 else if ("riderulesfull".equals(args.getString("only", ""))) rideRulesStorageFull();
+                else if ("undoshort".equals(args.getString("only", ""))) undoShortRide();
                 else {
                     offByDefault();
                     onScreenSettingThenDetectedAndShortChargeNotKept();
@@ -129,7 +137,7 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
                 }
                 if (!"stay".equals(args.getString("only", "")) && !"rideaway".equals(args.getString("only", "")) && !"livecard".equals(args.getString("only", ""))
                         && !"riderules".equals(args.getString("only", "")) && !"riderulesaway".equals(args.getString("only", ""))
-                        && !"riderulesfull".equals(args.getString("only", ""))) fullFolderRotates();
+                        && !"riderulesfull".equals(args.getString("only", "")) && !"undoshort".equals(args.getString("only", ""))) fullFolderRotates();
                 if (args.getString("only", "").isEmpty() || "away".equals(args.getString("only", ""))) savedListMarksGuess();
                 if (args.getString("only", "").isEmpty()) { stayConnectedOff(); simulationNeverRecords(); }
             }
@@ -624,6 +632,174 @@ public final class ChargeAutoRecordValidation extends ValidationInstrumentation 
         main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
         for (File file : saved()) file.delete();
     }
+    private void undoShortRide() throws Exception {
+        discardShortRides();
+        String label = args.getString("size_label", "phone") + "-" + args.getString("theme", "dark") + "-" + args.getString("text_scale", "1").replace('.', '_');
+        File heldRoot = new File(getTargetContext().getCacheDir(), "rides_held");
+        File phoneDir = new File(getTargetContext().getFilesDir(), "phone-rides");
+        main(() -> settings().edit().putBoolean("auto_record_rides", true).putBoolean(KEY, false).commit());
+        ensureFront();
+        // 1. On screen: a 6 s ride stopped by hand.
+        int before = ridesSaved();
+        String id = autoRide(6);
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "The short ride never finished saving");
+        File held = new File(heldRoot, id);
+        require(rideSummary(id) == null && ridesSaved() == before && new File(held, id + ".csv").isFile(), "The short ride was not held for Undo: " + Arrays.toString(held.list()));
+        require(!new File(phoneDir, id + "-phone.csv").exists(), "Its phone file was left in the ride's folder");
+        Map<String, byte[]> heldFiles = new TreeMap<>();
+        for (File f : held.listFiles()) heldFiles.put(f.getName(), java.nio.file.Files.readAllBytes(f.toPath()));
+        log("on screen, a 6 s ride stopped by hand: held, not listed; held files " + heldFiles.keySet());
+        await(() -> undoBar() != null, 5 * S, "No Undo bar after the short ride on screen");
+        settle();
+        View bar = undoBar();
+        TextView button = (TextView) onMainView(() -> bar.findViewWithTag(ShortRideUndoBar.BUTTON_TAG));
+        require(button != null, "The bar has no Undo button");
+        main(() -> {
+            require(button.getText().toString().equals(T.dashboardUndo()) && button.getLayout() != null && button.getLayout().getLineCount() == 1
+                    && button.getLayout().getEllipsisCount(0) == 0, "The Undo button is not whole: " + button.getText());
+            boolean words = false;
+            for (int i = 0; i < ((ViewGroup) bar).getChildCount(); i++) { View child = ((ViewGroup) bar).getChildAt(i);
+                if (child instanceof TextView && child != button && T.serviceRideNotSavedShort().contentEquals(((TextView) child).getText())) words = true; }
+            require(words, "The bar does not say the ride wasn't saved");
+            textProblems(bar);
+            int[] at = new int[2]; bar.getLocationOnScreen(at);
+            require(at[1] + bar.getHeight() <= bar.getRootView().getHeight() && at[0] >= 0 && at[0] + bar.getWidth() <= bar.getRootView().getWidth(), "The bar runs off the screen");
+        });
+        require(onMain(() -> service.undoOffer() != null) && noticeOf(81) == null, "On screen there should be the bar only, no notice");
+        screenshot("undo-bar-" + label);
+        main(() -> button.performClick());
+        await(() -> rideSummary(id) != null, 5 * S, "Undo did not bring the ride back");
+        require(undoBar() == null && onMain(() -> service.undoOffer() == null), "The bar stayed after Undo");
+        require(ridesSaved() == before + 1 && !held.exists(), "After Undo: not listed, or still held");
+        for (Map.Entry<String, byte[]> f : heldFiles.entrySet()) {
+            File back = f.getKey().endsWith(".csv") && f.getKey().startsWith(id + "-") ? new File(phoneDir, f.getKey()) : new File(new File(getTargetContext().getFilesDir(), "rides"), f.getKey());
+            require(back.isFile() && Arrays.equals(java.nio.file.Files.readAllBytes(back.toPath()), f.getValue()), "Not restored byte for byte: " + f.getKey());
+        }
+        RideStore.Summary restored = rideSummary(id);
+        log("Undo on screen: the ride is back (" + Math.round(restored.shownElapsedMs / 1000.0) + " s), files byte for byte, the bar gone");
+        release();
+
+        // 1b. Its motion (owner, #651): it rises and fades in, and sinks and fades out; with animations removed it simply
+        // appears and goes. The scale this run found is put back.
+        String foundScale = shellOut("settings get global animator_duration_scale").trim();
+        try {
+            shell("settings put global animator_duration_scale 10");
+            await(() -> onMain(Motion::enabled), 5 * S, "Animations did not come on at 10x");
+            String slow = discardOnScreen();
+            await(() -> undoBar() != null, 5 * S, "No Undo bar at 10x");
+            SystemClock.sleep(900);
+            View entering = undoBar();
+            float[] mid = new float[2]; main(() -> { mid[0] = entering.getAlpha(); mid[1] = entering.getTranslationY(); });
+            require(mid[0] > 0 && mid[0] < 1 && mid[1] > 0, "At 10x the bar is not rising and fading in: alpha " + mid[0] + ", " + mid[1] + " px below");
+            screenshot("undo-bar-entering-" + label);
+            SystemClock.sleep(2500);
+            main(() -> require(entering.getAlpha() == 1 && entering.getTranslationY() == 0, "The bar did not settle in its place"));
+            main(() -> entering.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick());
+            SystemClock.sleep(400);
+            main(() -> require(entering.isAttachedToWindow() && entering.getAlpha() < 1 && entering.getTranslationY() > 0, "At 10x the bar did not sink and fade out"));
+            await(() -> onMain(() -> !entering.isAttachedToWindow()), 5 * S, "The leaving bar was never removed");
+            await(() -> rideSummary(slow) != null, 5 * S, "Undo at 10x did not bring the ride back");
+            log("motion: at 10x the bar rose and faded in (alpha " + mid[0] + ", " + Math.round(mid[1]) + " px to go), then sank and faded out");
+            release();
+            shell("settings put global animator_duration_scale 0");
+            await(() -> onMain(() -> !Motion.enabled()), 5 * S, "Animations did not go off");
+            String still = discardOnScreen();
+            await(() -> undoBar() != null, 5 * S, "No Undo bar with animations removed");
+            View instant = undoBar();
+            main(() -> {
+                require(instant.getAlpha() == 1 && instant.getTranslationY() == 0, "With animations removed the bar moved: alpha " + instant.getAlpha() + ", " + instant.getTranslationY());
+                instant.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick();
+                require(instant.getParent() == null, "With animations removed the bar did not go at once");
+            });
+            await(() -> rideSummary(still) != null, 5 * S, "Undo with animations removed did not bring the ride back");
+            log("motion: with animations removed the bar appeared in place and went at once");
+            release();
+        } finally {
+            shell("settings put global animator_duration_scale " + (foundScale.isEmpty() || foundScale.equals("null") ? "1" : foundScale));
+        }
+
+        // 2. Out of sight: a short ride ended by a plug-in posts the notice; Volt coming on screen while it is live shows the bar
+        // for it and retires the notice, one Undo at a time (#651 F04, F05). Then a second one replaces the offer.
+        String first = autoRide(6);
+        leaveVolt();
+        main(() -> link.motion(0)); plugIn();
+        await(() -> onMain(() -> !service.isRecording()), 10 * S, "Out of sight, plugging in did not end the short ride");
+        await(() -> noticeOf(81) != null, 10 * S, "Out of sight, no notice with Undo");
+        require(rideSummary(first) == null && new File(new File(heldRoot, first), first + ".csv").isFile(), "Out of sight, the short ride was not held");
+        unplugAndSettle();
+        ensureFront();
+        await(() -> undoBar() != null && noticeOf(81) == null, 5 * S, "Back on screen with the notice live: no bar, or the notice stayed");
+        require(onMainText(() -> service.undoOffer()).equals(first), "The bar is not for the ride discarded out of sight");
+        log("back on screen with the notice live: the bar shows for that ride, the notice went");
+        // Record rides automatically waits 30 s after an unplug: the second ride is started by hand.
+        main(() -> service.startRide(""));
+        await(() -> onMain(() -> service.isRecording()), 5 * S, "The second ride did not start");
+        String second = onMainText(() -> service.rides.activeId());
+        for (int i = 0; i < 6; i++) { main(() -> { link.motion(12); link.status(); }); SystemClock.sleep(S); }
+        leaveVolt();
+        main(() -> link.motion(0)); plugIn();
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "Out of sight, the second short ride never ended");
+        await(() -> noticeOf(81) != null && new File(new File(heldRoot, second), second + ".csv").isFile(), 10 * S, "No notice, or the second ride not held");
+        int undoNotices = 0; for (StatusBarNotification n : getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications()) if (n.getId() == 81) undoNotices++;
+        StatusBarNotification notice = noticeOf(81);
+        Notification n = notice.getNotification();
+        NotificationManager manager = getTargetContext().getSystemService(NotificationManager.class);
+        android.app.NotificationChannel channel = manager.getNotificationChannel(n.getChannelId());
+        require(undoNotices == 1, "More than one Undo notice: " + undoNotices);
+        require(T.serviceRideNotSavedShort().contentEquals(n.extras.getCharSequence(Notification.EXTRA_TITLE)) && n.actions != null && n.actions.length == 1
+                && T.dashboardUndo().contentEquals(n.actions[0].title), "The notice doesn't say it with Undo: " + n.extras.getCharSequence(Notification.EXTRA_TITLE));
+        require(LiveNotices.QUIET_CHANNEL.equals(n.getChannelId()) && channel != null && channel.getSound() == null && !channel.shouldVibrate()
+                && n.getTimeoutAfter() == ScooterService.UNDO_NOTICE_MS, "The notice isn't silent on the quiet channel with its 10 minute timeout: " + n.getChannelId());
+        log("out of sight: one silent notice with Undo on " + n.getChannelId() + ", " + n.getTimeoutAfter() / 60000 + " min timeout; both rides held");
+        shade("undo-notice-" + label);
+        n.actions[0].actionIntent.send();
+        await(() -> rideSummary(second) != null && noticeOf(81) == null, 10 * S, "The notice's Undo did not restore the newer ride and take the notice away");
+        require(rideSummary(first) == null && new File(heldRoot, first).isDirectory(), "The older ride left the hold");
+        require(onMain(() -> service.undoShortRide(first)) && rideSummary(first) != null, "The older ride, its notice replaced, could not be restored");
+        log("the notice's Undo restored the newer ride and went; the older one restored too");
+        unplugAndSettle();
+
+        // 3. The notice's body (#651 F04): tapping it opens Volt on the bar for its ride; that Undo restores it.
+        ensureFront();
+        main(() -> service.startRide(""));
+        await(() -> onMain(() -> service.isRecording()), 5 * S, "The third ride did not start");
+        String third = onMainText(() -> service.rides.activeId());
+        for (int i = 0; i < 6; i++) { main(() -> { link.motion(12); link.status(); }); SystemClock.sleep(S); }
+        leaveVolt();
+        main(() -> link.motion(0)); plugIn();
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()) && noticeOf(81) != null, 10 * S, "Out of sight, no notice for the third ride");
+        android.app.ActivityOptions tap = android.app.ActivityOptions.makeBasic();
+        if (Build.VERSION.SDK_INT >= 34) tap.setPendingIntentBackgroundActivityStartMode(android.app.ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+        noticeOf(81).getNotification().contentIntent.send(getTargetContext(), 0, null, null, null, null, tap.toBundle());
+        await(() -> onMain(() -> service.isVisible()) && undoBar() != null && noticeOf(81) == null, 10 * S, "Tapping the notice did not open Volt on the bar for its ride");
+        require(onMainText(() -> service.undoOffer()).equals(third), "The bar is not for the tapped notice's ride");
+        View tappedBar = undoBar();
+        main(() -> tappedBar.findViewWithTag(ShortRideUndoBar.BUTTON_TAG).performClick());
+        await(() -> rideSummary(third) != null, 5 * S, "The bar's Undo after the notice tap did not bring the ride back");
+        require(!onMain(() -> service.undoShortRide(third)), "A second Undo restored it again");
+        log("the notice's body opened Volt on the bar for its ride; its Undo restored it, once");
+        unplugAndSettle();
+        main(() -> settings().edit().putBoolean("auto_record_rides", false).putBoolean(KEY, false).commit());
+    }
+    /** A 6 s automatic ride stopped by hand on screen, discarded and saved out; returns its id. */
+    private String discardOnScreen() {
+        String id = autoRide(6);
+        main(() -> service.stopRide());
+        await(() -> onMain(() -> !service.isRecording() && !service.phoneSaving()), 10 * S, "The short ride never finished saving");
+        require(rideSummary(id) == null, "The short ride was kept");
+        return id;
+    }
+    private String shellOut(String command) throws IOException {
+        try (ParcelFileDescriptor out = getUiAutomation().executeShellCommand(command); InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(out)) {
+            ByteArrayOutputStream text = new ByteArrayOutputStream(); byte[] buffer = new byte[1024]; int n;
+            while ((n = in.read(buffer)) >= 0) text.write(buffer, 0, n);
+            return text.toString("UTF-8");
+        }
+    }
+    /** The short-ride bar while it shows, or null. */
+    private View undoBar() { return onMainView(() -> activity.getWindow().getDecorView().findViewWithTag(ShortRideUndoBar.TAG)); }
+    private StatusBarNotification noticeOf(int id) { for (StatusBarNotification n : getTargetContext().getSystemService(NotificationManager.class).getActiveNotifications()) if (n.getId() == id) return n; return null; }
     /** The service's count of charge-ended stops tried (ScooterService.chargeEndStopsTried). */
     private int tried() { final int[] out = {0}; main(() -> out[0] = (Integer) field(service, "chargeEndStopsTried")); return out[0]; }
     /** Ends the hand stop's hold once no fresh motion is left, so no ride starts on the last moving sample. */

@@ -226,6 +226,11 @@ STEPS += [
     inst('charge-auto-record-ride-rules-away', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'riderulesaway', hidden_api=True),
     # Storage full when the plug-in ends a ride: one try and one toast, no loop; the rider's Stop saves it.
     inst('charge-auto-record-ride-rules-full', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'riderulesfull', hidden_api=True),
+    # A short ride's message with Undo (owner, Nov 24 2026): on screen the bar, Undo restores the ride byte for byte; out of
+    # sight one silent notice, the newer replacing the older, whose action restores it. At 344 dp, 412 dp and the Fold.
+    inst('short-ride-undo', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'undoshort', '-e', 'size_label', '344', '-e', 'theme', 'dark', size='344x882', hidden_api=True),
+    inst('short-ride-undo-412-large', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'undoshort', '-e', 'size_label', '412', '-e', 'theme', 'light', '-e', 'text_scale', '1.3', size='412x915', hidden_api=True),
+    inst('short-ride-undo-fold-large', PKG + '.ChargeAutoRecordValidation', '-e', 'only', 'undoshort', '-e', 'size_label', 'fold', '-e', 'theme', 'dark', '-e', 'text_scale', '1.3', size='790x820', hidden_api=True),
     # Idle efficiency: the connection notice posts only on a change, the keep-screen-on flag only on a change, the simulator's service stops out of sight.
     inst('idle-efficiency', PKG + '.IdleEfficiencyValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
