@@ -44,10 +44,14 @@ public final class LiveNotices {
     }
 
     /**
-     * A ride's notice that was swiped away (Android 14 and later let the owner dismiss even an ongoing foreground
-     * notice): Volt doesn't put it back for the rest of that ride, as Android asks of a Live Update. Each built
-     * connection notice says whether it is a ride's; the first one that isn't (the ride ended: saving it, or Connected)
-     * clears the mark, so the next ride shows again. Not thread-safe; the service calls it on its handler.
+     * A ride's Live Update that was swiped away (Android 16 lets the owner dismiss even a promoted foreground notice):
+     * Volt doesn't put it back for the rest of that ride, as Android asks of a Live Update. Only that notice is held: each
+     * built connection notice says whether it is the ride clock's Live Update, and the first one that isn't (a recording
+     * error, a phone sensor warning, the plain notice with Live updates off, or the ride ended) posts and clears the mark
+     * (#644 F08). Anything that shows the notice again clears it too (reshown: opening Volt restarts the foreground notice,
+     * #644 F06), so a notice that shows is never one whose updates are dropped. The mark lives only in the running service:
+     * if Android restarts Volt's service during the ride, the notice comes back (#644 F04, documented). Not thread-safe;
+     * the service calls it on its handler.
      */
     public static final class Dismissal {
         private boolean dismissed;
@@ -55,11 +59,17 @@ public final class LiveNotices {
         /** The owner dismissed the ride's notice (its delete intent). */
         public void dismissed() { dismissed = true; }
 
-        /** For each built connection notice: true when this post is held back because the owner dismissed this ride's notice. */
-        public boolean holds(boolean rideNotice) {
-            if (!rideNotice) dismissed = false;
+        /**
+         * For each built connection notice: true when this post is held back. holdable: the notice is the ride clock's
+         * Live Update (LiveNotices.promoteRide, asked); any other notice is never held and ends the hold.
+         */
+        public boolean holds(boolean holdable) {
+            if (!holdable) dismissed = false;
             return dismissed;
         }
+
+        /** The notice was shown again some other way (startForeground): the hold is over. */
+        public void reshown() { dismissed = false; }
 
         public boolean active() { return dismissed; }
     }
