@@ -1718,7 +1718,11 @@ public final class ScooterService extends Service {
                 int product=ModelRegistry.chargeReferenceProduct(modelDescriptor(active));
                 // A pause seen only here ends detection's charge too, so a charger swapped in the pause isn't taken for the
                 // old one (ChargerDetection forgets its choice when charging stops).
-                if(Boolean.FALSE.equals(facts.charging))chargerDetection.observe(active.id,product,false,null,null,null,0,now);
+                if(Boolean.FALSE.equals(facts.charging)){
+                    chargerDetection.observe(active.id,product,false,null,null,null,0,now);
+                    // So does ChargeSlowdown's: a quick replug in a background pause starts a new charge, not the old status.
+                    chargeSlowdown.observe(active.id,product,null,null,false,null,null,null,null,null,0);
+                }
                 chargeEstimateHold.observe(active.id,product,facts.charging,effectiveChargeCharger(),chargerChosen(),null,null,now,now);
             }
             if(!facts.profile.equals(chargeLiveCacheProfile)){chargeLiveCacheProfile=facts.profile;chargeLivePercent=chargeLiveLimit=null;}

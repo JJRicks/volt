@@ -25,13 +25,15 @@ package com.jjricks.volt;
  *     #STOCK_CV_EDGE_V}), below the charge limit less {@link #LIMIT_MARGIN} percent, and at least {@link #START_MS}
  *     after charging began or after a gap or pause in readings of {@link #GAP_MS} or more (a not-charging state, such as
  *     an unplug and replug, ends the charge);</li>
- * <li>slowed once the current stays below the show level for {@link #HOLD_MS} without a break, and, unless the battery
- *     reads {@link #HOT_NAME_C} or more, no sooner than {@link #SOFT_START_MS} after charging began: the fast
- *     charger's soft start (about 1.3 A) is not a slowdown, while heat right after a ride is the owner's case;</li>
+ * <li>slowed once the current stays below the show level for {@link #HOLD_MS} without a break and without rising
+ *     (a reading {@link #RISE_STEP_AMPS} or more above the one before starts the hold again: a charger ramping up is
+ *     not held low), and no sooner than {@link #HOT_START_MS} after charging began with the battery at
+ *     {@link #HOT_NAME_C} or more, {@link #SOFT_START_MS} otherwise: the fast charger's soft start (about 1.3 A) is
+ *     not a slowdown, while heat right after a ride is the owner's case;</li>
  * <li>cleared once it stays at the clear level (CLEAR x the expected current, or {@link #ANY_CLEAR_AMPS} by the
- *     any-charger rule) or more for {@link #CLEAR_MS}; at once on a jump from below the show level to the charger's
- *     normal level in one reading ({@link #jumped}); and at once when the charge leaves eligibility or another
- *     charger is chosen or detected;</li>
+ *     any-charger rule) or more for {@link #CLEAR_MS}; at once when it reaches the charger's normal level within
+ *     {@link #RISE_MS} of a reading below the show level ({@link #risen}); and at once when the charge leaves
+ *     eligibility or another charger is chosen or detected;</li>
  * <li>the cause is cold at {@link #COLD_NAME_C} or below, hot at {@link #HOT_NAME_C} or above, otherwise (or with
  *     no fresh temperature) plain. It is set when the state shows and kept while it shows, except that a plain
  *     one takes cold or hot once a temperature names it.</li>
@@ -97,7 +99,17 @@ public final class ChargeSlowdown {
      * a margin; a real slowdown below 35 C still shows 30 s sooner than 2.0.5's 120 s.
      */
     static final long SOFT_START_MS = 90_000L;
-    /** The standard charger's lowest bulk current (A): a jump to it from below ANY_SHOW_AMPS on the standard charger clears at once. */
+    /**
+     * With the battery at HOT_NAME_C or more nothing shows sooner than this after charging began: past the longest soft
+     * start in the owner's data (1.28 A held for 55 s) with 15 s to spare. The ramp after it does not count as held low
+     * (RISE_STEP_AMPS), so a soft start that rises slowly to full current still shows nothing.
+     */
+    static final long HOT_START_MS = 70_000L;
+    /** A reading this much above the one before (A) starts the hold again: readings move 0.02 to 0.03 A at a level. */
+    static final double RISE_STEP_AMPS = .3;
+    /** Reaching the charger's normal level within this long of a reading below the show level clears at once. */
+    static final long RISE_MS = 30_000L;
+    /** The standard charger's lowest bulk current (A): its normal level for a quick clear (risen). */
     static final double STANDARD_LOW_AMPS = 1.9;
     /**
      * The any-charger rule (A): slowed below ANY_SHOW_AMPS, cleared at ANY_CLEAR_AMPS or more. The standard charger's
@@ -148,6 +160,12 @@ public final class ChargeSlowdown {
     private long start, since = -1, last;
     /** The previous fresh current of this charge (A), or NaN. */
     private double lastAmps = Double.NaN;
+    /**
+     * When a reading of this charge was last below SHOW x its expected current, and its current (A); when one was last
+     * below ANY_SHOW_AMPS (0: none).
+     */
+    private long lowFast, lowAny;
+    private double lowFastAmps = Double.NaN;
     /** The warming fit: its first temperature's time, the open minute's sum and count, and the closed minutes' sums. */
     private long warmFirst = -1, warmMinute;
     private double minuteSum, sx, sy, sxx, sxy;
@@ -201,7 +219,7 @@ public final class ChargeSlowdown {
         if (last > 0 && (sampleMs < last || sampleMs - last > MAX_SILENCE_MS)) clearCharge();
         if (productId != Ut5MaxFastChargeReference.PRODUCT_ID || ratedAh == null || !FastChargeTaper.calibratedPack(ratedAh)) {
             // Not watched: a later reading of a watched pack starts its own START_MS.
-            on = false; since = -1; last = 0; temperature = null; warmFirst = -1; knownCharger = null; lastAmps = Double.NaN;
+            on = false; since = -1; last = 0; temperature = null; warmFirst = -1; knownCharger = null; lastAmps = Double.NaN; lowFast = lowAny = 0; lowFastAmps = Double.NaN;
             return;
         }
         if (last == 0 || sampleMs - last >= GAP_MS) { start = sampleMs; since = -1; }
@@ -216,7 +234,8 @@ public final class ChargeSlowdown {
         if (temperature != null) warming(temperature, sampleMs);
         double current = Math.abs(amps), expected = expectedAmps(soc), previous = lastAmps;
         lastAmps = current;
-        boolean early = (temperature == null || temperature < HOT_NAME_C) && sampleMs - start < SOFT_START_MS;
+        boolean hot = temperature != null && temperature >= HOT_NAME_C;
+        boolean early = sampleMs - start < (hot ? HOT_START_MS : SOFT_START_MS);
         double cutoff = limit != null && finite(limit) && limit > 0 && limit <= 100 ? limit : 100;
         boolean eligible = volts + FastChargeTaper.CV_DROP * current < CV_EDGE_V && soc < cutoff - LIMIT_MARGIN && sampleMs - start >= START_MS
                 && (fast || volts + STOCK_CV_DROP * current < STOCK_CV_EDGE_V);
@@ -224,29 +243,38 @@ public final class ChargeSlowdown {
         else {
             boolean want = fast ? (on ? current / expected < CLEAR : current / expected < SHOW)
                     : (on ? current < ANY_CLEAR_AMPS : current < ANY_SHOW_AMPS);
-            if (on && jumped(charger, previous, current, expected)) { on = false; since = -1; }
+            if (on && risen(charger, current, expected, lowFast > 0 && lowFastAmps < SHOW * expected ? lowFast : 0, lowAny, sampleMs)) { on = false; since = -1; }
             else if (want == on) since = -1;
             else {
-                if (since < 0) since = sampleMs;
+                // A rising current is a charger ramping up, not a level held low: the hold starts again.
+                if (since < 0 || want && finite(previous) && current >= previous + RISE_STEP_AMPS) since = sampleMs;
                 if (sampleMs - since >= (want ? HOLD_MS : CLEAR_MS) && !(want && early)) {
                     on = want; since = -1;
                     if (on) cause = cause(temperature);
                 }
             }
         }
+        if (current < SHOW * expected) { lowFast = sampleMs; lowFastAmps = current; }
+        if (current < ANY_SHOW_AMPS) lowAny = sampleMs;
         if (on && cause == Cause.PLAIN) cause = cause(temperature);
         if (on && temperature != null && temperature < COLD_FULL_C) coldSeen = true;
     }
 
     /**
-     * A jump to full power in one reading, which clears at once (a creep back across the band still takes CLEAR_MS):
-     * from below SHOW x the expected current to CLEAR x it or more on the fast charger, or with no charger known (only
-     * the fast charger reaches it); on the standard charger, from below ANY_SHOW_AMPS to its own STANDARD_LOW_AMPS.
+     * A rise to the charger's normal level, which clears at once (a slow drift back across the band still takes
+     * CLEAR_MS, so a current wobbling around the line does not flap it): this reading at the normal level and a reading
+     * below the show level within RISE_MS before it (lowFast, lowAny: their times, 0 for none). On the fast charger
+     * the normal level is CLEAR x the expected current, after a reading below SHOW x it; on the standard charger its
+     * own STANDARD_LOW_AMPS, after one below ANY_SHOW_AMPS; with no charger known, either. The caller passes a low
+     * reading only where its current is below SHOW x this reading's expected current, so the expected current falling
+     * at the BMS's 80% step (8.5 A, then 8.0 A expected) is no rise.
      */
-    static boolean jumped(ChargeSessionStore.Charger charger, double previous, double current, double expected) {
-        if (!finite(previous)) return false;
-        if (charger == ChargeSessionStore.Charger.STOCK) return previous < ANY_SHOW_AMPS && current >= STANDARD_LOW_AMPS;
-        return previous < SHOW * expected && current >= CLEAR * expected;
+    static boolean risen(ChargeSessionStore.Charger charger, double current, double expected, long lowFast, long lowAny, long sampleMs) {
+        boolean fast = current >= CLEAR * expected && lowFast > 0 && sampleMs - lowFast <= RISE_MS;
+        boolean standard = current >= STANDARD_LOW_AMPS && lowAny > 0 && sampleMs - lowAny <= RISE_MS;
+        if (charger == ChargeSessionStore.Charger.HIGH_SPEED) return fast;
+        if (charger == ChargeSessionStore.Charger.STOCK) return standard;
+        return fast || standard;
     }
 
     /**
@@ -281,7 +309,7 @@ public final class ChargeSlowdown {
 
     private void clearCharge() {
         on = coldSeen = fastRule = false; cause = null; temperature = null; start = last = 0; since = -1; warmFirst = -1;
-        knownCharger = null; lastAmps = Double.NaN;
+        knownCharger = null; lastAmps = Double.NaN; lowFast = lowAny = 0; lowFastAmps = Double.NaN;
     }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }
