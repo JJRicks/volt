@@ -389,6 +389,30 @@ public final class HubText {
     }
 
     /**
+     * The head row's words while saving is paused (RecordingFit.Pause), full or short (the narrow-label ladder,
+     * RecordingFit.pausedHead), in place of the start time or a link problem; null while it saves.
+     */
+    public static Msg recordingPaused(RecordingFit.Pause pause, boolean full) {
+        if (pause == RecordingFit.Pause.STORAGE_FULL) return full ? M.hubRecordingPausedStorage() : M.hubRecordingPausedStorageShort();
+        if (pause == RecordingFit.Pause.SAVE_FAILED) return full ? M.hubRecordingSaveFailed() : M.hubRecordingSaveFailedShort();
+        return null;
+    }
+
+    /**
+     * The recording view's spoken text while saving is paused: as recordingSpoken, with the paused words (full) after the
+     * time in place of any link problem, which matters less while nothing is being saved.
+     */
+    public static Msg recordingSpokenPaused(long elapsedMs, RidingFocus.Link link, boolean off, RecordingFit.Pause pause, CharSequence... readings) {
+        Msg paused = recordingPaused(pause, true);
+        if (paused == null) return recordingSpoken(elapsedMs, link, off, readings);
+        String text = T.ridingReadingSpoken(recordingTimeSpoken(elapsedMs, RidingFocus.Link.CONNECTED, false), paused.render());
+        for (int i = 0; i + 1 < readings.length; i += 2)
+            if (readings[i + 1] != null && readings[i + 1].length() > 0)
+                text = T.hubRecordingSpokenNext(text, T.ridingReadingSpoken(readings[i], readings[i + 1]));
+        return M.hubRecordingDescription(text);
+    }
+
+    /**
      * The range reading as the recording's Range cell shows it: the parked card's own figure (RangeFigure, which its
      * "about 23 mi left" takes too: the same rounding, units and text-only readings), marked as an estimate as riding
      * mode's range chips mark one: "≈ 23 mi", "≈ 23 mi / 37 km" with both units. Null for no reading.
@@ -708,6 +732,9 @@ public final class HubText {
      */
     public static Msg[] pageRowTitles(String page) {
         if (page == null) return new Msg[0];
+        // Settings › Home style: its three moment switches, the recording moment's last. Answered here so the switch's
+        // case below keeps its line as it was (an added switch is an added line).
+        if (HubPages.SETTINGS_HOME.equals(page)) return new Msg[] {M.homeMomentCharging(), M.homeMomentRide(), M.hubMomentRecording()};
         switch (page) {
             case HubPages.RIDE_RIDES: return new Msg[] {M.ridesCompareTwo()};
             // Then, as on every page below, the rows shown only in some states, whose English is in the page's own words
@@ -722,7 +749,7 @@ public final class HubText {
             case HubPages.DATA: return new Msg[] {M.statsFavouritesTitle()};
             case HubPages.DATA_STORAGE: return new Msg[] {M.moreHistorySave(), M.moreHistoryClearScooter(), M.moreHistoryClearAll()};
             case HubPages.SETTINGS: return new Msg[] {M.morePrefsAppearance()};
-            case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide(), M.hubMomentRecording()};
+            case HubPages.SETTINGS_HOME: return new Msg[] {M.homeMomentCharging(), M.homeMomentRide()};
             case HubPages.SETTINGS_SCOOTERS: return new Msg[] {M.morePrefsAutoConnect(), M.morePrefsBackground(), M.morePrefsRefresh()};
             case HubPages.SETTINGS_ABOUT: return new Msg[] {M.moreAboutNearby(), M.moreAboutLocation(), M.moreAboutNotifications(),
                     M.moreAboutOnlineMap(), M.moreAboutActivity(), M.moreAboutLicenses(), M.moreAboutConnect(), M.moreNoticesView()};

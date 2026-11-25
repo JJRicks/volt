@@ -291,6 +291,17 @@
          any connection problem, then the trip, the battery, the estimated range and the speed ("Recording for 14
          minutes. Trip, 2.5 mi. Battery, 73%. Range (est.), about 23 mi"). Tapping it opens the Ride page. -->
     <string name="hub_recording_description" volt:screen="Clean Home while recording" volt:purpose="accessibility" volt:safety="ride">%1$s. Opens the Ride page.</string>
+    <!-- In orange at the right of "Recording" (in place of the start time) while Volt can't save the ride being recorded
+         because the phone's storage is full: the recording goes on, but its readings aren't being saved. Also spoken
+         after the recording's time. The short rung where the row is too narrow; where even that doesn't fit beside
+         "Recording", the dot stands alone. -->
+    <string name="hub_recording_paused_storage" volt:screen="Clean Home while recording" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="300dp@14sp" volt:safety="ride">Paused: storage full</string>
+    <string name="hub_recording_paused_storage_short" volt:screen="Clean Home while recording" volt:purpose="status" volt:ladder="short" volt:max="150dp@14sp" volt:safety="ride">Storage full</string>
+    <!-- The same place, after the rider ended the ride and Volt couldn't save it because the storage is full: the ride
+         keeps recording until the rider frees space and taps Retry save on the Ride page (rides_retry_save; a tap here
+         opens that page). The short rung where the row is too narrow. -->
+    <string name="hub_recording_save_failed" volt:screen="Clean Home while recording" volt:purpose="status" volt:ladder="full" volt:overflow="short" volt:max="300dp@14sp" volt:safety="ride">Storage full: free space, then Retry save</string>
+    <string name="hub_recording_save_failed_short" volt:screen="Clean Home while recording" volt:purpose="status" volt:ladder="short" volt:max="150dp@14sp" volt:safety="ride">Not saved: storage full</string>
 
     <!-- Switch in Settings › Home style, beside home_moment_charging and home_moment_ride (strings_home.xml): while
          Volt records a ride, Clean Home's top area shows that ride as it records (its time, a speed graph, the trip,

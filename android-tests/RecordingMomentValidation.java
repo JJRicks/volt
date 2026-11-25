@@ -41,6 +41,9 @@ import java.util.function.BooleanSupplier;
  *       ("Recording · 14:38"); the Range cell is the parked card's figure ("about 23 mi left": the same number) marked as
  *       an estimate; the ribbon draws the ride; the Open riding mode button is whole on screen, at least 48 dp high, and
  *       opens riding mode, and a tap on the moment opens the Ride page. Every part fits inside the top area.</li>
+ *   <li>Saving paused, storage full while recording and the failed save: the head row says so in orange in Home's own
+ *       words, whole on screen (full, short, or without "Recording"), the dot hollow and still, no speed now; cleared,
+ *       the moment is healthy again.</li>
  *   <li>Reconnecting (the simulator's dropout): the head row says so in riding mode's words, the dot hollow.</li>
  *   <li>Stopped through the service's own stop: Just back shows that ride, the Lock bar still in its place.</li>
  *   <li>A new recording with no speed reading: the ribbon's calm empty state, no line.</li>
@@ -62,6 +65,14 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
     /** The mock-up's sample: 14:38 recorded, 2.5 mi (4.02 km), 73%, about 23 mi (37.2 km) left, 16.8 mph (27.04 km/h). */
     private static final long ELAPSED_MS = 878_000L;
     private static final double TRIP_KM = 4.02, ODOMETER_KM = 1204.02, RANGE_KM = 37.2, SPEED_KMH = 27.04;
+    /**
+     * The fixture's sample spacing (ms), well under RideStore.MAX_INTEGRATION_INTERVAL_MS (3000): wider, every interval is
+     * a gap and the ribbon has no line to draw. Spacing the samples over the time since boot did that once an emulator had
+     * been up about 9 minutes.
+     */
+    private static final long SAMPLE_STEP_MS = 2000;
+    /** When the last fixture recording was seeded (wall clock), for the time check. */
+    private long seededWall;
 
     @Override public void onCreate(Bundle arguments) { args = arguments == null ? new Bundle() : arguments; start(); }
     @Override public void onStart() {
@@ -122,7 +133,9 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         settle();
         int[] parked = place();
         String parkedRange = parkedRange();
-        require(quantities(parkedRange).contains("23 mi"), "The parked card's range line reads \"" + parkedRange + "\" for 37.2 km held");
+        // 37.2 km is "about 23 mi left" in miles and with both units, "about 37 km left" in km (-e units).
+        String parkedFigure = "km".equals(units) ? "37 km" : "23 mi";
+        require(quantities(parkedRange).contains(parkedFigure), "The parked card's range line reads \"" + parkedRange + "\" for 37.2 km held, not " + parkedFigure);
         shot("parked");
         checks.add(size + ": parked, the range line \"" + parkedRange + "\", Lock bar " + describe(parked));
 
@@ -140,6 +153,7 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
                 + "; its time the Ride row's; its range the parked card's (\"" + text(stat(2)) + "\" for \"" + parkedRange + "\"); every part inside the area; the button whole and at least 48 dp");
         openRidingFromButton();
         openRidePageFromMoment();
+        storagePaused(parked);
 
         // Reconnecting: the simulator's dropout holds the link in Connecting, as a real dropout does.
         main(() -> service.ble.setSimulationScript(ScooterSimulation.DROPOUT));
@@ -184,6 +198,61 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
         shot("no-speed");
         checks.add(size + ": a recording with no speed reading: the ribbon shows its label and baseline, no line");
         main(() -> { service.ble.setSimulationScript(""); service.ble.tickSimulation(); });
+    }
+
+    /**
+     * The service pauses saving the ride, in both its states (ScooterService.recordingPause, set with the recordingError
+     * its sample write's or its save's failure sets; a real full storage can't be made on a disposable emulator): the
+     * head row shows Home's own words for it in orange, whole on screen by the narrow-label ladder (full, then short, then
+     * without "Recording"; no ellipsis, inside the row, clear of "Recording"); the dot takes the problem look (hollow,
+     * still), the speed now goes and the description says it; the top area and the Lock bar stay put. Cleared, the
+     * moment is healthy again.
+     */
+    private void storagePaused(int[] parked) throws Exception {
+        // The service's error text is a marker here, not its real English: Home must show its own words, never that text.
+        pausedState(parked, RecordingFit.Pause.STORAGE_FULL, "service error text (storage)", "storage-paused");
+        pausedState(parked, RecordingFit.Pause.SAVE_FAILED, "service error text (save)", "save-failed");
+        main(() -> { setField(service, "recordingError", null); setField(service, "recordingPause", RecordingFit.Pause.NONE); });
+        await(() -> { activity.redraw(); return field(view(), "look") == RecordingPill.Look.RECORDING && ((View) field(view(), "label")).isShown()
+                && !String.valueOf(side().getText()).equals(HubText.recordingPaused(RecordingFit.Pause.SAVE_FAILED, false).render()); }, 10000,
+                "Cleared, the moment did not return to Recording: \"" + onMain(() -> side().getText()) + "\"");
+        requireFits();
+        checks.add(size + ": saving resumed: the moment healthy again, \"" + onMain(() -> side().getText()) + "\"");
+    }
+
+    private void pausedState(int[] parked, RecordingFit.Pause pause, String serviceWords, String shotName) throws Exception {
+        String full = HubText.recordingPaused(pause, true).render(), shorter = HubText.recordingPaused(pause, false).render();
+        main(() -> { setField(service, "recordingPause", pause); setField(service, "recordingError", serviceWords); });
+        await(() -> { activity.redraw(); String shown = side().getText().toString(); return shown.equals(full) || shown.equals(shorter); }, 10000,
+                "The head row does not say the recording is paused (" + pause + "): \"" + onMain(() -> side().getText()) + "\"");
+        settle();
+        String[] seen = new String[2];
+        main(() -> {
+            RecordingView moment = view();
+            TextView words = side(), label = (TextView) field(moment, "label");
+            seen[0] = words.getText().toString();
+            seen[1] = label.isShown() ? "beside Recording" : "beside the dot alone";
+            require(field(moment, "look") == RecordingPill.Look.RECORDING_PROBLEM, "Paused, the dot does not take the problem look");
+            require(field(moment, "pulse") == null, "Paused, the dot still pulses");
+            require(words.isShown() && words.getCurrentTextColor() == ((Ui) field(moment, "ui")).orange, "Paused, the words are not shown in orange");
+            // What fits on screen, not only the text: one line, no ellipsis, the words' width inside the view, the view inside
+            // the head row and clear of "Recording" where it shows.
+            require(words.getLayout() != null && words.getLineCount() == 1 && words.getLayout().getEllipsisCount(0) == 0,
+                    "Paused, the words are cut: \"" + seen[0] + "\"");
+            require(words.getPaint().measureText(seen[0]) <= words.getWidth() - words.getPaddingLeft() - words.getPaddingRight() + 1,
+                    "Paused, the words \"" + seen[0] + "\" are wider than their view (" + words.getWidth() + " px)");
+            Rect row = windowRect(field(moment, "head")), side = windowRect(words);
+            require(row.contains(side), "Paused, the words " + side + " run out of the head row " + row);
+            if (label.isShown()) require(windowRect(label).right <= side.left, "Paused, the words overlap \"Recording\"");
+            require(!(Boolean) field(field(moment, "ribbon"), "nowShown"), "Paused, the ribbon still shows a speed now");
+            require(String.valueOf(moment.getContentDescription()).contains(full), "Paused, the description does not say so: " + moment.getContentDescription());
+            require(!String.valueOf(moment.getContentDescription()).contains(serviceWords) && !seen[0].contains(serviceWords),
+                    "Paused, Home shows or reads the service's own error text");
+        });
+        requireAreaKept(parked, "saving paused (" + pause + ")");
+        requireFits();
+        shot(shotName);
+        checks.add(size + ": saving paused (" + pause + "): \"" + seen[0] + "\" " + seen[1] + ", whole, in orange; the dot hollow and still, no speed now, spoken");
     }
 
     /** Opens riding mode with the button (the Ride quick action's way) and comes back with Back. */
@@ -293,15 +362,20 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
      * A recording in the service's own ride store, started elapsedMs ago (wall clock): with samples, the mock-up's ride (a
      * ride with a stop at a red light, 4.02 km so far, 78% to 73%), up to the odometer the simulator holds; without, none
      * yet. The service then records on, as for any active ride. Its monotonic start is as far back as this boot allows.
+     * The samples run back from 1.5 s ago every {@link #SAMPLE_STEP_MS} on both clocks (closer on the monotonic one only on
+     * an emulator up for less than the ride), so no interval is a gap however long the emulator has been up.
      */
     private String seedRecording(long elapsedMs, boolean samples) {
         return onMain(() -> {
             long wall = System.currentTimeMillis(), nowMono = SystemClock.elapsedRealtime();
+            seededWall = wall;
             long start = wall - elapsedMs, mono = Math.max(1000L, nowMono - elapsedMs);
             String id = service.rides.start(profile, "Synthetic Ride clock", start, mono);
             if (samples) {
-                int steps = 176;
-                long monoStep = Math.max(1, (nowMono - 1500 - mono) / steps), wallStep = (elapsedMs - 1500) / steps;
+                int steps = (int) ((elapsedMs - 1500) / SAMPLE_STEP_MS);
+                long wallStep = SAMPLE_STEP_MS, monoStep = Math.min(SAMPLE_STEP_MS, (nowMono - 1500 - mono) / steps);
+                require(monoStep > 0 && monoStep < RideStore.MAX_INTEGRATION_INTERVAL_MS, "The fixture's sample step " + monoStep + " ms is not under the gap limit");
+                long wallFirst = wall - 1500 - steps * wallStep, monoFirst = nowMono - 1500 - steps * monoStep;
                 double km = 0;
                 for (int i = 0; i <= steps; i++) {
                     double t = i / (double) steps;
@@ -313,12 +387,16 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
                     if (i == steps) kmh = SPEED_KMH;
                     km += i == 0 ? 0 : kmh * wallStep / 3_600_000.0;
                     Map<String, RideStore.Sample> s = new LinkedHashMap<>();
-                    long at = mono + i * monoStep;
+                    long at = monoFirst + i * monoStep;
                     s.put("speed_kmh", new RideStore.Sample(kmh, at));
                     s.put("battery_percent", new RideStore.Sample(78 - 5 * t, at));
                     s.put("odometer_km", new RideStore.Sample(ODOMETER_KM - TRIP_KM + TRIP_KM * Math.min(1, t), at));
-                    service.rides.sample(start + i * wallStep, at, s);
+                    service.rides.sample(wallFirst + i * wallStep, at, s);
                 }
+                RideStore.Summary seeded = service.rides.activeSummary();
+                require(seeded != null && seeded.gapCount == 0, "The fixture recording has " + (seeded == null ? "no summary" : seeded.gapCount + " gaps")
+                        + " (sample step " + monoStep + " ms, up " + nowMono / 1000 + " s)");
+                checks.add(size + ": the fixture's " + (steps + 1) + " samples every " + monoStep + " ms (up " + nowMono / 1000 + " s), no gap");
             }
             require(service.isRecording(), "The fixture recording is not recording");
             return id;
@@ -352,7 +430,8 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             if (ribbon.isShown()) require(top.contains(windowRect(ribbon)) && ribbon.getHeight() >= dp(RecordingFit.MIN_RIBBON_DP) - 1,
                     "The ribbon " + windowRect(ribbon) + " is not whole in the area or under its least height");
             TextView label = (TextView) field(moment, "label");
-            require(label.isShown() && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0
+            // While saving is paused, "Recording" may give way to the paused words (RecordingFit.pausedHead) on a narrow row.
+            if (field(moment, "pause") == RecordingFit.Pause.NONE || label.isShown()) require(label.isShown() && label.getLayout() != null && label.getLayout().getEllipsisCount(0) == 0
                     && label.getPaint().measureText(label.getText().toString()) <= label.getWidth() + 1, "\"Recording\" is not whole");
             TextView clock = (TextView) field(moment, "clock");
             require(clock.getPaint().measureText(clock.getText().toString()) <= moment.getWidth() + 1, "The time is wider than the area");
@@ -374,11 +453,19 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             return seen[0].equals(HubText.rideRecording(seen[1]).render());
         }, 5000, "The Ride row reads \"" + seen[0] + "\" while the moment shows " + seen[1]);
         String clock = seen[1];
-        require(clock.startsWith("14:") || ELAPSED_MS != 878_000L, "The fixture's time reads " + clock + ", not about 14:38");
+        // The time from the seeding on: at least the fixture's 14:38, at most that plus the time this run has taken since.
+        long shown = clockSeconds(clock), least = ELAPSED_MS / 1000, most = (ELAPSED_MS + System.currentTimeMillis() - seededWall) / 1000 + 1;
+        require(shown >= least && shown <= most, "The fixture's time reads " + clock + ", not between " + RidingFocus.clockText(least * 1000) + " and " + RidingFocus.clockText(most * 1000));
         checks.add(size + ": the moment's time " + clock + " is the Ride row's \"" + seen[0] + "\"");
     }
 
-    /** The Range cell: the parked card's figure (its number and unit), marked as an estimate. */
+    /** "14:38" or "1:02:48" in seconds. */
+    private static long clockSeconds(String clock) {
+        long total = 0;
+        for (String part : clock.trim().split(":")) total = total * 60 + Long.parseLong(part.trim());
+        return total;
+    }
+
     /**
      * The Range cell is the parked card's figure, marked as an estimate: its quantities (number and unit, as whole tokens)
      * are the card's, in order; both units wherever the row shows them, which at 1x text is wherever the card does
@@ -428,9 +515,24 @@ public final class RecordingMomentValidation extends ValidationInstrumentation {
             if (!panel.isShown()) { checks.add(size + ": the ribbon gives way here, as RecordingFit decides"); return; }
             Object trace = field(panel, "trace");
             int points = trace == null ? 0 : ((RecordingFit.Trace) trace).size();
-            if (line) require(points >= 20, "The ribbon draws " + points + " points for a 14 min ride");
-            else require(points == 0, "The ribbon draws a line (" + points + " points) with no speed reading");
-            checks.add(size + ": the ribbon shows, " + Math.round(panel.getHeight() / density) + " dp, " + (line ? points + " points" : "its empty state"));
+            if (line) {
+                require(points >= 20, "The ribbon draws " + points + " points for a 14 min ride");
+                // A connected line: the fixture's ride has no gap, so no break from its start to its end (the service's own
+                // samples after it may add one in the last few seconds on a busy emulator, never before).
+                RecordingFit.Trace t = (RecordingFit.Trace) trace;
+                int breaks = 0, run = 0, longest = 0;
+                for (int i = 0; i < points; i++) {
+                    if (t.breaks[i]) { run = 0; if (i > 0 && t.x[i] < .98f) breaks++; }
+                    run++;
+                    longest = Math.max(longest, run);
+                }
+                require(breaks == 0 && longest >= Math.max(20, points * 9 / 10),
+                        "The ribbon's line is broken: " + breaks + " breaks before its last 2%, longest run " + longest + " of " + points + " points");
+                checks.add(size + ": the ribbon shows, " + Math.round(panel.getHeight() / density) + " dp, " + points + " points in one connected line (longest run " + longest + ")");
+                return;
+            }
+            require(points == 0, "The ribbon draws a line (" + points + " points) with no speed reading");
+            checks.add(size + ": the ribbon shows, " + Math.round(panel.getHeight() / density) + " dp, its empty state");
         });
     }
 
