@@ -1,5 +1,16 @@
 VOLT 2.0.6 — A CHARGE ENDS THE RIDE, SHORT RIDES AREN'T KEPT, CHARGING SLOWED SOONER, LIVE UPDATES FOR RIDES, THE RIDE CLOCK ON CLEAN HOME (versionCode 66)
-Draft, November 25, 2026. The release checks below are still to run.
+Built, swept and tagged at commit 007ae64e, #653's merge into main,
+November 25, 2026. That merge is the release commit (RELEASING.md step
+2): the candidate was built on it, and the tests, ship_check and the
+VOLT_RELEASE=1 build ran again on it before the draft. When the final
+build ran, main was still at the release commit, so the checked, built
+and tagged commit is one SHA (step 7). One pull request merged into main
+after the final build and before the publish: #654, which changes
+android-tests/RegenDisplayValidation.java only (see regen-display under
+the sweep below). The draft and publish scripts checked that nothing
+outside android-tests/ changed after the release commit, so main is
+ahead of the tag by test code only. The release APK is identical to the
+swept one outside META-INF. Its hash is recorded below, after publishing.
 
 - Cut from main. Every pull request merged into main since v2.0.5
   (9934885b) is in it:
@@ -20,10 +31,31 @@ Draft, November 25, 2026. The release checks below are still to run.
   (2.0.5's record in this file) and #636 (contributor docs) change docs
   only; none changes the app. The language top-up for this release's 18
   new texts (#652) and this release's own version, changelog and docs
-  come after them.
-  [PHASE 2: the last PR merged before the release commit; for each PR,
-  CI on its merged head and the independent review on the head that
-  merged.]
+  come after them: #653 (version, changelog and docs) merged after #652,
+  and its merge is the release commit. That makes 14 pull requests: #635
+  to #653 apart from #638, #639, #641 and #648 (#640 is an issue, not a
+  pull request). #638 and #639 are still open; #650 carries them with
+  their review fixes. #641 (a prototype of the Live Update designs) and
+  #648 (a Ride clock follow-up) were closed without merging.
+- Every one of the 14 merged with CI passing on its merged head (4 checks
+  each: android-build, core-tests, english-proof and web-setup), and the
+  release commit passed the same 4.
+- The independent review: #637 and #646 were reviewed by the full
+  council, three Claude seats and three GPT seats; the other 12 by a
+  Claude seat and a GPT seat together, each run apart from the authoring
+  session. Earlier passes requested changes on 9 of them (#636, #642 to
+  #646, #650, #651 and #653); each was fixed and reviewed again, #643 in
+  seven passes. No last pass requested changes. For 13 of the 14 the last
+  pass was on the merged head. For #650 the head moved after the last
+  pass only by a merge of main, which brought in #643 and #649 and had
+  one conflict, in ScooterService.java. The pull request's own diff is
+  line for line the reviewed one, and CI passed on its merged head. The
+  45 P3s upheld on the last passes (on 13 of the 14) don't block; those
+  not fixed by a later pull request of this release are left for later
+  releases. Among them, two text fits ship as they are (#652): in French
+  the recording card's Range label is cut («Autonom…») in a split-screen
+  window about 220 dp wide, and in Dutch the short-ride message breaks
+  inside «opgeslagen» in a 280 dp window at 110% text.
 - run-release-sweep.py lists 367 steps on main at #651's merge, 23 more
   than 2.0.5's 344, none removed: auto-start-own-pause,
   charge-auto-record-ride-rules, -away and -full (#643);
@@ -34,9 +66,13 @@ Draft, November 25, 2026. The release checks below are still to run.
   short-ride-undo, -412-large and -fold-large (#651). Every validation
   registered in android-tests/AndroidManifest.xml is covered (the
   script's own guard).
-  [PHASE 2: confirm the step list and counts on the release commit.]
-- Languages: [PHASE 2: ship_check --release --aapt required result and the
-  per-language counts, from the release commit. Before the top-up, 18
+  Confirmed on the release commit: 367 steps, the same list the sweep
+  below ran, and 23 more than v2.0.5's 344 with none removed (compared
+  with --list on both).
+- Languages: ship_check --release --aapt required on the release commit:
+  PASS. All ten beta languages (es, pt-PT, pt-BR, sv, de, fr, it, nl, tr,
+  pl) have 0 of 4199 keys falling back to English, and aapt 36.1.0
+  compiled every language's texts exactly. Before the top-up, 18
   keys per language fell back to English: charge_live_chip_title,
   charge_live_chip_finish and service_channel_rides_charging (#645);
   hub_moment_recording, hub_recording_started, hub_recording_speed,
@@ -47,19 +83,76 @@ Draft, November 25, 2026. The release checks below are still to run.
   hub_recording_paused_storage_short, hub_recording_save_failed and
   hub_recording_save_failed_short (#650); service_ride_not_saved_short
   (#651). The top-up also widens hub_recording_range_short's English
-  budget so the shipped range word fits in es, fr, it, pt-BR and pt-PT.]
-- Release candidate: [PHASE 2: commit, VOLT_RELEASE=1 build, APK SHA-256,
-  certificate equal to 2.0.5's, release gates, tests/run.sh suites, the
-  owner-capture guard, capture-owner and hardware-sweep tests.]
-- run-release-sweep.py on that build: [PHASE 2: emulators used, steps
-  listed, first-pass gating and report-only numbers as printed (from the
-  merged result of a split sweep, with its pseudo-locale note), each rerun
-  and why, numbers after reruns, rides-timing, ride auto-save.] The sweep
-  runs on the shared test machines and this Mac, under the owner's
-  standing approval for release candidates on the shared test machines
-  (RELEASING.md step 4, from November 20, 2026).
-- Hardware: [PHASE 2: the parked hardware sweep's report.md outcomes, or
-  the owner's decision to ship without one.] Not yet tried on real
+  budget so the shipped range word fits in es, fr, it, pt-BR and pt-PT.
+  #652 translated the 18 in all ten languages and made that change, made
+  and checked as its pull request describes.
+- Release candidate checks on the release commit (007ae64e), November 25,
+  2026, 12:38 to 12:43 AM MST:
+  - Pinned Shizuku dependencies verified. tests/run.sh passes (247
+    suites). The owner-capture guard, capture-owner, hardware-sweep and
+    release-sweep summary tests pass.
+  - VOLT_RELEASE=1 bash build.sh with the release key on that commit:
+    versionName 2.0.6 (no -dev), versionCode 66, signed with 2.0.5's
+    certificate. APK SHA-256
+    d2e11847aca85b7dc35eda2ab3dff9aec207ab15bc8578ff19277462ec171bb5.
+    This is the build the sweep below ran. The release gates passed on it:
+    it is zipaligned and reads 2.0.6 (66). The validation runner was
+    built with the same key.
+- run-release-sweep.py on that build, November 25, 2026, 12:47 to 1:47 AM
+  MST (59 minutes, the finale included), under the owner's standing
+  approval for release candidates on the shared test pool (RELEASING.md
+  step 4, from November 20, 2026): emulators on four machines of the
+  shared test pool, one of them a pool Mac, and on the maintainer's Mac
+  (four lanes for the main run, the compat steps alongside it, and two
+  rerun lanes). The pool machines gave the final verdict of 293 steps and
+  the Mac of 74. The 367 steps were spread over three runs, merged by the
+  release kit's merge-tally.py, which keeps each step's newest verdict,
+  and cross-checked with report-merge: the main run (364 steps, every
+  step but the two compat steps and rides-timing), the compat run (2
+  steps, on the Mac), and a finale alone on the Mac (rides-timing, the
+  ride auto-save check and an idle rerun of regen-display). A fourth
+  source, regen-display's rerun with a corrected runner (below), was
+  merged last. Every step has a verdict. Closing numbers of the merged
+  result, as printed:
+  - Gating steps: 275 passed, 0 failed.
+  - Report-only steps (never counted as passes): 83 ran, 0 did not
+    finish, 9 skipped. The 9 skipped are the en-XA and ar-XB
+    pseudo-locale steps: no pseudo-locale APK was supplied.
+  - The ride auto-save check passed (585 checks).
+  397 tries in the 3 runs, and one more for regen-display after them:
+  - 28 steps sent to the pool Mac hadn't started within 4 minutes of
+    submission and were handed to the Mac's rerun lanes. 27 of them
+    passed or reported there; the 28th was regen-display (below).
+  - fold-keeps-place-clean failed on a pool machine after 20 assertions:
+    "A synthetic charge sample was refused". It passed when rerun on the
+    Mac (265 assertions).
+  - regen-display's verdict changed between runs: failed (main), failed
+    (finale), passed (the corrected rerun). It failed first on one of the
+    Mac's rerun lanes while the Mac was busy, then on an idle emulator in
+    the finale, both times with "Bar's regen fill, confirmed=true: green
+    pixels 0" (106 assertions). The test was wrong, not the app: it
+    counted ok-green pixels in the first frame below -0.02 W, while its
+    riding script's regen was only -7 W and -2 W, a fill thinner than the
+    zero line drawn over it. Riding mode itself showed the confirmed regen
+    in green: the step's screenshot shows "-2 W" and "regen · peak 2 W".
+    #654 (test only, android-tests/RegenDisplayValidation.java) makes the
+    step wait for -25 W. The validation runner was rebuilt from #654's
+    commit 678235da with the release key, its certificate equal to the
+    candidate's, and the step was rerun by hand against the same
+    candidate APK on an idle emulator on the Mac, 1:51 to 1:58 AM MST: it
+    passed, 107 assertions, 966 green pixels at -24 W. #654 merged into
+    main after the final build (see the top of this section).
+  - Every translated gps-accuracy-riding step finished, at both sizes.
+    They report only and are not counted as passes.
+  - rides-timing passed, alone on the Mac. Best of two cold starts per
+    case, slowest case: first frame 110 ms and service start command
+    95 ms (budgets 1.5 s). In any run, Rides showed its first row within
+    39 ms, and the longest main-thread message on Rides was at most 36 ms
+    cold and 39 ms warm (budget 1 s). The longest main-thread message at
+    launch was 105 ms in any single run.
+- No parked hardware sweep. The owner's scooter wasn't reachable for one,
+  so this release is checked on emulators and by tests only, and nothing
+  in it was tried on a real scooter. Not yet tried on real
   hardware: a real plug-in ending a recording ride and the charge
   recording and live card that follow, the 30-second wait after a real
   charge, a real short ride's discard and Undo, the hand-stop hold through
@@ -98,9 +191,32 @@ Draft, November 25, 2026. The release checks below are still to run.
   BackupPlanTest, and on an emulator (recording-moment-*, including
   Italian at 1.3x text for the warnings).
 - ModelRegistry.REPORTED is unchanged from 2.0.5 (22131, 23452, 24162,
-  24182, 25462, 25852). [PHASE 2: confirm no compatibility report with a
-  new Model ID reached the report inbox since 2.0.5; adding one is the
-  owner's step.]
+  24182, 25462, 25852), so no new Model ID is recorded in this release.
+  Whether a compatibility report with a new Model ID reached the report
+  inbox since 2.0.5 is not part of this release's evidence; adding any
+  that did is the owner's step.
+- Published November 25, 2026 at 2:25 AM MST (09:25 UTC) from main, on
+  the owner's go, without a hardware sweep: tag v2.0.6 points at
+  007ae64e591452a03b2f634a64dfeae652367eb4, #653's merge, the release
+  commit. Main was then at #654's merge (5c2c7ae2), ahead of the release
+  commit by android-tests/RegenDisplayValidation.java only; make-draft.sh
+  and publish.sh ran with ALLOW_TESTDOCS_AFTER=1, which checks that only
+  android-tests/ changed after the release commit. Its tests (247
+  suites), ship_check and VOLT_RELEASE=1 build ran again from 1:58 to
+  2:03 AM, before the draft. The release APK (SHA-256
+  d2d254e24ffe876faae225b8eab4fae17c0263390ee459b381e0cb8d26b25f7d) is
+  content-identical outside META-INF to the swept candidate (88 of 88
+  entries), signed with 2.0.5's certificate, zipaligned, and reads 2.0.6
+  (66). The source ZIP's SHA-256 is
+  56aa83199dc2977deb0e377ea80e55f189c72a2e5b7ef83e8452e0b6ec248e7f. The
+  drafted and published assets were downloaded again and matched the
+  final build, the release gates passed on the published APK, the tag
+  and the latest release were checked, and the update check offers its
+  Download: the APK is listed at its expected address. The homepage was
+  deployed from the tag at 2:25 AM MST with site/server/deploy-release.sh;
+  the live variant stayed as chosen, and the deploy's checks passed
+  (every served file of its manifest at its URL, byte for byte, 126 of
+  126). The live page shows Volt 2.0.6.
 
 --- Previous verification ---
 
