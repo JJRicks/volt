@@ -83,6 +83,13 @@
     <!-- Lock screen choice: nothing but Android's "contents hidden". -->
     <string name="charge_live_lock_hidden" volt:screen="Live charging sheet" volt:purpose="segmented choice"
         volt:max="96dp@14sp">Hidden</string>
+    <!-- Section label above the Live Update chip choice (Android 16 and later): what the small chip in the phone's
+         status bar shows while Volt is closed. Its other choice is charge_live_lock_level ("Level"). -->
+    <string name="charge_live_chip_title" volt:screen="Live charging sheet" volt:purpose="section label">In the status bar</string>
+    <!-- Chip choice: the clock time charging should finish ("4:45 PM"), the same time the card shows; the level while
+         Volt has no time yet. -->
+    <string name="charge_live_chip_finish" volt:screen="Live charging sheet" volt:purpose="segmented choice"
+        volt:max="96dp@14sp">Finish time</string>
     <!-- What holding the connection means, and how to let other apps connect. -->
     <string name="charge_live_when" volt:screen="Live charging sheet" volt:purpose="explanation">While it shows, other apps — the official one included — can\'t connect. Tap Disconnect on the card to let them.</string>
     <!-- Notifications are off for Volt: the card can't show. -->
@@ -90,7 +97,8 @@
 
     <!-- ===== More › Developer options: Live Update status (Android 16 promotion) ===== -->
 
-    <!-- Row title: whether Android promotes the live charging card to a Live Update (the status-bar chip). -->
+    <!-- Row title: whether Android promotes the live charging card, or a recording ride's notification, to a Live
+         Update (the status-bar chip). -->
     <string name="charge_live_update_row" volt:screen="Developer options" volt:purpose="row"
         volt:max="220dp@15sp">Live Update status</string>
     <!-- Status: Android shows the card as a Live Update now. -->

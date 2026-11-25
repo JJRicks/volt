@@ -124,6 +124,8 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         require(n.deleteIntent != null, "A swipe away is heard (delete intent)");
         foregroundValid("ride");
         quiet("ride");
+        channel("ride", LiveNotices.QUIET_CHANNEL);
+        quietChannelSettings();
         // The clock counts up by itself: nothing reposts the notice while only the time moves.
         long postTime = posted.getPostTime();
         SystemClock.sleep(20 * S);
@@ -140,6 +142,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
                 10 * S, "The notice after the ride kept the ride's promotion: " + describe());
         foregroundValid("ride ended");
         quiet("ride ended");
+        channel("ride ended", LiveNotices.SCOOTER_CHANNEL);
     }
 
     /** A recording in the service's own RideStore, a minute old, its odometer moved; the service then works as for any ride. */
@@ -238,6 +241,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         await(() -> "62%".equals(chip()), 10 * S, "Level: the chip is the level: " + chip());
         foregroundValid("card");
         quiet("card");
+        channel("card", LiveNotices.QUIET_CHANNEL);
         holdFor("charge-level");
         main(() -> service.setChargeLiveChip(ChargeLiveState.Chip.FINISH));
         require("finish".equals(settings().getString(ScooterService.CHARGE_LIVE_CHIP, null)), "The choice is saved");
@@ -264,6 +268,7 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
                 10 * S, "Scooter connected kept the card's promotion: " + describe());
         foregroundValid("card ended");
         quiet("card ended");
+        channel("card ended", LiveNotices.SCOOTER_CHANNEL);
         main(() -> settings().edit().remove(ScooterService.CHARGE_LIVE_CHIP).commit());
     }
     /** The chip Finish time should show now: the time in the card's "Done 4:45 PM · 412 W", else the level. */
@@ -327,6 +332,20 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
             at = next;
         }
         return "";
+    }
+    /** Notice 71 is on this channel now (LiveNotices.channel): the quiet one for a ride and the card, the connection one otherwise. */
+    private void channel(String what, String expected) {
+        StatusBarNotification n = connection();
+        require(n != null && expected.equals(n.getNotification().getChannelId()), what + ": expected channel " + expected + ": " + describe());
+    }
+    /** The quiet channel as Volt creates it: Default importance, no sound, no vibration, no lights, named Rides and charging. */
+    private void quietChannelSettings() {
+        NotificationManager manager = (NotificationManager) getTargetContext().getSystemService(Context.NOTIFICATION_SERVICE);
+        android.app.NotificationChannel c = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+        require(c != null && c.getImportance() == NotificationManager.IMPORTANCE_DEFAULT && c.getSound() == null && !c.shouldVibrate() && !c.shouldShowLights(),
+                "The quiet channel: Default importance, silent, no vibration, no lights: " + c);
+        require("Rides and charging".contentEquals(c.getName()), "The quiet channel's name: " + c.getName());
+        log("quiet channel: " + c.getName() + ", importance " + c.getImportance() + ", sound " + c.getSound() + ", lock screen " + c.getLockscreenVisibility());
     }
     private void dumpsys(String what) throws Exception { log(what + " dumpsys: " + record71(true).replace('\n', ' ')); }
     private void holdFor(String stage) {

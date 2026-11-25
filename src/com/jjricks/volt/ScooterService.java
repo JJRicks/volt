@@ -3626,6 +3626,7 @@ public final class ScooterService extends Service {
             manager.createNotificationChannel(channel);
             scooterChannelLabel = label;
         }
+        quietChannel(manager);
         if (noticeOpen == null)
             noticeOpen = PendingIntent.getActivity(this, 0, openVolt(), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         PendingIntent content = noticeOpen;
@@ -3700,6 +3701,8 @@ public final class ScooterService extends Service {
         noticeBuiltRide = rideNotice;
         noticeHeld = rideDismissal.holds(rideNotice);
         if (rideNotice) builder.setDeleteIntent(rideNoticeDismissed(false));
+        // A recording ride and the live card go on the quiet Rides and charging channel (LiveNotices.channel); the rest stays on the connection channel.
+        builder.setChannelId(LiveNotices.channel(rideNotice, live != null, channelAllowed(LiveNotices.QUIET_CHANNEL)));
         // Android 16 and later: the ride's notice asks to be a Live Update, its chip the ride clock (LiveNotices.promoteRide).
         boolean rideClock = rideNotice && ride != null && ride.startWallMs > 0;
         if (live == null && LiveNotices.promoteRide(Build.VERSION.SDK_INT, liveUpdateRequestAvailable(), liveUpdateAllowed(), rideClock))
@@ -3735,6 +3738,36 @@ public final class ScooterService extends Service {
         Double battery = ble.liveNumber("battery_percent");
         String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
+    }
+    /** The quiet channel's name as last set, so it is renamed only when the language changes. */
+    private String quietChannelLabel;
+    /**
+     * Creates or renames Volt's quiet Rides and charging channel (LiveNotices.QUIET_CHANNEL): Default importance, so a
+     * ride's and the live card's notices show on the lock screen and above Silent, with no sound, no vibration and no
+     * lights, so nothing ever alerts (nor pops up: that takes High). Created once with the connection channel's on/off and
+     * its lock screen choice, so someone who turned Volt's connection notices off or hid them from the lock screen keeps
+     * that; from then on the channel is theirs in Android's settings, and Volt only renames it.
+     */
+    private void quietChannel(NotificationManager manager) {
+        String label = T.serviceChannelRidesCharging();
+        if (label.equals(quietChannelLabel)) return;
+        NotificationChannel existing = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+        if (existing != null) {
+            existing.setName(label);
+            manager.createNotificationChannel(existing);
+            quietChannelLabel = label;
+            return;
+        }
+        NotificationChannel scooter = manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
+        boolean off = scooter != null && scooter.getImportance() == NotificationManager.IMPORTANCE_NONE;
+        NotificationChannel channel = new NotificationChannel(LiveNotices.QUIET_CHANNEL, label, off ? NotificationManager.IMPORTANCE_NONE : NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setSound(null, null);
+        channel.enableVibration(false);
+        channel.enableLights(false);
+        channel.setShowBadge(false);
+        if (scooter != null && scooter.getLockscreenVisibility() == Notification.VISIBILITY_SECRET) channel.setLockscreenVisibility(Notification.VISIBILITY_SECRET);
+        manager.createNotificationChannel(channel);
+        quietChannelLabel = label;
     }
     /** Recorded distance in the rider's units, or null before the odometer has moved. */
     private String rideDistanceText(RideStore.Summary ride) {

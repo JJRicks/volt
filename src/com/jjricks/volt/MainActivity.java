@@ -4038,6 +4038,8 @@ public final class MainActivity extends Activity implements ScreenHost {
         final AlertDialog dialog;
         final Switch toggle;
         final SegmentedSelector lock;
+        /** Android 16 and later: what the Live Update's chip shows; null on older Androids, which have no chip. */
+        final SegmentedSelector chip;
         final LinearLayout permission;
         ChargeLiveSheet(){
             final AlertDialog[] self=new AlertDialog[1];
@@ -4059,6 +4061,16 @@ public final class MainActivity extends Activity implements ScreenHost {
             });
             lock.setTag("charge_live_lock");
             body.addView(lock,new LinearLayout.LayoutParams(-1,-2));
+            // The chip's choice (owner, Nov 24 2026): Level, as 2.0 shipped it, or Finish time (the card's own time, the level while it has none).
+            if(Build.VERSION.SDK_INT>=ChargeLiveUpdate.SDK){
+                body.addView(design.sectionLabel(T.chargeLiveChipTitle()));
+                chip=new SegmentedSelector(design,T.chargeLiveChipTitle(),new String[]{T.chargeLiveLockLevel(),T.chargeLiveChipFinish()},choice->{
+                    if(scooterService==null){dialog().dismiss();return;}
+                    scooterService.setChargeLiveChip(ChargeLiveState.Chip.values()[choice]);
+                });
+                chip.setTag("charge_live_chip");
+                body.addView(chip,new LinearLayout.LayoutParams(-1,-2));
+            }else chip=null;
             // Notifications off: the card can't show, so say so and take the owner to the one place that fixes it.
             permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge_live_permission");
             permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
@@ -4089,6 +4101,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             toggle.setChecked(on);
             lock.select(scooterService.chargeLiveDetail().ordinal(),false);
             lock.setAlpha(on?1f:0.5f);
+            if(chip!=null){chip.select(scooterService.chargeLiveChip().ordinal(),false);chip.setAlpha(on?1f:0.5f);}
             permission.setVisibility(on&&!scooterService.chargeLiveAllowed()?View.VISIBLE:View.GONE);
         }
     }
