@@ -462,13 +462,29 @@ public final class LiveUpdatesValidation extends ValidationInstrumentation {
         channel("scooter off", LiveNotices.QUIET_CHANNEL);
         foregroundValid("scooter off");
         quiet("scooter off");
-        require(!"Allow app notifications so the Stop action stays available".equals(onMainGet(() -> service.chargeCaptureUnavailable())),
-                "Only the connection channel off: a charge recording isn't refused for notifications");
         log("scooter channel off: " + describe());
-        channelOff(LiveNotices.QUIET_CHANNEL);
-        require(!onMain(() -> service.chargeLiveAllowed()), "Both channels off: the card can't show");
-        require("Allow app notifications so the Stop action stays available".equals(onMainGet(() -> service.chargeCaptureUnavailable())),
-                "Both channels off: a charge recording is refused for notifications: " + onMainGet(() -> service.chargeCaptureUnavailable()));
+        // Once the service posts its foreground notice to a channel the app itself turned off (Volt in front posts Scooter
+        // connected there), Android raises that channel back to Low; it keeps a person's own switch in Settings off. So each
+        // check below turns the channels off again and reads the gates in that same main-thread turn, before any repost.
+        final boolean[] allowed = {false, true};
+        final String[] refused = {null, null};
+        main(() -> {
+            NotificationManager manager = (NotificationManager) getTargetContext().getSystemService(Context.NOTIFICATION_SERVICE);
+            android.app.NotificationChannel scooter = manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
+            scooter.setImportance(NotificationManager.IMPORTANCE_NONE);
+            manager.createNotificationChannel(scooter);
+            allowed[0] = service.chargeLiveAllowed();
+            refused[0] = service.chargeCaptureUnavailable();
+            android.app.NotificationChannel quiet = manager.getNotificationChannel(LiveNotices.QUIET_CHANNEL);
+            quiet.setImportance(NotificationManager.IMPORTANCE_NONE);
+            manager.createNotificationChannel(quiet);
+            allowed[1] = service.chargeLiveAllowed();
+            refused[1] = service.chargeCaptureUnavailable();
+        });
+        require(allowed[0], "Only the connection channel off: the card may show");
+        require(!"Allow app notifications so the Stop action stays available".equals(refused[0]), "Only the connection channel off: a charge recording isn't refused for notifications: " + refused[0]);
+        require(!allowed[1], "Both channels off: the card can't show");
+        require("Allow app notifications so the Stop action stays available".equals(refused[1]), "Both channels off: a charge recording is refused for notifications: " + refused[1]);
         log("both channels off");
         main(() -> link.charging(OFF));
     }

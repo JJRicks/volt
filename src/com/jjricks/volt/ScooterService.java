@@ -3802,10 +3802,10 @@ public final class ScooterService extends Service {
     /**
      * Creates or renames Volt's quiet Rides and charging channel (LiveNotices.QUIET_CHANNEL): Default importance, so a
      * ride's and the live card's notices show on the lock screen and above Silent, with no sound, no vibration and no
-     * lights, so nothing ever alerts (nor pops up: that takes High). Created once with the connection channel's on/off,
-     * so someone who turned Volt's connection notices off keeps that; from then on the channel is theirs in Android's
-     * settings, and Volt only renames it. A lock screen choice can't be copied: Android 16 ignores an app's lock screen
-     * visibility on a new channel (#645 F05, checked on the emulator), so the new channel starts with Android's default.
+     * lights, so nothing ever alerts (nor pops up: that takes High). Created once, always at Default (owner, Nov 24: the
+     * connection channel's off state isn't copied; #645 F04); from then on the channel is theirs in Android's settings,
+     * and Volt only renames it. A lock screen choice can't be copied: Android 16 ignores an app's lock screen visibility
+     * on a new channel (#645 F05, checked on the emulator), so the new channel starts with Android's default.
      */
     private void quietChannel(NotificationManager manager) {
         String label = T.serviceChannelRidesCharging();
@@ -3817,9 +3817,9 @@ public final class ScooterService extends Service {
             quietChannelLabel = label;
             return;
         }
-        NotificationChannel scooter = manager.getNotificationChannel(LiveNotices.SCOOTER_CHANNEL);
-        boolean off = scooter != null && scooter.getImportance() == NotificationManager.IMPORTANCE_NONE;
-        NotificationChannel channel = new NotificationChannel(LiveNotices.QUIET_CHANNEL, label, off ? NotificationManager.IMPORTANCE_NONE : NotificationManager.IMPORTANCE_DEFAULT);
+        // Always Default (owner, Nov 24): the connection channel's off state isn't copied, so the cards show even where
+        // "Scooter connection & recording" is off.
+        NotificationChannel channel = new NotificationChannel(LiveNotices.QUIET_CHANNEL, label, NotificationManager.IMPORTANCE_DEFAULT);
         channel.setSound(null, null);
         channel.enableVibration(false);
         channel.enableLights(false);
