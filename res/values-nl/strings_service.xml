@@ -307,6 +307,8 @@
     <string name="service_ride_finishing">Bezig met afronden van de vorige rit</string>
     <!-- src:42878a885535e9b4f60fdfcea021a21fff4b0386 -->
     <string name="service_ride_saved_auto">Rit automatisch opgeslagen</string>
+    <!-- src:e9b4e504ee292a273fea9d60455e2a6e7249f178 -->
+    <string name="service_ride_not_saved_short">Rit niet opgeslagen, te kort</string>
     <!-- src:fa4d152beb13f030271b45acaba1774c5f766841 -->
     <string name="service_auto_save_failed">Kopie van rit niet opgeslagen</string>
     <!-- src:1ca68074495f70d2e3b5dc2a66f74d1528d5fd26 -->

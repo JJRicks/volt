@@ -234,6 +234,10 @@
     <string name="hub_recording_speed">Velocidad de este viaje</string>
     <!-- src:9e272fa1e7e14f3dc5cb408212a703c17170b52d -->
     <string name="hub_recording_speed_short">Velocidad</string>
+    <!-- src:e035744dcbe17ac57b2f0283930e5dacb2955b12 -->
+    <string name="hub_recording_range">Autonomía est.</string>
+    <!-- src:815eedafb99650341c770794f40e6488e59a3b3d -->
+    <string name="hub_recording_range_short">Autonomía</string>
     <!-- src:24714a05cd504f1a0914e9c79572d389ff95fa82 -->
     <string name="hub_recording_speed_now">%1$s ahora</string>
     <!-- src:eb10a53b46f74881d3ac6c3be375938719680d4c -->
